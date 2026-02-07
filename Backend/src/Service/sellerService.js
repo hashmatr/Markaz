@@ -21,7 +21,7 @@ class SellerService {
             phoneNumber: sellerData.phoneNumber,
             pickupAddress: savedAddress._id,
             GSTNumber: sellerData.gstNumber,
-            password: sellerData.password,
+            password: sellerData.passwo`rd,
             bankDetails: sellerData.bankDetails,
             businessDetails: sellerData.businessDetails
         })
