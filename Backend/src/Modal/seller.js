@@ -22,10 +22,7 @@ const sellerSchema = new mongoose.Schema({
     unique: true,
     match: [/^\d{10}$/, 'Please provide a valid 10-digit mobile number']
   },
-  alternateNumber: {
-    type: String,
-    match: [/^\d{10}$/, 'Invalid alternate number']
-  },
+
   password: {
     type:string,
     required:true,
