@@ -2,116 +2,135 @@ const mongoose = require('mongoose');
 const userRoles = require('../domain/userRole');
 const AccountStatus = require('../domain/AccountStatus');
 
-const sellerSchema = new mongoose.Schema({
-  // --- Personal & Contact Details ---
-  fullName: {
-    type: String,
-    required: [true, 'Seller full name is required'],
-    trim: true
-  },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-    match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
-  },
-  phoneNumber: {
-    type: String,
-    required: [true, 'Phone number is required'],
-    unique: true,
-    match: [/^\d{10}$/, 'Please provide a valid 10-digit mobile number']
-  },
-
-  password: {
-    type:string,
-    required:true,
-    select:false
-  },
-
-  pickupAddress: {
-    type: String,
-    ref: 'Address',
-  },
-
-  // --- Store & Brand Details ---
-  storeInfo: {
-    storeName: {
-      type: String,
+const sellerSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
       unique: true,
-      trim: true
     },
-    storeDescription: String,
-    storeLogo: String, // URL to image
-    officialWebsite: String
-  },
+    // --- Store & Brand Details ---
+    storeName: {
+      type: String,
+      required: [true, 'Store name is required'],
+      unique: true,
+      trim: true,
+      maxlength: [100, 'Store name cannot exceed 100 characters'],
+    },
+    storeSlug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+    },
+    storeDescription: {
+      type: String,
+      maxlength: [1000, 'Store description cannot exceed 1000 characters'],
+    },
+    storeLogo: {
+      public_id: String,
+      url: String,
+    },
+    storeBanner: {
+      public_id: String,
+      url: String,
+    },
+    officialWebsite: String,
 
-  // --- Business & GST Details ---
-  businessDetails: {
-    registeredAddress: {
-      flatNo: String,
-      area: String,
-      city: String,
-      state: String,
-      pincode: { type: String, required: true }
-    },
-    gstNumber: {
+    // --- Contact Details ---
+    businessEmail: {
       type: String,
-      required: true,
-      uppercase: true,
-      match: [/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST format']
+      required: [true, 'Business email is required'],
+      lowercase: true,
+      trim: true,
     },
-    panNumber: {
+    businessPhone: {
       type: String,
-      required: true,
-      uppercase: true,
-      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN format']
-    }
-  },
+      required: [true, 'Business phone is required'],
+      trim: true,
+    },
+    pickupAddress: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Address',
+    },
 
-  // --- Bank Details (For Payouts) ---
-  bankDetails: {
-    accountHolderName: { type: String, required: true },
-    accountNumber: { type: String, required: true },
-    ifscCode: {
-      type: String,
-      required: true,
-      uppercase: true,
-      match: [/^[A-Z]{4}0[A-Z0-9]{6}$/, 'Invalid IFSC code']
+    // --- Business & GST Details ---
+    businessDetails: {
+      registeredAddress: {
+        flatNo: String,
+        area: String,
+        city: String,
+        state: String,
+        pincode: { type: String },
+      },
+      gstNumber: {
+        type: String,
+        uppercase: true,
+      },
+      panNumber: {
+        type: String,
+        uppercase: true,
+      },
     },
-    bankName: { type: String, required: true },
+
+    // --- Bank Details (For Payouts) ---
+    bankDetails: {
+      accountHolderName: String,
+      accountNumber: String,
+      ifscCode: {
+        type: String,
+        uppercase: true,
+      },
+      bankName: String,
+    },
+
+    // --- Admin Control ---
+    commissionRate: {
+      type: Number,
+      default: parseFloat(process.env.DEFAULT_COMMISSION_RATE) || 10,
+      min: 0,
+      max: 100,
+    },
+    totalEarnings: {
+      type: Number,
+      default: 0,
+    },
+    pendingPayout: {
+      type: Number,
+      default: 0,
+    },
     accountStatus: {
       type: String,
-      enum: [AccountStatus.PENDING, AccountStatus.UNDER_REVIEW, AccountStatus.ACTIVE, AccountStatus.SUSPENDED, AccountStatus.REJECTED],
-      default: AccountStatus.PENDING
-    }
+      enum: Object.values(AccountStatus),
+      default: AccountStatus.PENDING,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
+    },
+    totalProducts: {
+      type: Number,
+      default: 0,
+    },
+    totalOrders: {
+      type: Number,
+      default: 0,
+    },
   },
+  { timestamps: true }
+);
 
-  // --- Admin Control ---
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  status: {
-    type: String,
-    enum: ['active', 'pending', 'suspended'],
-    default: 'pending'
-  },
-  commissionRate: {
-    type: Number,
-    default: 10 // Default 10% commission charged by the marketplace
-  }
-}, 
+// Index for searching
+sellerSchema.index({ storeName: 'text', storeDescription: 'text' });
 
-    { 
-     timestamps: true, // Automatically creates createdAt and updatedAt fields
-    role:{
-    type:String,
-    enum:[userRoles.Seller],
-    default:userRoles.Seller
-  }
-    });
-
-const Seller = mongoose.model('Seller', sellerSchema);
-module.exports = Seller;
+module.exports = mongoose.model('Seller', sellerSchema);
