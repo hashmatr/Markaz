@@ -160,6 +160,18 @@ a {
   animation: slideUp 0.5s ease-out forwards;
 }
 
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
 /* ═══════════ SECTION SPACING ═══════════ */
 .section-pad {
   padding-top: 64px;

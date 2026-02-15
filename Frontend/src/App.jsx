@@ -14,16 +14,23 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import OrdersPage from './pages/OrdersPage';
+import OrderTrackingPage from './pages/OrderTrackingPage';
+import OrderSuccessPage from './pages/OrderSuccessPage';
 import SellersPage from './pages/SellersPage';
 import BecomeSellerPage from './pages/BecomeSellerPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import AddProductPage from './pages/AddProductPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import BrandsPage from './pages/BrandsPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <CartProvider>
           <div className="flex flex-col min-h-screen">
@@ -32,6 +39,9 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/shop" element={<ShopPage />} />
+                <Route path="/brands" element={<BrandsPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
                 <Route path="/product/:id" element={<ProductDetailPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
@@ -40,6 +50,8 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/orders/:id" element={<OrderTrackingPage />} />
+                <Route path="/order-success" element={<OrderSuccessPage />} />
                 <Route path="/sellers" element={<SellersPage />} />
                 <Route path="/become-seller" element={<BecomeSellerPage />} />
                 <Route path="/seller/dashboard" element={<SellerDashboardPage />} />

@@ -19,24 +19,28 @@ const errorHandler = (err, req, res, next) => {
   // Handle specific error types
   if (err.name === 'ValidationError') {
     status = 400;
-    message = 'Validation Error';
+    // Extract specific validation messages
+    const messages = Object.values(err.errors).map(val => val.message);
+    message = messages.join(', ') || 'Validation Error';
+  } else if (err.name === 'CastError') {
+    status = 400;
+    message = `Invalid format for field: ${err.path}`;
   } else if (err.name === 'JsonWebTokenError') {
     status = 401;
     message = 'Invalid token';
   } else if (err.name === 'TokenExpiredError') {
     status = 401;
     message = 'Token expired';
-  } else if (err.name === 'CastError') {
-    status = 400;
-    message = 'Invalid ID format';
   } else if (err.code === 11000) {
     status = 409;
-    message = 'Duplicate field value';
+    const field = Object.keys(err.keyValue)[0];
+    message = `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`;
   }
 
   return res.status(status).json({
     success: false,
     message: message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
 };

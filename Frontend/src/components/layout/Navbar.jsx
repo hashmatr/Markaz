@@ -62,10 +62,12 @@ export default function Navbar() {
     return (
         <>
             {/* ═══════ Top Banner ═══════ */}
-            <div style={{ backgroundColor: '#000', color: '#fff', textAlign: 'center', fontSize: '12px', padding: '8px 16px' }}>
-                Sign up and get 20% off to your first order.{' '}
-                <Link to="/register" style={{ textDecoration: 'underline', fontWeight: 600 }}>Sign Up Now</Link>
-            </div>
+            {!user && (
+                <div style={{ backgroundColor: '#000', color: '#fff', textAlign: 'center', fontSize: '12px', padding: '8px 16px' }}>
+                    Sign up and get 20% off to your first order.{' '}
+                    <Link to="/register" style={{ textDecoration: 'underline', fontWeight: 600 }}>Sign Up Now</Link>
+                </div>
+            )}
 
             {/* ═══════ Main Navbar ═══════ */}
             <header style={{ position: 'sticky', top: 0, zIndex: 50, backgroundColor: '#fff', borderBottom: '1px solid #e5e5e5' }}>
@@ -123,7 +125,7 @@ export default function Navbar() {
                                 </div>
                                 <Link to="/shop?sort=price_desc" style={{ transition: 'color 0.2s' }}>On Sale</Link>
                                 <Link to="/shop?sort=newest" style={{ transition: 'color 0.2s' }}>New Arrivals</Link>
-                                <Link to="/sellers" style={{ transition: 'color 0.2s' }}>Brands</Link>
+                                <Link to="/brands" style={{ transition: 'color 0.2s' }}>Brands</Link>
                             </nav>
                         )}
 
@@ -212,7 +214,7 @@ export default function Navbar() {
                             <Link to="/shop" onClick={() => setMobileOpen(false)} style={{ display: 'block', padding: '12px 0', fontWeight: 500, fontSize: '16px' }}>Shop</Link>
                             <Link to="/shop?sort=newest" onClick={() => setMobileOpen(false)} style={{ display: 'block', padding: '12px 0', fontSize: '16px' }}>New Arrivals</Link>
                             <Link to="/shop?sort=price_desc" onClick={() => setMobileOpen(false)} style={{ display: 'block', padding: '12px 0', fontSize: '16px' }}>On Sale</Link>
-                            <Link to="/sellers" onClick={() => setMobileOpen(false)} style={{ display: 'block', padding: '12px 0', fontSize: '16px' }}>Brands</Link>
+                            <Link to="/brands" onClick={() => setMobileOpen(false)} style={{ display: 'block', padding: '12px 0', fontSize: '16px' }}>Brands</Link>
                         </div>
                     </div>
                 )}

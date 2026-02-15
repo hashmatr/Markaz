@@ -13,7 +13,7 @@ export default function CartPage() {
     const [promoCode, setPromoCode] = useState('');
 
     const items = cart?.items || [];
-    const subtotal = items.reduce((s, i) => s + ((i.discountedPrice || i.price) * i.quantity), 0);
+    const subtotal = items.reduce((s, i) => s + (i.price * i.quantity), 0);
     const discount = items.reduce((s, i) => s + ((i.price - (i.discountedPrice || i.price)) * i.quantity), 0);
     const deliveryFee = subtotal > 0 ? 15 : 0;
     const total = subtotal - discount + deliveryFee;

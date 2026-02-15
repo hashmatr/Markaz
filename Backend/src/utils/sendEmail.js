@@ -124,7 +124,7 @@ const getRegistrationEmailTemplate = (otp, email) => {
                 </div>
                 
                 <div class="warning">
-                    <strong>⚠️ Security Notice:</strong> Never share this OTP with anyone. Our team will never ask for your OTP via email, phone, or chat.
+                    <strong>Security Notice:</strong> Never share this OTP with anyone. Our team will never ask for your OTP via email, phone, or chat.
                 </div>
                 
                 <p>If you didn't register on Markaz Ecommerce, please ignore this email.</p>
@@ -176,7 +176,7 @@ const getPasswordResetEmailTemplate = (otp, email) => {
                 </div>
                 
                 <div class="warning">
-                    <strong>⚠️ Security Alert:</strong> If you didn't request a password reset, please secure your account immediately.
+                    <strong>Security Alert:</strong> If you didn't request a password reset, please secure your account immediately.
                 </div>
                 
                 <p>Do not share this OTP with anyone. Our support team will never ask for your OTP.</p>

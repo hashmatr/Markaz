@@ -90,7 +90,7 @@ class AuthService {
      */
     async refreshToken(refreshToken) {
         if (!refreshToken) {
-            throw Object.assign(new Error('Refresh token is required'), { status: 400 });
+            throw Object.assign(new Error('Refresh token is required'), { status: 401 });
         }
 
         // Verify refresh token

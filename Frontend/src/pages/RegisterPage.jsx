@@ -1,15 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiUser, FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
-    const { register } = useAuth();
+    const { register, user } = useAuth();
     const navigate = useNavigate();
     const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'CUSTOMER' });
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user) {
+            if (user.role === 'ADMIN') navigate('/admin');
+            else if (user.role === 'SELLER') navigate('/seller/dashboard');
+            else navigate('/');
+        }
+    }, [user, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
