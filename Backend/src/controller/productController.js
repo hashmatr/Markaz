@@ -99,6 +99,17 @@ class ProductController {
             message: result.message,
         });
     });
+    /**
+     * GET /api/products/brands - Get all brands
+     */
+    getBrands = asyncHandler(async (req, res) => {
+        const brands = await productService.getBrands();
+
+        return res.status(200).json({
+            success: true,
+            data: { brands },
+        });
+    });
 }
 
 module.exports = new ProductController();

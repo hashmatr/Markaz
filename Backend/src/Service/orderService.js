@@ -4,90 +4,147 @@ const Product = require('../Modal/Product');
 const Seller = require('../Modal/seller');
 const calculateCommission = require('../utils/calculateCommission');
 const ORDER_STATUS = require('../domain/orderStatus');
+const Address = require('../Modal/Address');
 
 class OrderService {
     /**
      * Create order from cart
      */
     async createOrder(userId, orderData) {
-        const { shippingAddressId, paymentMethod = 'COD', orderNotes } = orderData;
+        let { shippingAddressId, shippingAddress, paymentMethod = 'COD', orderNotes } = orderData;
 
-        // Get user's cart
+        // 1. Handle Shipping Address
+        if (!shippingAddressId && shippingAddress) {
+            try {
+                const newAddress = await Address.create(shippingAddress);
+                shippingAddressId = newAddress._id;
+            } catch (err) {
+                console.error('OrderService: Address creation failed:', err.message);
+                throw Object.assign(new Error('Invalid shipping address: ' + err.message), { status: 400 });
+            }
+        }
+
+        if (!shippingAddressId) {
+            throw Object.assign(new Error('Shipping address is required'), { status: 400 });
+        }
+
+        // 2. Get user's cart
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
         if (!cart || cart.items.length === 0) {
             throw Object.assign(new Error('Cart is empty'), { status: 400 });
         }
 
-        // Validate stock for all items
-        for (const item of cart.items) {
-            const product = await Product.findById(item.product._id || item.product);
-            if (!product || !product.isActive) {
-                throw Object.assign(new Error(`Product "${product?.title || 'Unknown'}" is no longer available`), { status: 400 });
-            }
-            if (product.quantity < item.quantity) {
-                throw Object.assign(new Error(`Insufficient stock for "${product.title}". Available: ${product.quantity}`), { status: 400 });
-            }
-        }
-
-        // Build order items with commission calculation
+        // 3. Build order items & Validate stock
         let totalCommission = 0;
+        let totalPrice = 0;
+        let totalDiscountedPrice = 0;
         const orderItems = [];
 
         for (const item of cart.items) {
-            const product = await Product.findById(item.product._id || item.product);
-            const seller = await Seller.findById(item.seller);
+            const product = item.product;
+            if (!product || !product.isActive) {
+                throw Object.assign(new Error(`Product is no longer available`), { status: 400 });
+            }
 
-            const itemTotal = (item.discountedPrice || item.price) * item.quantity;
+            const itemQty = Number(item.quantity || 1);
+            if (product.quantity < itemQty) {
+                throw Object.assign(new Error(`Insufficient stock for "${product.title}"`), { status: 400 });
+            }
+
+            // Find seller - fallback to product's seller
+            const sellerId = item.seller || product.seller;
+            if (!sellerId) {
+                throw Object.assign(new Error(`Seller information missing for product "${product.title}"`), { status: 400 });
+            }
+
+            const seller = await Seller.findById(sellerId);
+
+            // Force numeric conversion to prevent NaN
+            const itemPrice = Number(item.price || product.price || 0);
+            const itemDiscPrice = Number(item.discountedPrice || product.discountedPrice || itemPrice);
+
+            const itemTotalDisc = itemDiscPrice * itemQty;
             const { commission, sellerEarnings } = calculateCommission(
-                itemTotal,
+                itemTotalDisc,
                 seller?.commissionRate
             );
 
             totalCommission += commission;
+            totalPrice += itemPrice * itemQty;
+            totalDiscountedPrice += itemTotalDisc;
 
             orderItems.push({
                 product: product._id,
-                seller: item.seller,
-                quantity: item.quantity,
+                seller: sellerId,
+                quantity: itemQty,
                 size: item.size,
                 color: item.color,
-                price: item.price,
-                discountedPrice: item.discountedPrice || item.price,
+                price: itemPrice,
+                discountedPrice: itemDiscPrice,
                 commission,
                 sellerEarnings,
+                itemStatus: ORDER_STATUS.PENDING
             });
 
             // Decrease product stock
-            product.quantity -= item.quantity;
-            product.totalSold += item.quantity;
+            product.quantity -= itemQty;
+            product.totalSold += itemQty;
             await product.save();
 
-            // Update seller order count
+            // Update seller stats
             if (seller) {
-                seller.totalOrders += 1;
+                seller.totalOrders = (seller.totalOrders || 0) + 1;
                 await seller.save();
             }
         }
 
-        // Create order
-        const order = await Order.create({
-            user: userId,
-            orderItems,
-            shippingAddress: shippingAddressId,
-            paymentMethod,
-            totalPrice: cart.totalPrice,
-            totalDiscountedPrice: cart.totalDiscountedPrice,
-            discount: cart.discount,
-            totalCommission,
-            orderNotes,
-            paymentStatus: paymentMethod === 'COD' ? 'pending' : 'pending',
-        });
+        // 4. Create order
+        try {
+            // Normalize payment method to match enum
+            let normalizedPaymentMethod = paymentMethod || 'COD';
+            if (paymentMethod && paymentMethod.toLowerCase() === 'cod') normalizedPaymentMethod = 'COD';
+            if (paymentMethod && (paymentMethod.toLowerCase() === 'card' || paymentMethod.toLowerCase() === 'online')) normalizedPaymentMethod = 'online';
 
-        // Clear cart
-        cart.items = [];
-        await cart.save();
+            // Ensure no NaN values reach Database
+            const finalTotalPrice = Number(totalPrice || 0);
+            const finalTotalDisc = Number(totalDiscountedPrice || 0);
+            const finalCommission = Number(totalCommission || 0);
 
-        return order;
+            console.log('OrderService: Attempting to create order:', {
+                user: userId,
+                itemsCount: orderItems.length,
+                totalPrice: finalTotalPrice,
+                paymentMethod: normalizedPaymentMethod
+            });
+
+            const order = await Order.create({
+                user: userId,
+                orderItems,
+                shippingAddress: shippingAddressId,
+                paymentMethod: normalizedPaymentMethod,
+                totalPrice: finalTotalPrice,
+                totalDiscountedPrice: finalTotalDisc,
+                discount: Math.max(0, finalTotalPrice - finalTotalDisc),
+                totalCommission: finalCommission,
+                orderNotes,
+                paymentStatus: 'pending',
+                orderStatus: ORDER_STATUS.PENDING
+            });
+
+            // 5. Clear cart
+            cart.items = [];
+            await cart.save();
+
+            return order;
+        } catch (err) {
+            console.error('OrderService: Order creation failed. Full error:', err);
+            // Throw more specific error if it's a validation error
+            if (err.name === 'ValidationError') {
+                const messages = Object.values(err.errors).map(e => e.message);
+                throw Object.assign(new Error('Validation failed: ' + messages.join(', ')), { status: 400 });
+            }
+            throw Object.assign(new Error('Order fulfillment failed: ' + err.message), { status: 400 });
+        }
     }
 
     /**
@@ -291,13 +348,51 @@ class OrderService {
             throw Object.assign(new Error('Order not found'), { status: 404 });
         }
 
+        const previousStatus = order.orderStatus;
+
         order.orderStatus = newStatus;
         order.orderItems.forEach((item) => {
             item.itemStatus = newStatus;
         });
 
+        // When delivered → mark payment as paid, credit seller earnings, add revenue + commission
         if (newStatus === ORDER_STATUS.DELIVERED) {
             order.deliveredAt = new Date();
+
+            // Mark payment as paid (this is what makes revenue + commission appear in admin dashboard)
+            if (order.paymentStatus !== 'paid') {
+                order.paymentStatus = 'paid';
+            }
+
+            // Credit each seller their earnings (only if not already credited)
+            if (previousStatus !== ORDER_STATUS.DELIVERED) {
+                const sellerUpdates = {};
+                for (const item of order.orderItems) {
+                    const sellerId = item.seller.toString();
+                    if (!sellerUpdates[sellerId]) {
+                        sellerUpdates[sellerId] = 0;
+                    }
+                    sellerUpdates[sellerId] += item.sellerEarnings || 0;
+                }
+
+                for (const [sellerId, earnings] of Object.entries(sellerUpdates)) {
+                    if (earnings > 0) {
+                        await Seller.findByIdAndUpdate(sellerId, {
+                            $inc: { totalEarnings: earnings, pendingPayout: earnings },
+                        });
+                    }
+                }
+            }
+        }
+
+        // When cancelled → restore product stock
+        if (newStatus === ORDER_STATUS.CANCELLED && previousStatus !== ORDER_STATUS.CANCELLED) {
+            order.cancelledAt = new Date();
+            for (const item of order.orderItems) {
+                await Product.findByIdAndUpdate(item.product, {
+                    $inc: { quantity: item.quantity },
+                });
+            }
         }
 
         await order.save();

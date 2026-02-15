@@ -64,6 +64,7 @@ export const productAPI = {
     update: (id, data) => API.put(`/products/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
     delete: (id) => API.delete(`/products/${id}`),
     getMyProducts: (params) => API.get('/products/seller/my-products', { params }),
+    getBrands: () => API.get('/products/brands'),
 };
 
 // Cart API

@@ -6,12 +6,12 @@ import { orderAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 const statusConfig = {
-    pending: { icon: FiClock, className: 'badge-warning' },
-    confirmed: { icon: FiCheckCircle, className: 'badge-info' },
-    processing: { icon: FiPackage, className: 'badge-purple' },
-    shipped: { icon: FiTruck, className: 'badge-info' },
-    delivered: { icon: FiCheckCircle, className: 'badge-success' },
-    cancelled: { icon: FiXCircle, className: 'badge-danger' },
+    pending: { icon: FiClock, className: 'badge-warning', color: '#d97706' },
+    confirmed: { icon: FiCheckCircle, className: 'badge-info', color: '#2563eb' },
+    processing: { icon: FiPackage, className: 'badge-purple', color: '#9333ea' },
+    shipped: { icon: FiTruck, className: 'badge-info', color: '#2563eb' },
+    delivered: { icon: FiCheckCircle, className: 'badge-success', color: '#16a34a' },
+    cancelled: { icon: FiXCircle, className: 'badge-danger', color: '#dc2626' },
 };
 
 export default function OrdersPage() {
@@ -58,15 +58,24 @@ export default function OrdersPage() {
                         const StatusIcon = config.icon;
                         return (
                             <Link key={order._id} to={`/orders/${order._id}`}
-                                style={{ display: 'block', border: '1px solid #e5e5e5', borderRadius: '20px', padding: '24px', transition: 'box-shadow 0.2s' }}>
+                                style={{
+                                    display: 'block', border: '1px solid #e5e5e5', borderRadius: '20px', padding: '24px',
+                                    transition: 'all 0.2s', textDecoration: 'none', color: 'inherit',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.08)'}
+                                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                            >
                                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '12px' }}>
                                     <div>
                                         <p style={{ fontSize: '12px', color: '#a3a3a3', marginBottom: '4px' }}>Order #{order._id?.slice(-8).toUpperCase()}</p>
                                         <p style={{ fontWeight: 700, fontSize: '18px' }}>${order.totalDiscountedPrice || order.totalPrice}</p>
                                         <p style={{ fontSize: '13px', color: '#737373', marginTop: '4px' }}>{order.orderItems?.length} item(s) • {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
-                                    <div className={config.className} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, alignSelf: 'flex-start', textTransform: 'capitalize' }}>
-                                        <StatusIcon size={16} />{order.orderStatus}
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                                        <div className={config.className} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, textTransform: 'capitalize' }}>
+                                            <StatusIcon size={16} />{order.orderStatus}
+                                        </div>
+                                        <span style={{ fontSize: '12px', color: '#2563eb', fontWeight: 500 }}>Track Order →</span>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', marginTop: '16px', overflowX: 'auto' }}>
@@ -79,6 +88,25 @@ export default function OrdersPage() {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Mini progress bar */}
+                                {order.orderStatus !== 'cancelled' && order.orderStatus !== 'refunded' && (
+                                    <div style={{ marginTop: '16px' }}>
+                                        <div style={{ display: 'flex', gap: '4px', height: '4px' }}>
+                                            {['pending', 'confirmed', 'processing', 'shipped', 'delivered'].map((step, idx) => {
+                                                const stepMap = { pending: 0, confirmed: 1, processing: 2, shipped: 3, delivered: 4 };
+                                                const currentStepIdx = stepMap[order.orderStatus] ?? 0;
+                                                return (
+                                                    <div key={step} style={{
+                                                        flex: 1, borderRadius: '2px',
+                                                        backgroundColor: idx <= currentStepIdx ? '#000' : '#e5e5e5',
+                                                        transition: 'background-color 0.3s',
+                                                    }} />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </Link>
                         );
                     })}

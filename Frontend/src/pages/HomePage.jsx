@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiArrowLeft } from 'react-icons/fi';
+import { FiArrowRight, FiArrowLeft, FiZap, FiUsers, FiBarChart2 } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 import ProductCard from '../components/product/ProductCard';
+import { useAuth } from '../context/AuthContext';
 import { productAPI } from '../api';
 
 const demoProducts = [];
@@ -15,6 +16,7 @@ const reviews = [
 ];
 
 export default function HomePage() {
+    const { user } = useAuth();
     const [newArrivals, setNewArrivals] = useState(demoProducts);
     const [topProducts, setTopProducts] = useState(topSelling);
 
@@ -218,6 +220,63 @@ export default function HomePage() {
                                 <p style={{ color: '#737373', fontSize: '14px', lineHeight: 1.7 }}>{review.text}</p>
                             </div>
                         ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══════════════════ BECOME A SELLER ═══════════════════ */}
+            <section className="section-pad">
+                <div className="container-main">
+                    <div style={{
+                        background: 'linear-gradient(135deg, #000 0%, #1a1a2e 50%, #16213e 100%)',
+                        borderRadius: '32px', padding: 'clamp(32px, 5vw, 64px)', position: 'relative', overflow: 'hidden',
+                    }}>
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                            background: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(255,255,255,0.04) 0%, transparent 50%)',
+                        }} />
+                        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>
+                            <div style={{ flex: '1 1 400px', minWidth: 280 }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 3 }}>
+                                    Start Selling Today
+                                </span>
+                                <h2 style={{
+                                    fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(24px, 4vw, 42px)',
+                                    fontWeight: 700, color: '#fff', lineHeight: 1.15, margin: '12px 0 20px',
+                                }}>
+                                    GROW YOUR BUSINESS WITH MARKAZ
+                                </h2>
+                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, lineHeight: 1.8, marginBottom: 28, maxWidth: 520 }}>
+                                    Join hundreds of successful sellers on Pakistan's fastest-growing marketplace. Reach millions of customers, manage your store with powerful tools, and watch your business grow.
+                                </p>
+                                <Link to={user?.role === 'SELLER' ? '/seller/dashboard' : '/become-seller'} style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                                    padding: '16px 40px', borderRadius: 9999, backgroundColor: '#fff', color: '#000',
+                                    fontSize: 15, fontWeight: 600, textDecoration: 'none', transition: 'all 0.25s',
+                                }}>
+                                    {user?.role === 'SELLER' ? 'Seller Dashboard' : 'Start Selling'} <FiArrowRight size={18} />
+                                </Link>
+                            </div>
+                            <div style={{ flex: '1 1 300px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {[
+                                    { icon: <FiZap size={24} color="#fff" />, title: 'Free Setup', desc: 'No upfront costs. Create your store in minutes and start selling immediately.' },
+                                    { icon: <FiUsers size={24} color="#fff" />, title: 'Millions of Customers', desc: 'Access our growing customer base across Pakistan with instant exposure.' },
+                                    { icon: <FiBarChart2 size={24} color="#fff" />, title: 'Powerful Analytics', desc: 'Track sales, manage inventory, and optimize your business with real-time insights.' },
+                                ].map(({ icon, title, desc }) => (
+                                    <div key={title} style={{
+                                        display: 'flex', gap: 16, padding: '20px 24px', borderRadius: 16,
+                                        backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)',
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                    }}>
+                                        <span style={{ fontSize: 28, flexShrink: 0 }}>{icon}</span>
+                                        <div>
+                                            <h4 style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{title}</h4>
+                                            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.6 }}>{desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

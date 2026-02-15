@@ -3,6 +3,7 @@ const Seller = require('../Modal/seller');
 const Order = require('../Modal/Order');
 const Product = require('../Modal/Product');
 const Category = require('../Modal/Category');
+const Review = require('../Modal/Review');
 const Payout = require('../Modal/Payout');
 const payoutService = require('../Service/payoutService');
 const sellerService = require('../Service/sellerService');
@@ -11,9 +12,12 @@ const slugify = require('slugify');
 
 class AdminController {
     /**
-     * GET /api/admin/dashboard - Admin dashboard stats
+     * GET /api/admin/dashboard - Admin dashboard stats (rich analytics)
      */
     getDashboard = asyncHandler(async (req, res) => {
+        const now = new Date();
+
+        // ─── Basic counts ─────────────────────────
         const [
             totalUsers,
             totalSellers,
@@ -21,6 +25,9 @@ class AdminController {
             totalOrders,
             pendingSellers,
             pendingPayouts,
+            totalReviews,
+            activeSellers,
+            totalCategories,
         ] = await Promise.all([
             User.countDocuments(),
             Seller.countDocuments(),
@@ -28,9 +35,12 @@ class AdminController {
             Order.countDocuments(),
             Seller.countDocuments({ accountStatus: 'pending' }),
             Payout.countDocuments({ status: 'pending' }),
+            Review.countDocuments(),
+            Seller.countDocuments({ accountStatus: 'active' }),
+            Category.countDocuments(),
         ]);
 
-        // Revenue calculation
+        // ─── Revenue calculation ──────────────────
         const revenueStats = await Order.aggregate([
             { $match: { paymentStatus: 'paid' } },
             {
@@ -42,11 +52,159 @@ class AdminController {
             },
         ]);
 
-        // Recent orders
+        // ─── Monthly Revenue (last 6 months) ─────
+        const sixMonthsAgo = new Date(now);
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const monthlyRevenue = await Order.aggregate([
+            { $match: { createdAt: { $gte: sixMonthsAgo }, paymentStatus: 'paid' } },
+            {
+                $group: {
+                    _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+                    revenue: { $sum: '$totalDiscountedPrice' },
+                    commission: { $sum: '$totalCommission' },
+                    count: { $sum: 1 },
+                },
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } },
+        ]);
+
+        // ─── Daily Orders (last 7 days) ──────────
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const dailyOrders = await Order.aggregate([
+            { $match: { createdAt: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                    count: { $sum: 1 },
+                    revenue: { $sum: '$totalDiscountedPrice' },
+                },
+            },
+            { $sort: { _id: 1 } },
+        ]);
+
+        // ─── Order Status Distribution ───────────
+        const orderStatusDist = await Order.aggregate([
+            { $group: { _id: '$orderStatus', count: { $sum: 1 } } },
+        ]);
+
+        // ─── New users last 24 hours ─────────────
+        const oneDayAgo = new Date(now);
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+        const newUsersToday = await User.countDocuments({ createdAt: { $gte: oneDayAgo } });
+
+        // ─── New users last 7 days (daily) ────────
+        const dailyNewUsers = await User.aggregate([
+            { $match: { createdAt: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                    count: { $sum: 1 },
+                },
+            },
+            { $sort: { _id: 1 } },
+        ]);
+
+        // ─── New orders last 24 hours ────────────
+        const newOrdersToday = await Order.countDocuments({ createdAt: { $gte: oneDayAgo } });
+
+        // ─── Revenue last 24 hours ───────────────
+        const todayRevenueData = await Order.aggregate([
+            { $match: { createdAt: { $gte: oneDayAgo }, paymentStatus: 'paid' } },
+            { $group: { _id: null, revenue: { $sum: '$totalDiscountedPrice' } } },
+        ]);
+
+        // ─── Top selling products ────────────────
+        const topProducts = await Order.aggregate([
+            { $unwind: '$orderItems' },
+            {
+                $group: {
+                    _id: '$orderItems.product',
+                    totalSold: { $sum: '$orderItems.quantity' },
+                    totalRevenue: { $sum: { $multiply: ['$orderItems.discountedPrice', '$orderItems.quantity'] } },
+                },
+            },
+            { $sort: { totalSold: -1 } },
+            { $limit: 5 },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'product',
+                },
+            },
+            { $unwind: { path: '$product', preserveNullAndEmptyArrays: true } },
+            {
+                $project: {
+                    _id: 1,
+                    totalSold: 1,
+                    totalRevenue: 1,
+                    'product.title': 1,
+                    'product.images': { $slice: ['$product.images', 1] },
+                    'product.price': 1,
+                },
+            },
+        ]);
+
+        // ─── Review stats ────────────────────────
+        const reviewStats = await Review.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: '$rating' },
+                    totalReviews: { $sum: 1 },
+                    fiveStar: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+                    fourStar: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
+                    threeStar: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
+                    twoStar: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
+                    oneStar: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
+                },
+            },
+        ]);
+
+        // ─── Recent reviews ──────────────────────
+        const recentReviews = await Review.find()
+            .populate('user', 'fullName avatar')
+            .populate('product', 'title images')
+            .sort({ createdAt: -1 })
+            .limit(5);
+
+        // ─── Recent orders ───────────────────────
         const recentOrders = await Order.find()
             .populate('user', 'fullName email')
             .sort({ createdAt: -1 })
             .limit(10);
+
+        // ─── Orders today by hour (website engagement proxy) ──
+        const hourlyActivity = await Order.aggregate([
+            { $match: { createdAt: { $gte: oneDayAgo } } },
+            {
+                $group: {
+                    _id: { $hour: '$createdAt' },
+                    count: { $sum: 1 },
+                },
+            },
+            { $sort: { _id: 1 } },
+        ]);
+
+        // ─── Products per category ───────────────
+        const categoryDist = await Product.aggregate([
+            { $group: { _id: '$category', count: { $sum: 1 } } },
+            {
+                $lookup: {
+                    from: 'categories',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'category',
+                },
+            },
+            { $unwind: { path: '$category', preserveNullAndEmptyArrays: true } },
+            { $project: { count: 1, name: { $ifNull: ['$category.name', 'Uncategorized'] } } },
+            { $sort: { count: -1 } },
+        ]);
 
         return res.status(200).json({
             success: true,
@@ -54,14 +212,39 @@ class AdminController {
                 stats: {
                     totalUsers,
                     totalSellers,
+                    activeSellers,
                     totalProducts,
                     totalOrders,
+                    totalCategories,
+                    totalReviews,
                     pendingSellers,
                     pendingPayouts,
                     totalRevenue: revenueStats[0]?.totalRevenue || 0,
                     totalCommission: revenueStats[0]?.totalCommission || 0,
+                    newUsersToday,
+                    newOrdersToday,
+                    todayRevenue: todayRevenueData[0]?.revenue || 0,
+                },
+                charts: {
+                    monthlyRevenue,
+                    dailyOrders,
+                    orderStatusDist,
+                    dailyNewUsers,
+                    hourlyActivity,
+                    categoryDist,
+                    topProducts,
+                    reviewStats: reviewStats[0] || {
+                        averageRating: 0,
+                        totalReviews: 0,
+                        fiveStar: 0,
+                        fourStar: 0,
+                        threeStar: 0,
+                        twoStar: 0,
+                        oneStar: 0,
+                    },
                 },
                 recentOrders,
+                recentReviews,
             },
         });
     });

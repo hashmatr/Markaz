@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiMinus, FiPlus, FiCheck } from 'react-icons/fi';
-import { FaStar } from 'react-icons/fa';
+import { FiMinus, FiPlus, FiCheck, FiX } from 'react-icons/fi';
+import { FaStar, FaRegStar } from 'react-icons/fa';
 import StarRating from '../components/ui/StarRating';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
@@ -10,107 +10,134 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
-// All demo products in one place for lookup by _id
-const allDemoProducts = {
-    '1': { _id: '1', title: 'T-shirt with Tape Details', description: 'A classic T-shirt with tape details on the sleeves. Made from 100% cotton for a comfortable fit. Perfect for everyday casual wear.', images: [{ url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=600&fit=crop' }, { url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&h=600&fit=crop' }], price: 120, discountedPrice: 120, discountPercent: 0, rating: 4.5, totalReviews: 45, colors: ['#000', '#314F4A', '#31457A'], sizes: ['Small', 'Medium', 'Large', 'X-Large'], category: { name: 'T-shirts' } },
-    '2': { _id: '2', title: 'Skinny Fit Jeans', description: 'Slim-fitting jeans in a classic wash. Made with stretch denim for maximum comfort and a flattering silhouette. Perfect for any occasion.', images: [{ url: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=600&h=600&fit=crop' }], price: 260, discountedPrice: 240, discountPercent: 8, rating: 3.5, totalReviews: 32, colors: ['#1a3a5c', '#000'], sizes: ['Small', 'Medium', 'Large', 'X-Large'], category: { name: 'Jeans' } },
-    '3': { _id: '3', title: 'Checkered Shirt', description: 'A timeless checkered shirt crafted from premium cotton. Features a button-down collar and a relaxed fit. Great for layering or wearing on its own.', images: [{ url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&h=600&fit=crop' }], price: 180, discountedPrice: 180, discountPercent: 0, rating: 4.8, totalReviews: 61, colors: ['#ff0000', '#00c12b', '#0000ff'], sizes: ['Small', 'Medium', 'Large'], category: { name: 'Shirts' } },
-    '4': { _id: '4', title: 'Sleeve Striped T-shirt', description: 'A modern striped T-shirt with contrasting sleeve details. Made from soft cotton blend for all-day comfort with a contemporary casual look.', images: [{ url: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=600&fit=crop' }], price: 160, discountedPrice: 130, discountPercent: 19, rating: 4.0, totalReviews: 28, colors: ['#314F4A', '#31457A', '#800080'], sizes: ['Small', 'Medium', 'Large', 'X-Large'], category: { name: 'T-shirts' } },
-    '5': { _id: '5', title: 'Vertical Striped Shirt', description: 'An elegant vertical striped shirt perfect for both work and casual settings. Features a slim fit design with a button-front closure.', images: [{ url: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600&h=600&fit=crop' }], price: 232, discountedPrice: 212, discountPercent: 9, rating: 5.0, totalReviews: 54, colors: ['#fff', '#1a3a5c'], sizes: ['Small', 'Medium', 'Large'], category: { name: 'Shirts' } },
-    '6': { _id: '6', title: 'Courage Graphic T-shirt', description: 'Express yourself with this bold graphic T-shirt. Features a unique artistic print on premium cotton. A statement piece for your wardrobe.', images: [{ url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&h=600&fit=crop' }], price: 145, discountedPrice: 145, discountPercent: 0, rating: 4.0, totalReviews: 41, colors: ['#000', '#ff8800'], sizes: ['Small', 'Medium', 'Large', 'X-Large'], category: { name: 'T-shirts' } },
-    '7': { _id: '7', title: 'Loose Fit Bermuda Shorts', description: 'Comfortable bermuda shorts with a relaxed loose fit. Perfect for summer outings and casual weekend wear. Made from breathable fabric.', images: [{ url: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=600&fit=crop' }], price: 80, discountedPrice: 80, discountPercent: 0, rating: 3.0, totalReviews: 30, colors: ['#314F4A', '#000'], sizes: ['Small', 'Medium', 'Large'], category: { name: 'Shorts' } },
-    '8': { _id: '8', title: 'Faded Skinny Jeans', description: 'Trendy faded skinny jeans with a modern wash effect. Crafted from stretch denim for comfort and style. A must-have wardrobe staple.', images: [{ url: 'https://images.unsplash.com/photo-1604176354204-9268737828e4?w=600&h=600&fit=crop' }], price: 210, discountedPrice: 210, discountPercent: 0, rating: 4.5, totalReviews: 55, colors: ['#1a3a5c', '#000'], sizes: ['Small', 'Medium', 'Large', 'X-Large'], category: { name: 'Jeans' } },
-    '9': { _id: '9', title: 'Loose Fit Bermuda Shorts', description: 'Comfortable bermuda shorts perfect for summer. Made from lightweight, breathable cotton with a relaxed fit.', images: [{ url: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=600&fit=crop' }], price: 80, discountedPrice: 80, discountPercent: 0, rating: 3.0, totalReviews: 30, colors: ['#314F4A'], sizes: ['Small', 'Medium', 'Large'], category: { name: 'Shorts' } },
-    'r1': { _id: 'r1', title: 'Polo with Contrast Trims', description: 'A classic polo shirt with contrast trim details. Made from premium piqué cotton for a polished casual look.', images: [{ url: 'https://images.unsplash.com/photo-1625910513413-5fc08ef4e8a1?w=600&h=600&fit=crop' }], price: 242, discountedPrice: 212, discountPercent: 12, rating: 4.0, totalReviews: 43, colors: ['#000', '#314F4A'], sizes: ['Small', 'Medium', 'Large'], category: { name: 'T-shirts' } },
-    'r2': { _id: 'r2', title: 'Gradient Graphic T-shirt', description: 'Stand out with this vibrant gradient graphic tee. Premium quality print on soft cotton fabric.', images: [{ url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&h=600&fit=crop' }], price: 145, discountedPrice: 145, discountPercent: 0, rating: 3.5, totalReviews: 32, colors: ['#ff8800', '#000'], sizes: ['Small', 'Medium', 'Large'], category: { name: 'T-shirts' } },
-    'r3': { _id: 'r3', title: 'Polo with Tipping Details', description: 'Refined polo shirt with subtle tipping details on the collar and sleeves. A sophisticated casual essential.', images: [{ url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&h=600&fit=crop' }], price: 180, discountedPrice: 180, discountPercent: 0, rating: 4.5, totalReviews: 55, colors: ['#31457A', '#000'], sizes: ['Small', 'Medium', 'Large', 'X-Large'], category: { name: 'T-shirts' } },
-    'r4': { _id: 'r4', title: 'Black Striped T-shirt', description: 'Classic black striped T-shirt for a timeless casual look. Made from soft blend fabric for everyday comfort.', images: [{ url: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=600&fit=crop' }], price: 160, discountedPrice: 120, discountPercent: 25, rating: 5.0, totalReviews: 30, colors: ['#000'], sizes: ['Small', 'Medium', 'Large'], category: { name: 'T-shirts' } },
-};
-
-const defaultProduct = allDemoProducts['1']; // fallback
-
-const demoReviews = [
-    { _id: '1', user: { fullName: 'Samantha D.' }, rating: 5, comment: 'I absolutely love this t-shirt! The design is unique and the fabric feels so comfortable. I\'ve received so many compliments.', createdAt: '2023-08-14', verified: true },
-    { _id: '2', user: { fullName: 'Alex M.' }, rating: 4, comment: 'The t-shirt exceeded my expectations! The colors are vibrant and the print quality is top-notch. Highly recommend.', createdAt: '2023-08-15', verified: true },
-    { _id: '3', user: { fullName: 'Ethan R.' }, rating: 5, comment: 'This t-shirt is a must-have for anyone who appreciates good design. The quality is amazing.', createdAt: '2023-08-16', verified: false },
-    { _id: '4', user: { fullName: 'Olivia P.' }, rating: 4, comment: 'As a UI/UX enthusiast, I value simplicity and functionality. This t-shirt not only represents those principles but also looks great.', createdAt: '2023-08-17', verified: true },
-    { _id: '5', user: { fullName: 'Liam K.' }, rating: 4, comment: 'This t-shirt is a fusion of comfort and creativity. The fabric is soft, and the design speaks volumes.', createdAt: '2023-08-18', verified: false },
-    { _id: '6', user: { fullName: 'Ava H.' }, rating: 5, comment: 'I\'m not just wearing a t-shirt; I\'m wearing a piece of design philosophy. It\'s comfortable and stylish.', createdAt: '2023-08-19', verified: true },
-];
-
-const demoRelated = [
-    allDemoProducts['r1'], allDemoProducts['r2'], allDemoProducts['r3'], allDemoProducts['r4'],
-];
-
-// Check if an id looks like a valid MongoDB ObjectId (24 hex characters)
-const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
-
 export default function ProductDetailPage() {
     const { id } = useParams();
     const { addToCart } = useCart();
     const { user } = useAuth();
 
-    // Determine initial product: if it's a demo ID, use the demo lookup
-    const initialProduct = isValidObjectId(id) ? defaultProduct : (allDemoProducts[id] || defaultProduct);
-
-    const [product, setProduct] = useState(initialProduct);
-    const [reviews, setReviews] = useState(demoReviews);
-    const [relatedProducts, setRelatedProducts] = useState(demoRelated);
+    const [product, setProduct] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [reviews, setReviews] = useState([]);
+    const [relatedProducts, setRelatedProducts] = useState([]);
     const [selectedImage, setSelectedImage] = useState(0);
     const [selectedColor, setSelectedColor] = useState(0);
-    const [selectedSize, setSelectedSize] = useState('Large');
+    const [selectedSize, setSelectedSize] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [activeTab, setActiveTab] = useState('reviews');
     const [loadingCart, setLoadingCart] = useState(false);
     const [showAllReviews, setShowAllReviews] = useState(false);
 
+    // Review form state
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+    const [submittingReview, setSubmittingReview] = useState(false);
+
     useEffect(() => {
-        // Reset state
         setSelectedImage(0);
         setSelectedColor(0);
         setQuantity(1);
         setShowAllReviews(false);
+        setLoading(true);
         window.scrollTo(0, 0);
 
-        if (isValidObjectId(id)) {
-            // Fetch real product from backend
-            productAPI.getById(id)
-                .then(r => setProduct(r.data.data.product))
-                .catch(() => setProduct(defaultProduct));
-            reviewAPI.getProductReviews(id)
-                .then(r => { if (r.data.data.reviews?.length) setReviews(r.data.data.reviews); else setReviews(demoReviews); })
-                .catch(() => setReviews(demoReviews));
-            productAPI.getAll({ limit: 4 })
-                .then(r => { if (r.data.data.products?.length) setRelatedProducts(r.data.data.products); })
-                .catch(() => { });
-        } else {
-            // Demo product — look up by ID
-            const demo = allDemoProducts[id];
-            if (demo) {
-                setProduct(demo);
-            } else {
-                setProduct(defaultProduct);
-            }
-            setReviews(demoReviews);
-            setRelatedProducts(demoRelated);
-        }
+        // Always fetch real product from backend
+        productAPI.getById(id)
+            .then(r => {
+                setProduct(r.data.data.product);
+                // Set default size
+                const sizes = r.data.data.product?.sizes;
+                if (sizes?.length > 0) {
+                    const firstSize = typeof sizes[0] === 'object' ? sizes[0].name : sizes[0];
+                    setSelectedSize(firstSize);
+                }
+            })
+            .catch(() => setProduct(null))
+            .finally(() => setLoading(false));
+
+        reviewAPI.getProductReviews(id)
+            .then(r => {
+                if (r.data.data.reviews?.length) setReviews(r.data.data.reviews);
+                else setReviews([]);
+            })
+            .catch(() => setReviews([]));
+
+        productAPI.getAll({ limit: 4 })
+            .then(r => {
+                if (r.data.data.products?.length) {
+                    // Filter out current product from related
+                    setRelatedProducts(r.data.data.products.filter(p => p._id !== id));
+                }
+            })
+            .catch(() => { });
     }, [id]);
 
     const handleAddToCart = async () => {
         if (!user) { toast.error('Please login to add items to cart'); return; }
-        if (!isValidObjectId(product._id)) { toast.error('This is a demo product. Add real products from the shop!'); return; }
+        if (!product) return;
         setLoadingCart(true);
         try {
-            await addToCart(product._id, quantity, selectedSize, product.colors?.[selectedColor]);
+            await addToCart(product._id, quantity, selectedSize, product.colors?.[selectedColor] || product.color);
             toast.success('Added to cart!');
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to add to cart');
         } finally { setLoadingCart(false); }
     };
 
+    const handleSubmitReview = async (e) => {
+        e.preventDefault();
+        if (!user) { toast.error('Please login to write a review'); return; }
+        if (!reviewForm.comment.trim()) { toast.error('Please write a comment'); return; }
+        setSubmittingReview(true);
+        try {
+            await reviewAPI.create({
+                productId: id,
+                rating: reviewForm.rating,
+                comment: reviewForm.comment,
+            });
+            toast.success('Review submitted successfully!');
+            setShowReviewForm(false);
+            setReviewForm({ rating: 5, comment: '' });
+            // Refresh reviews
+            const r = await reviewAPI.getProductReviews(id);
+            if (r.data.data.reviews?.length) setReviews(r.data.data.reviews);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to submit review');
+        } finally { setSubmittingReview(false); }
+    };
+
+    // Loading state
+    if (loading) {
+        return (
+            <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', marginTop: '16px' }}>
+                    <div style={{ flex: '1 1 45%', minWidth: '300px' }}>
+                        <div style={{ backgroundColor: '#f0f0f0', borderRadius: '20px', aspectRatio: '1', animation: 'pulse 1.5s infinite' }} />
+                    </div>
+                    <div style={{ flex: '1 1 45%', minWidth: '300px' }}>
+                        <div style={{ backgroundColor: '#f0f0f0', height: '40px', borderRadius: '8px', marginBottom: '16px', width: '80%', animation: 'pulse 1.5s infinite' }} />
+                        <div style={{ backgroundColor: '#f0f0f0', height: '20px', borderRadius: '8px', marginBottom: '12px', width: '40%', animation: 'pulse 1.5s infinite' }} />
+                        <div style={{ backgroundColor: '#f0f0f0', height: '30px', borderRadius: '8px', marginBottom: '24px', width: '30%', animation: 'pulse 1.5s infinite' }} />
+                        <div style={{ backgroundColor: '#f0f0f0', height: '60px', borderRadius: '8px', marginBottom: '24px', width: '100%', animation: 'pulse 1.5s infinite' }} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Product not found
+    if (!product) {
+        return (
+            <div className="container-main" style={{ paddingTop: '64px', paddingBottom: '64px', textAlign: 'center' }}>
+                <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: '28px', fontWeight: 700, marginBottom: '16px' }}>Product Not Found</h2>
+                <p style={{ color: '#737373', marginBottom: '24px' }}>The product you're looking for doesn't exist or has been removed.</p>
+                <Link to="/shop" className="btn-primary">Browse Shop</Link>
+            </div>
+        );
+    }
+
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 6);
-    const productImages = product.images?.length > 0 ? product.images : defaultProduct.images;
-    const productColors = product.colors?.length > 0 ? product.colors : ['#314F4A', '#314F4B', '#31457A'];
+    const productImages = product.images?.length > 0 ? product.images : [{ url: 'https://placehold.co/600x600/f0f0f0/999?text=No+Image' }];
+    const productColors = product.color ? [product.color] : ['#314F4A'];
     const productSizes = product.sizes?.length > 0 ? product.sizes : ['Small', 'Medium', 'Large', 'X-Large'];
 
     return (
@@ -140,7 +167,7 @@ export default function ProductDetailPage() {
                         {product.title}
                     </h1>
                     <div style={{ marginBottom: '12px' }}>
-                        <StarRating rating={product.rating || 4.5} size={20} showText />
+                        <StarRating rating={product.rating || 0} size={20} showText />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                         <span style={{ fontSize: '28px', fontWeight: 700 }}>${product.discountedPrice || product.price}</span>
@@ -178,16 +205,19 @@ export default function ProductDetailPage() {
                     <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
                         <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Choose Size</p>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                            {productSizes.map(size => (
-                                <button key={size} onClick={() => setSelectedSize(size)}
-                                    style={{
-                                        padding: '10px 20px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none',
-                                        backgroundColor: selectedSize === size ? '#000' : '#f0f0f0', color: selectedSize === size ? '#fff' : '#000',
-                                        transition: 'all 0.15s',
-                                    }}>
-                                    {size}
-                                </button>
-                            ))}
+                            {productSizes.map(size => {
+                                const sizeName = typeof size === 'object' ? size.name : size;
+                                return (
+                                    <button key={sizeName} onClick={() => setSelectedSize(sizeName)}
+                                        style={{
+                                            padding: '10px 20px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none',
+                                            backgroundColor: selectedSize === sizeName ? '#000' : '#f0f0f0', color: selectedSize === sizeName ? '#fff' : '#000',
+                                            transition: 'all 0.15s',
+                                        }}>
+                                        {sizeName}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -236,38 +266,108 @@ export default function ProductDetailPage() {
                                 <select style={{ border: '1px solid #e5e5e5', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none', background: '#fff' }}>
                                     <option>Latest</option><option>Highest</option><option>Lowest</option>
                                 </select>
-                                <button className="btn-primary" style={{ padding: '10px 20px', fontSize: '13px' }}>Write a Review</button>
+                                <button onClick={() => {
+                                    if (!user) { toast.error('Please login to write a review'); return; }
+                                    setShowReviewForm(true);
+                                }} className="btn-primary" style={{ padding: '10px 20px', fontSize: '13px' }}>Write a Review</button>
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-                            {displayedReviews.map(review => (
-                                <div key={review._id} style={{ border: '1px solid #e5e5e5', borderRadius: '20px', padding: '24px 28px' }}>
-                                    <div style={{ display: 'flex', gap: '4px', marginBottom: '14px' }}>
-                                        {Array.from({ length: review.rating }, (_, i) => <FaStar key={i} className="star-filled" size={18} />)}
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                                        <span style={{ fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>{review.user?.fullName}</span>
-                                        {review.verified !== false && (
-                                            <span style={{ width: '20px', height: '20px', backgroundColor: '#01ab31', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M5 7l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p style={{ color: '#737373', fontSize: '14px', lineHeight: 1.7, marginBottom: '12px' }}>"{review.comment}"</p>
-                                    <p style={{ color: '#a3a3a3', fontSize: '12px' }}>
-                                        Posted on {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                    </p>
+                        {/* Review Form Modal */}
+                        {showReviewForm && (
+                            <div style={{
+                                position: 'fixed', inset: 0, zIndex: 50,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                backgroundColor: 'rgba(0,0,0,0.5)',
+                            }} onClick={(e) => { if (e.target === e.currentTarget) setShowReviewForm(false); }}>
+                                <div style={{
+                                    backgroundColor: '#fff', borderRadius: '24px', padding: '32px',
+                                    width: '90%', maxWidth: '500px', position: 'relative',
+                                    animation: 'slideUp 0.3s ease-out',
+                                }}>
+                                    <button onClick={() => setShowReviewForm(false)}
+                                        style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                        <FiX size={22} />
+                                    </button>
+                                    <h3 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>Write a Review</h3>
+                                    <form onSubmit={handleSubmitReview}>
+                                        {/* Star Rating Input */}
+                                        <div style={{ marginBottom: '20px' }}>
+                                            <p style={{ fontSize: '13px', color: '#737373', marginBottom: '8px' }}>Your Rating</p>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                {[1, 2, 3, 4, 5].map(star => (
+                                                    <button key={star} type="button" onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                                                        {star <= reviewForm.rating
+                                                            ? <FaStar size={28} style={{ color: '#fbbf24' }} />
+                                                            : <FaRegStar size={28} style={{ color: '#d4d4d4' }} />
+                                                        }
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {/* Comment */}
+                                        <div style={{ marginBottom: '24px' }}>
+                                            <p style={{ fontSize: '13px', color: '#737373', marginBottom: '8px' }}>Your Review</p>
+                                            <textarea
+                                                value={reviewForm.comment}
+                                                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                                                placeholder="Share your thoughts about this product..."
+                                                required
+                                                style={{
+                                                    width: '100%', minHeight: '120px', backgroundColor: '#f0f0f0', borderRadius: '12px',
+                                                    padding: '14px 16px', fontSize: '14px', outline: 'none', border: '2px solid transparent',
+                                                    resize: 'vertical', fontFamily: "'Satoshi', sans-serif",
+                                                }}
+                                            />
+                                        </div>
+                                        <button type="submit" disabled={submittingReview} className="btn-primary"
+                                            style={{ width: '100%', padding: '14px', fontSize: '15px' }}>
+                                            {submittingReview ? 'Submitting...' : 'Submit Review'}
+                                        </button>
+                                    </form>
                                 </div>
-                            ))}
-                        </div>
-
-                        {reviews.length > 6 && (
-                            <div style={{ textAlign: 'center', marginTop: '24px' }}>
-                                <button onClick={() => setShowAllReviews(!showAllReviews)} className="btn-outline">
-                                    {showAllReviews ? 'Show Less' : 'Load More Reviews'}
-                                </button>
                             </div>
+                        )}
+
+                        {reviews.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                                <p style={{ color: '#737373', fontSize: '14px', marginBottom: '16px' }}>No reviews yet. Be the first to review this product!</p>
+                                <button onClick={() => {
+                                    if (!user) { toast.error('Please login to write a review'); return; }
+                                    setShowReviewForm(true);
+                                }} className="btn-outline">Write a Review</button>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                                    {displayedReviews.map(review => (
+                                        <div key={review._id} style={{ border: '1px solid #e5e5e5', borderRadius: '20px', padding: '24px 28px' }}>
+                                            <div style={{ display: 'flex', gap: '4px', marginBottom: '14px' }}>
+                                                {Array.from({ length: review.rating }, (_, i) => <FaStar key={i} className="star-filled" size={18} />)}
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                                                <span style={{ fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>{review.user?.fullName}</span>
+                                                <span style={{ width: '20px', height: '20px', backgroundColor: '#01ab31', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M5 7l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                                </span>
+                                            </div>
+                                            <p style={{ color: '#737373', fontSize: '14px', lineHeight: 1.7, marginBottom: '12px' }}>"{review.comment}"</p>
+                                            <p style={{ color: '#a3a3a3', fontSize: '12px' }}>
+                                                Posted on {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {reviews.length > 6 && (
+                                    <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                                        <button onClick={() => setShowAllReviews(!showAllReviews)} className="btn-outline">
+                                            {showAllReviews ? 'Show Less' : 'Load More Reviews'}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
@@ -275,25 +375,133 @@ export default function ProductDetailPage() {
                 {activeTab === 'details' && (
                     <div style={{ paddingTop: '32px', color: '#525252', lineHeight: 1.7, fontSize: '14px' }}>
                         <p>{product.description}</p>
+                        {product.brand && (
+                            <p style={{ marginTop: '16px' }}>
+                                <strong>Brand:</strong>{' '}
+                                <Link to={`/shop?brand=${encodeURIComponent(product.brand)}`}
+                                    style={{ color: '#000', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                                    {product.brand}
+                                </Link>
+                            </p>
+                        )}
+                        {product.category?.name && (
+                            <p style={{ marginTop: '8px' }}>
+                                <strong>Category:</strong>{' '}
+                                <Link to={`/shop?category=${product.category._id}`}
+                                    style={{ color: '#000', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                                    {product.category.name}
+                                </Link>
+                            </p>
+                        )}
+                        {product.seller?.storeName && (
+                            <p style={{ marginTop: '8px' }}>
+                                <strong>Sold by:</strong>{' '}
+                                <Link to={`/sellers`}
+                                    style={{ color: '#000', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                                    {product.seller.storeName}
+                                </Link>
+                            </p>
+                        )}
+                        {product.specifications?.length > 0 && (
+                            <div style={{ marginTop: '24px' }}>
+                                <h4 style={{ fontWeight: 700, marginBottom: '12px', fontSize: '16px', color: '#000' }}>Specifications</h4>
+                                <div style={{ border: '1px solid #e5e5e5', borderRadius: '16px', overflow: 'hidden' }}>
+                                    {product.specifications.map((spec, i) => (
+                                        <div key={i} style={{ display: 'flex', padding: '12px 16px', borderBottom: i < product.specifications.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: i % 2 === 0 ? '#fafafa' : '#fff' }}>
+                                            <span style={{ fontWeight: 600, width: '40%', color: '#000' }}>{spec.key}</span>
+                                            <span style={{ color: '#525252' }}>{spec.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {activeTab === 'faqs' && (
-                    <div style={{ paddingTop: '32px', color: '#737373', fontSize: '14px' }}>
-                        <p>FAQs coming soon...</p>
+                    <div style={{ paddingTop: '32px', maxWidth: '800px' }}>
+                        <h3 style={{ fontFamily: "'Satoshi', sans-serif", fontSize: '18px', fontWeight: 700, marginBottom: '24px' }}>
+                            Frequently Asked Questions
+                        </h3>
+                        {[
+                            {
+                                q: `What materials is "${product.title}" made of?`,
+                                a: product.specifications?.find(s => s.key?.toLowerCase().includes('material'))?.value
+                                    || `This product is made with premium quality materials. Please check the product details tab for specific material information${product.brand ? ` from ${product.brand}` : ''}.`,
+                            },
+                            {
+                                q: 'What sizes are available?',
+                                a: productSizes.length > 0
+                                    ? `Available sizes: ${productSizes.map(s => typeof s === 'object' ? s.name : s).join(', ')}. We recommend checking our size guide for the best fit.`
+                                    : 'Please check the size options above for current availability.',
+                            },
+                            {
+                                q: 'How long does shipping take?',
+                                a: 'Standard shipping typically takes 5-7 business days. Express shipping (2-3 business days) is available at checkout. Delivery times may vary based on your location.',
+                            },
+                            {
+                                q: 'What is the return & exchange policy?',
+                                a: 'We offer a 30-day return policy for all unused items in original packaging. Exchanges are free of charge. Simply contact our customer support team to initiate a return or exchange.',
+                            },
+                            {
+                                q: 'Is Cash on Delivery (COD) available?',
+                                a: 'Yes, we offer Cash on Delivery as a payment option. You can select COD at checkout. Online payment options are also available for faster order processing.',
+                            },
+                            {
+                                q: 'How do I care for this product?',
+                                a: product.specifications?.find(s => s.key?.toLowerCase().includes('care'))?.value
+                                    || 'We recommend following the care instructions on the product label. Generally, machine wash cold with similar colors and tumble dry low for best results.',
+                            },
+                            {
+                                q: `Is this product genuine${product.brand ? ` from ${product.brand}` : ''}?`,
+                                a: `Yes, all products sold on our platform are 100% genuine and authentic. ${product.brand ? `This product is an official ${product.brand} product.` : ''} We work directly with authorized sellers to ensure quality.`,
+                            },
+                        ].map((faq, i) => (
+                            <FAQItem key={i} question={faq.q} answer={faq.a} defaultOpen={i === 0} />
+                        ))}
                     </div>
                 )}
             </div>
 
             {/* ═══════════ RELATED PRODUCTS ═══════════ */}
-            <section style={{ marginTop: '64px' }}>
-                <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(24px, 4vw, 48px)', textAlign: 'center', fontWeight: 700, marginBottom: '40px' }}>
-                    YOU MIGHT ALSO LIKE
-                </h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
-                    {relatedProducts.map(p => <ProductCard key={p._id} product={p} />)}
-                </div>
-            </section>
+            {relatedProducts.length > 0 && (
+                <section style={{ marginTop: '64px' }}>
+                    <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(24px, 4vw, 48px)', textAlign: 'center', fontWeight: 700, marginBottom: '40px' }}>
+                        YOU MIGHT ALSO LIKE
+                    </h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+                        {relatedProducts.map(p => <ProductCard key={p._id} product={p} />)}
+                    </div>
+                </section>
+            )}
         </div>
     );
 }
+
+function FAQItem({ question, answer, defaultOpen = false }) {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <div style={{ borderBottom: '1px solid #e5e5e5', marginBottom: 0 }}>
+            <button onClick={() => setOpen(!open)}
+                style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '18px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#000', flex: 1, paddingRight: '12px' }}>{question}</span>
+                <span style={{
+                    width: '28px', height: '28px', borderRadius: '50%', backgroundColor: open ? '#000' : '#f0f0f0',
+                    color: open ? '#fff' : '#525252', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '18px', flexShrink: 0, transition: 'all 0.2s',
+                }}>
+                    {open ? '−' : '+'}
+                </span>
+            </button>
+            {open && (
+                <div style={{ paddingBottom: '18px', fontSize: '14px', color: '#737373', lineHeight: 1.7, animation: 'fadeIn 0.2s ease-out' }}>
+                    {answer}
+                </div>
+            )}
+        </div>
+    );
+}
+

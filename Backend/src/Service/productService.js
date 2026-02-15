@@ -56,7 +56,7 @@ class ProductService {
     async getAllProducts(query = {}) {
         const {
             search, category, seller, minPrice, maxPrice,
-            brand, color, rating, sort, page = 1, limit = 12,
+            brand, color, size, rating, sort, page = 1, limit = 12,
         } = query;
 
         const filter = { isActive: true };
@@ -71,6 +71,7 @@ class ProductService {
         if (seller) filter.seller = seller;
         if (brand) filter.brand = { $regex: brand, $options: 'i' };
         if (color) filter.color = { $regex: color, $options: 'i' };
+        if (size) filter['sizes.name'] = { $regex: size, $options: 'i' };
         if (rating) filter.rating = { $gte: parseFloat(rating) };
 
         // Price range
@@ -146,17 +147,41 @@ class ProductService {
             throw Object.assign(new Error('Seller not found'), { status: 404 });
         }
 
-        const { page = 1, limit = 10, search } = query;
+        const {
+            page = 1, limit = 10, search, category,
+            minPrice, maxPrice, color, sort,
+        } = query;
+
         const filter = { seller: seller._id };
 
+        // Search
         if (search) {
             filter.title = { $regex: search, $options: 'i' };
         }
 
+        // Filters
+        if (category) filter.category = category;
+        if (color) filter.color = { $regex: color, $options: 'i' };
+
+        // Price range
+        if (minPrice || maxPrice) {
+            filter.discountedPrice = {};
+            if (minPrice) filter.discountedPrice.$gte = parseFloat(minPrice);
+            if (maxPrice) filter.discountedPrice.$lte = parseFloat(maxPrice);
+        }
+
+        // Sort options
+        let sortOption = { createdAt: -1 }; // default: newest
+        if (sort === 'price_asc') sortOption = { discountedPrice: 1 };
+        else if (sort === 'price_desc') sortOption = { discountedPrice: -1 };
+        else if (sort === 'rating') sortOption = { rating: -1 };
+        else if (sort === 'popular') sortOption = { totalSold: -1 };
+        else if (sort === 'newest') sortOption = { createdAt: -1 };
+
         const skip = (page - 1) * limit;
         const products = await Product.find(filter)
             .populate('category', 'name')
-            .sort({ createdAt: -1 })
+            .sort(sortOption)
             .skip(skip)
             .limit(parseInt(limit));
 
@@ -273,6 +298,30 @@ class ProductService {
                 totalProducts: total,
             },
         };
+    }
+
+    /**
+     * Get distinct brands with product count
+     */
+    async getBrands() {
+        const brands = await Product.aggregate([
+            { $match: { isActive: true, brand: { $nin: [null, ''] } } },
+            {
+                $group: {
+                    _id: '$brand',
+                    count: { $sum: 1 },
+                    avgRating: { $avg: '$rating' },
+                    image: { $first: { $arrayElemAt: ['$images.url', 0] } },
+                },
+            },
+            { $sort: { count: -1 } },
+        ]);
+        return brands.map(b => ({
+            name: b._id,
+            productCount: b.count,
+            avgRating: Math.round((b.avgRating || 0) * 10) / 10,
+            image: b.image,
+        }));
     }
 }
 

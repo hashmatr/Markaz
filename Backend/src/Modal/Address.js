@@ -1,66 +1,40 @@
 const mongoose = require('mongoose');
 
 const addressSchema = new mongoose.Schema({
-  // --- Building Details ---
-  houseNumber: { 
-    type: String, 
-    required: [true, "House/Flat/Office number is required"],
-    trim: true 
+  fullName: {
+    type: String,
+    trim: true
   },
-  floor: { 
-    type: String, 
-    trim: true 
+  phone: {
+    type: String,
+    trim: true
   },
-  buildingName: { 
-    type: String, 
-    trim: true 
+  street: {
+    type: String,
+    required: [true, "Street address is required"],
+    trim: true
   },
-
-  // --- Locality Details ---
-  streetAddress: { 
-    type: String, 
-    required: [true, "Street name or area is required"],
-    trim: true 
-  },
-  landmark: { 
-    type: String, 
-    trim: true,
-    placeholder: "e.g. Near Apollo Hospital"
-  },
-
-  // --- Region Details ---
-  city: { 
-    type: String, 
+  city: {
+    type: String,
     required: [true, "City is required"],
-    trim: true 
+    trim: true
   },
-  district: { 
-    type: String, 
-    trim: true 
-  },
-  state: { 
-    type: String, 
+  state: {
+    type: String,
     required: [true, "State is required"],
-    trim: true 
+    trim: true
   },
-  pincode: { 
-    type: String, 
-    required: [true, "Pincode is required"],
-    match: [/^\d{6}$/, "Please provide a valid 6-digit pincode"]
+  zipCode: {
+    type: String,
+    required: [true, "Zip code is required"],
+    trim: true
   },
-  country: { 
-    type: String, 
-    default: "India" 
-  },
-
-  // --- Coordinates (For Logistics/Maps) ---
-  coordinates: {
-    latitude: { type: Number, min: -90, max: 90 },
-    longitude: { type: Number, min: -180, max: 180 }
+  country: {
+    type: String,
+    default: "Pakistan"
   }
-}, { 
-  _id: false, // Prevents generating a sub-ID if used inside another schema
-  timestamps: true 
+}, {
+  timestamps: true
 });
 
 const Address = mongoose.model('Address', addressSchema);
