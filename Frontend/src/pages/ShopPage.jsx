@@ -7,10 +7,40 @@ import { productAPI, categoryAPI } from '../api';
 
 const colors = [
     { name: 'Black', hex: '#000' }, { name: 'White', hex: '#fff' }, { name: 'Navy', hex: '#1a3a5c' },
-    { name: 'Brown', hex: '#8B4513' }, { name: 'Grey', hex: '#808080' }, { name: 'Silver', hex: '#C0C0C0' },
-    { name: 'Maroon', hex: '#800020' }, { name: 'Green', hex: '#556B2F' }, { name: 'Red', hex: '#D2691E' }, { name: 'Purple', hex: '#4B0082' },
+    { name: 'Silver', hex: '#C0C0C0' }, { name: 'Grey', hex: '#808080' }, { name: 'Gold', hex: '#FFD700' },
+    { name: 'Red', hex: '#ff3333' }, { name: 'Blue', hex: '#3b82f6' }, { name: 'Green', hex: '#01ab31' },
 ];
-const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
+const departments = [
+    {
+        name: 'Electronics',
+        items: ['Smartphones', 'Laptops', 'Tablets', 'Headphones', 'Cameras', 'Smart Watches']
+    },
+    {
+        name: 'Fashion',
+        items: ["Men's Clothing", "Women's Clothing", 'Shoes', 'Accessories', 'Jewelry', 'Watches']
+    },
+    {
+        name: 'Home & Garden',
+        items: ['Furniture', 'Kitchen', 'Decor', 'Bedding', 'Garden Tools', 'Lighting']
+    },
+    {
+        name: 'Sports & Outdoors',
+        items: ['Exercise Equipment', 'Outdoor Gear', 'Team Sports', 'Cycling', 'Fitness', 'Camping']
+    },
+    {
+        name: 'Motors',
+        items: ['Car Parts', 'Car Accessories', 'Motorcycle Parts', 'Tools']
+    },
+    {
+        name: 'More',
+        items: ['Health & Beauty', 'Toys & Games', 'Books', 'Collectibles', 'Pet Supplies', 'Musical Instruments']
+    }
+];
+
+const conditions = ['New', 'Certified Refurbished', 'Used', 'Open Box'];
+const topBrands = ['Apple', 'Samsung', 'Sony', 'Nike', 'Adidas', 'Zara', 'Toyota', 'Honda', 'Dell', 'HP'];
+const commonSizes = ['S', 'M', 'L', 'XL', 'Universal', '4GB', '8GB', '16GB', '256GB', '512GB', '1TB'];
 const sortOptions = [
     { value: 'popular', label: 'Most Popular' },
     { value: 'newest', label: 'Newest' },
@@ -27,7 +57,8 @@ export default function ShopPage() {
     const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalProducts: 0 });
     const [categories, setCategories] = useState([]);
     const [priceRange, setPriceRange] = useState([0, 500]);
-    const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: true, size: true, style: true });
+    const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: false, specs: true, condition: true, brands: true });
+    const [expandedDepts, setExpandedDepts] = useState({});
 
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
     useEffect(() => { const h = () => setIsDesktop(window.innerWidth >= 1024); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
@@ -171,21 +202,59 @@ export default function ShopPage() {
                                 )}
                             </div>
 
-                            {/* Categories */}
-                            <FilterSection title="Categories" filterKey="categories">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    {categories.map(cat => (
-                                        <button key={cat._id} onClick={() => handleCategoryClick(cat)}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, fontSize: 14,
-                                                backgroundColor: currentCategory === cat._id ? '#000' : 'transparent',
-                                                color: currentCategory === cat._id ? '#fff' : '#525252',
-                                                border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', width: '100%',
-                                            }}>
-                                            {cat.name}
-                                            <FiChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
-                                        </button>
+                            {/* Categories / Departments */}
+                            <FilterSection title="Departments" filterKey="categories">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    {departments.map(dept => (
+                                        <div key={dept.name} style={{ marginBottom: 4 }}>
+                                            <button
+                                                onClick={() => setExpandedDepts(prev => ({ ...prev, [dept.name]: !prev[dept.name] }))}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, fontSize: 14,
+                                                    fontWeight: expandedDepts[dept.name] ? 700 : 500, color: '#000',
+                                                    border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', width: '100%',
+                                                    backgroundColor: 'transparent'
+                                                }}>
+                                                {dept.name}
+                                                <FiChevronDown size={14} style={{ transform: expandedDepts[dept.name] ? 'rotate(180deg)' : 'rotate(0)' }} />
+                                            </button>
+
+                                            {expandedDepts[dept.name] && (
+                                                <div style={{ paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
+                                                    {dept.items.map(item => (
+                                                        <button
+                                                            key={item}
+                                                            onClick={() => { setFilter('search', currentSearch === item.toLowerCase() ? '' : item.toLowerCase()); if (!isDesktop) setFiltersOpen(false); }}
+                                                            style={{
+                                                                padding: '6px 12px', borderRadius: 6, fontSize: 13, textAlign: 'left', border: 'none', cursor: 'pointer',
+                                                                backgroundColor: currentSearch === item.toLowerCase() ? '#000' : 'transparent',
+                                                                color: currentSearch === item.toLowerCase() ? '#fff' : '#737373',
+                                                                transition: 'all 0.15s'
+                                                            }}
+                                                        >
+                                                            {item}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     ))}
+
+                                    <div style={{ borderTop: '1px solid #f0f0f0', marginTop: 12, paddingTop: 12 }}>
+                                        <h4 style={{ fontSize: 12, fontWeight: 700, color: '#a3a3a3', marginBottom: 8, paddingLeft: 12 }}>ALL CATEGORIES</h4>
+                                        {categories.map(cat => (
+                                            <button key={cat._id} onClick={() => handleCategoryClick(cat)}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, fontSize: 13,
+                                                    backgroundColor: currentCategory === cat._id ? '#000' : 'transparent',
+                                                    color: currentCategory === cat._id ? '#fff' : '#525252',
+                                                    border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', width: '100%',
+                                                }}>
+                                                {cat.name}
+                                                <FiChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </FilterSection>
 
@@ -243,10 +312,46 @@ export default function ShopPage() {
                                 )}
                             </FilterSection>
 
-                            {/* Size */}
-                            <FilterSection title="Size" filterKey="size">
+                            {/* Condition */}
+                            <FilterSection title="Condition" filterKey="condition">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {conditions.map(cond => (
+                                        <button key={cond}
+                                            onClick={() => setFilter('search', currentSearch === cond.toLowerCase() ? '' : cond.toLowerCase())}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', fontSize: 14,
+                                                color: currentSearch === cond.toLowerCase() ? '#fff' : '#525252',
+                                                backgroundColor: currentSearch === cond.toLowerCase() ? '#000' : 'transparent',
+                                                borderRadius: 8, border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'all 0.15s',
+                                            }}>
+                                            {cond}<FiChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </FilterSection>
+
+                            {/* Brands */}
+                            <FilterSection title="Top Brands" filterKey="brands">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {topBrands.map(brand => (
+                                        <button key={brand}
+                                            onClick={() => setFilter('brand', currentBrand === brand ? '' : brand)}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', fontSize: 14,
+                                                color: currentBrand === brand ? '#fff' : '#525252',
+                                                backgroundColor: currentBrand === brand ? '#000' : 'transparent',
+                                                borderRadius: 8, border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'all 0.15s',
+                                            }}>
+                                            {brand}<FiChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </FilterSection>
+
+                            {/* Specs / Sizes */}
+                            <FilterSection title="Specs & Sizes" filterKey="specs">
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                    {sizes.map(s => (
+                                    {commonSizes.map(s => (
                                         <button key={s} onClick={() => handleSizeClick(s)}
                                             style={{
                                                 padding: '8px 16px', borderRadius: 9999, fontSize: 12, fontWeight: 500, cursor: 'pointer',
@@ -255,24 +360,6 @@ export default function ShopPage() {
                                                 border: 'none', transition: 'all 0.15s',
                                             }}>
                                             {s}
-                                        </button>
-                                    ))}
-                                </div>
-                            </FilterSection>
-
-                            {/* Dress Style */}
-                            <FilterSection title="Dress Style" filterKey="style">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    {['Casual', 'Formal', 'Party', 'Streetwear', 'Sportswear', 'Traditional'].map(style => (
-                                        <button key={style}
-                                            onClick={() => { setFilter('search', currentSearch === style.toLowerCase() ? '' : style.toLowerCase()); if (!isDesktop) setFiltersOpen(false); }}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', fontSize: 14,
-                                                color: currentSearch === style.toLowerCase() ? '#fff' : '#525252',
-                                                backgroundColor: currentSearch === style.toLowerCase() ? '#000' : 'transparent',
-                                                borderRadius: 8, border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'all 0.15s',
-                                            }}>
-                                            {style}<FiChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
                                         </button>
                                     ))}
                                 </div>

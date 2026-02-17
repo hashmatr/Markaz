@@ -1,183 +1,545 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FiArrowRight, FiArrowLeft, FiZap, FiUsers, FiBarChart2 } from 'react-icons/fi';
-import { FaStar } from 'react-icons/fa';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FiArrowRight, FiArrowLeft, FiZap, FiUsers, FiBarChart2, FiHeart, FiChevronRight, FiChevronLeft, FiPause, FiPlay } from 'react-icons/fi';
+import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 import ProductCard from '../components/product/ProductCard';
 import { useAuth } from '../context/AuthContext';
-import { productAPI } from '../api';
+import { productAPI, categoryAPI } from '../api';
 
-const demoProducts = [];
-const topSelling = [];
+/* ════════════════════════════════════════════
+   HERO SLIDES — eBay-style promotional carousel
+   ════════════════════════════════════════════ */
+const heroSlides = [
+    {
+        id: 1,
+        title: 'Top tech for your ride',
+        subtitle: 'Explore in-car entertainment, GPS, security devices, and more.',
+        cta: 'Shop now',
+        ctaLink: '/shop?search=electronics',
+        bg: '#f5f5f5',
+        textColor: '#000',
+        cards: [
+            { label: 'Entertainment', img: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=300&h=300&fit=crop' },
+            { label: 'GPS', img: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300&h=300&fit=crop' },
+            { label: 'Security devices', img: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=300&h=300&fit=crop' },
+        ],
+    },
+    {
+        id: 2,
+        title: 'Endless accessories. Epic prices.',
+        subtitle: 'Browse millions of upgrades for your style, home, and tech.',
+        cta: 'Shop now',
+        ctaLink: '/shop?search=accessories',
+        bg: '#1a1a1a',
+        textColor: '#fff',
+        cards: [
+            { label: 'Headphones', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop' },
+            { label: 'Watches', img: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&h=300&fit=crop' },
+            { label: 'Bags', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=300&fit=crop' },
+        ],
+    },
+    {
+        id: 3,
+        title: 'Your home, your style',
+        subtitle: 'Discover furniture, decor, kitchen essentials, and more.',
+        cta: 'Shop now',
+        ctaLink: '/shop?search=home',
+        bg: '#f0ebe3',
+        textColor: '#000',
+        cards: [
+            { label: 'Furniture', img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&h=300&fit=crop' },
+            { label: 'Decor', img: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=300&h=300&fit=crop' },
+            { label: 'Kitchen', img: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=300&fit=crop' },
+        ],
+    },
+    {
+        id: 4,
+        title: 'Fashion for everyone',
+        subtitle: 'Trending styles from top brands — clothing, shoes, and more.',
+        cta: 'Shop now',
+        ctaLink: '/shop?search=fashion',
+        bg: '#fdf2f8',
+        textColor: '#000',
+        cards: [
+            { label: 'Clothing', img: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=300&fit=crop' },
+            { label: 'Shoes', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop' },
+            { label: 'Jewelry', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=300&h=300&fit=crop' },
+        ],
+    },
+];
 
+/* ════════════════════════════════════════════
+   TRENDING CATEGORIES — circular icons
+   ════════════════════════════════════════════ */
+const trendingCategories = [
+    { name: 'Electronics', img: 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=200&h=200&fit=crop', search: 'electronics' },
+    { name: 'Motors', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=200&fit=crop', search: 'motors' },
+    { name: 'Luxury', img: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=200&h=200&fit=crop', search: 'luxury' },
+    { name: 'Collectibles & Art', img: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200&h=200&fit=crop', search: 'collectibles' },
+    { name: 'Home & Garden', img: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=200&h=200&fit=crop', search: 'home garden' },
+    { name: 'Fashion', img: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=200&h=200&fit=crop', search: 'fashion' },
+    { name: 'Health & Beauty', img: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop', search: 'health beauty' },
+    { name: 'Sports', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&h=200&fit=crop', search: 'sports' },
+    { name: 'Toys & Games', img: 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=200&h=200&fit=crop', search: 'toys' },
+    { name: 'Books', img: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=200&h=200&fit=crop', search: 'books' },
+    { name: 'Pet Supplies', img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=200&h=200&fit=crop', search: 'pets' },
+    { name: 'Musical Instruments', img: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=200&h=200&fit=crop', search: 'instruments' },
+];
+
+/* ════════════════════════════════════════════
+   TECH CATEGORIES — "The future in your hands"
+   ════════════════════════════════════════════ */
+const techCategories = [
+    { name: 'Laptops', img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&fit=crop', search: 'laptops' },
+    { name: 'Computer Parts', img: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=200&h=200&fit=crop', search: 'computer parts' },
+    { name: 'Smartphones', img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop', search: 'smartphones' },
+    { name: 'Networking', img: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=200&h=200&fit=crop', search: 'networking' },
+    { name: 'Tablets', img: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200&h=200&fit=crop', search: 'tablets' },
+    { name: 'Storage', img: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=200&h=200&fit=crop', search: 'storage' },
+    { name: 'Cameras & Lenses', img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&h=200&fit=crop', search: 'cameras' },
+    { name: 'Smart Home', img: 'https://images.unsplash.com/photo-1558002038-103792e37a71?w=200&h=200&fit=crop', search: 'smart home' },
+    { name: 'Audio', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop', search: 'audio' },
+    { name: 'Video Games', img: 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=200&h=200&fit=crop', search: 'video games' },
+    { name: 'Wearable Tech', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop', search: 'wearables' },
+    { name: 'Monitors', img: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200&h=200&fit=crop', search: 'monitors' },
+];
+
+/* ════════════════════════════════════════════
+   BROWSE BY CATEGORY GRID — large cards
+   ════════════════════════════════════════════ */
+const browseCategories = [
+    { name: 'Electronics', desc: 'Gadgets & devices', img: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=600&h=400&fit=crop', search: 'electronics', span: 2 },
+    { name: 'Fashion', desc: 'Clothing & accessories', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=400&fit=crop', search: 'fashion', span: 1 },
+    { name: 'Home & Garden', desc: 'Furniture & decor', img: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop', search: 'home garden', span: 1 },
+    { name: 'Sports', desc: 'Equipment & gear', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=600&h=400&fit=crop', search: 'sports', span: 2 },
+];
+
+/* ════════════════════════════════════════════
+   CUSTOMER REVIEWS
+   ════════════════════════════════════════════ */
 const reviews = [
-    { name: 'Sarah M.', rating: 5, text: '"I\'m blown away by the quality and style of the clothes I received from Markaz. From casual wear to elegant dresses, every piece I\'ve bought has exceeded my expectations."', verified: true },
-    { name: 'Alex K.', rating: 5, text: '"Finding clothes that align with my personal style used to be a challenge until I discovered Markaz. The range of options they offer is truly remarkable, catering to a variety of tastes."', verified: true },
-    { name: 'James L.', rating: 5, text: '"As someone who\'s always on the lookout for unique fashion pieces, I\'m thrilled to have stumbled upon Markaz. The selection of clothes is not only diverse but also on-point with the latest trends."', verified: true },
+    { name: 'Ahmed R.', rating: 5, text: '"Markaz has become my go-to marketplace. I\'ve bought electronics, home items, and fashion — all at great prices with fast delivery!"', verified: true },
+    { name: 'Fatima K.', rating: 5, text: '"The variety is incredible! I found everything from a new laptop to kitchen appliances. The seller verification gives me confidence."', verified: true },
+    { name: 'Hassan M.', rating: 5, text: '"As a seller, Markaz has transformed my business. The platform is easy to use and I\'m reaching customers I never could before."', verified: true },
 ];
 
 export default function HomePage() {
     const { user } = useAuth();
-    const [newArrivals, setNewArrivals] = useState(demoProducts);
-    const [topProducts, setTopProducts] = useState(topSelling);
+    const navigate = useNavigate();
+    const [newArrivals, setNewArrivals] = useState([]);
+    const [trendingProducts, setTrendingProducts] = useState([]);
+    const [dealsProducts, setDealsProducts] = useState([]);
 
+    // Hero carousel state
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const slideTimerRef = useRef(null);
+
+    // Trending products scroll
+    const trendingScrollRef = useRef(null);
+
+    // Fetch products
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const [newRes, topRes] = await Promise.all([
-                    productAPI.getAll({ sort: 'newest', limit: 4 }),
-                    productAPI.getAll({ sort: 'popular', limit: 4 }),
+                const [newRes, topRes, dealsRes] = await Promise.all([
+                    productAPI.getAll({ sort: 'newest', limit: 8 }),
+                    productAPI.getAll({ sort: 'popular', limit: 8 }),
+                    productAPI.getAll({ sort: 'price_asc', limit: 8 }),
                 ]);
                 if (newRes.data.data.products.length >= 0) setNewArrivals(newRes.data.data.products);
-                if (topRes.data.data.products.length >= 0) setTopProducts(topRes.data.data.products);
+                if (topRes.data.data.products.length >= 0) setTrendingProducts(topRes.data.data.products);
+                if (dealsRes.data.data.products.length >= 0) setDealsProducts(dealsRes.data.data.products);
             } catch { }
         };
         fetchProducts();
     }, []);
 
+    // Hero auto-rotation
+    const nextSlide = useCallback(() => {
+        setCurrentSlide(prev => (prev + 1) % heroSlides.length);
+    }, []);
+
+    const prevSlide = useCallback(() => {
+        setCurrentSlide(prev => (prev - 1 + heroSlides.length) % heroSlides.length);
+    }, []);
+
+    useEffect(() => {
+        if (isPlaying) {
+            slideTimerRef.current = setInterval(nextSlide, 5000);
+        }
+        return () => clearInterval(slideTimerRef.current);
+    }, [isPlaying, nextSlide]);
+
+    const scrollTrending = (dir) => {
+        if (trendingScrollRef.current) {
+            trendingScrollRef.current.scrollBy({ left: dir * 300, behavior: 'smooth' });
+        }
+    };
+
+    const currentHero = heroSlides[currentSlide];
+
     return (
-        <div>
-            {/* ═══════════════════ HERO ═══════════════════ */}
-            <section style={{ backgroundColor: '#f2f0f1' }}>
-                <div className="container-main" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {/* Text */}
-                    <div style={{ flex: '1 1 50%', minWidth: '300px', padding: '48px 0' }}>
-                        <h1 style={{
-                            fontFamily: "'Integral CF', sans-serif",
-                            fontSize: 'clamp(32px, 6vw, 64px)',
-                            fontWeight: 800,
-                            lineHeight: 1.1,
-                            marginBottom: '24px',
-                            color: '#000',
+        <div style={{ background: '#fff' }}>
+
+            {/* ═══════════════════ HERO CAROUSEL ═══════════════════ */}
+            <section className="hero-carousel" style={{ backgroundColor: currentHero.bg, transition: 'background-color 0.6s ease' }}>
+                <div className="container-main" style={{ padding: '0 20px' }}>
+                    <div style={{
+                        display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+                        minHeight: '320px', padding: '40px 0', gap: '32px',
+                    }}>
+                        {/* Text side */}
+                        <div style={{ flex: '1 1 300px', minWidth: '280px' }}>
+                            <h1 style={{
+                                fontFamily: "'Satoshi', sans-serif",
+                                fontSize: 'clamp(24px, 4vw, 36px)',
+                                fontWeight: 700,
+                                lineHeight: 1.2,
+                                marginBottom: '12px',
+                                color: currentHero.textColor,
+                                transition: 'color 0.6s ease',
+                            }}>
+                                {currentHero.title}
+                            </h1>
+                            <p style={{
+                                color: currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.7)' : '#737373',
+                                fontSize: '15px', lineHeight: 1.7, marginBottom: '24px', maxWidth: '400px',
+                                transition: 'color 0.6s ease',
+                            }}>
+                                {currentHero.subtitle}
+                            </p>
+                            <Link to={currentHero.ctaLink} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                padding: '14px 32px', borderRadius: '9999px',
+                                backgroundColor: currentHero.textColor === '#fff' ? '#fff' : '#000',
+                                color: currentHero.textColor === '#fff' ? '#000' : '#fff',
+                                fontSize: '14px', fontWeight: 600, transition: 'all 0.3s',
+                            }}>
+                                {currentHero.cta}
+                            </Link>
+                        </div>
+
+                        {/* Product cards side */}
+                        <div style={{
+                            flex: '1 1 400px', display: 'flex', gap: '24px',
+                            justifyContent: 'center', flexWrap: 'wrap',
                         }}>
-                            FIND CLOTHES<br />THAT MATCHES<br />YOUR STYLE
-                        </h1>
-                        <p style={{ color: '#737373', fontSize: '14px', maxWidth: '480px', lineHeight: 1.7, marginBottom: '32px' }}>
-                            Browse through our diverse range of meticulously crafted garments, designed to bring out your individuality and cater to your sense of style.
-                        </p>
-                        <Link to="/shop" className="btn-primary" style={{ padding: '16px 48px', fontSize: '15px' }}>
-                            Shop Now
-                        </Link>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', marginTop: '40px' }}>
-                            {[
-                                { num: '200+', label: 'International Brands' },
-                                { num: '2,000+', label: 'High-Quality Products' },
-                                { num: '30,000+', label: 'Happy Customers' },
-                            ].map(({ num, label }, i) => (
-                                <div key={label} style={{ borderRight: i < 2 ? '1px solid #d4d4d4' : 'none', paddingRight: i < 2 ? '32px' : 0 }}>
-                                    <p style={{ fontSize: 'clamp(20px, 3vw, 36px)', fontWeight: 700 }}>{num}</p>
-                                    <p style={{ color: '#737373', fontSize: '12px' }}>{label}</p>
+                            {currentHero.cards.map((card, i) => (
+                                <Link key={i} to={`/shop?search=${card.label.toLowerCase()}`}
+                                    className="hero-card-hover"
+                                    style={{
+                                        textAlign: 'center', cursor: 'pointer',
+                                        transition: 'transform 0.3s ease',
+                                    }}>
+                                    <div style={{
+                                        width: '160px', height: '160px', borderRadius: '16px',
+                                        overflow: 'hidden', backgroundColor: currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.1)' : '#fff',
+                                        marginBottom: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                    }}>
+                                        <img src={card.img} alt={card.label}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            loading="lazy" />
+                                    </div>
+                                    <span style={{
+                                        fontSize: '13px', fontWeight: 600,
+                                        color: currentHero.textColor,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                                    }}>
+                                        {card.label} <FiChevronRight size={14} />
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Carousel controls */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        paddingBottom: '20px',
+                    }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {heroSlides.map((_, i) => (
+                                <button key={i} onClick={() => setCurrentSlide(i)}
+                                    style={{
+                                        width: i === currentSlide ? '24px' : '8px',
+                                        height: '8px',
+                                        borderRadius: '9999px',
+                                        backgroundColor: currentHero.textColor === '#fff'
+                                            ? (i === currentSlide ? '#fff' : 'rgba(255,255,255,0.3)')
+                                            : (i === currentSlide ? '#000' : '#d4d4d4'),
+                                        border: 'none', cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                    }}
+                                />
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <button onClick={prevSlide} className="carousel-btn"
+                                style={{
+                                    width: '36px', height: '36px', borderRadius: '50%',
+                                    border: `1px solid ${currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.3)' : '#d4d4d4'}`,
+                                    background: 'transparent', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: currentHero.textColor,
+                                }}>
+                                <FiChevronLeft size={18} />
+                            </button>
+                            <button onClick={nextSlide} className="carousel-btn"
+                                style={{
+                                    width: '36px', height: '36px', borderRadius: '50%',
+                                    border: `1px solid ${currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.3)' : '#d4d4d4'}`,
+                                    background: 'transparent', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: currentHero.textColor,
+                                }}>
+                                <FiChevronRight size={18} />
+                            </button>
+                            <button onClick={() => setIsPlaying(!isPlaying)}
+                                style={{
+                                    width: '36px', height: '36px', borderRadius: '50%',
+                                    border: `1px solid ${currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.3)' : '#d4d4d4'}`,
+                                    background: 'transparent', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: currentHero.textColor,
+                                }}>
+                                {isPlaying ? <FiPause size={14} /> : <FiPlay size={14} />}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══════════════════ TRENDING ON MARKAZ ═══════════════════ */}
+            <section className="section-pad" style={{ paddingBottom: '32px' }}>
+                <div className="container-main">
+                    <h2 style={{
+                        fontFamily: "'Satoshi', sans-serif", fontSize: '22px',
+                        fontWeight: 700, marginBottom: '28px', color: '#000',
+                    }}>
+                        Trending on Markaz
+                    </h2>
+                    <div style={{
+                        display: 'flex', gap: '24px', overflowX: 'auto',
+                        paddingBottom: '8px', scrollbarWidth: 'none',
+                    }} className="scrollbar-hide">
+                        {trendingCategories.map((cat) => (
+                            <Link key={cat.name} to={`/shop?search=${cat.search}`}
+                                style={{ textAlign: 'center', flex: '0 0 auto', cursor: 'pointer' }}
+                                className="trending-cat-hover">
+                                <div style={{
+                                    width: '120px', height: '120px', borderRadius: '50%',
+                                    overflow: 'hidden', backgroundColor: '#f5f5f5',
+                                    margin: '0 auto 10px', transition: 'transform 0.3s, box-shadow 0.3s',
+                                }}>
+                                    <img src={cat.img} alt={cat.name}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        loading="lazy" />
+                                </div>
+                                <span style={{ fontSize: '13px', fontWeight: 500, color: '#000' }}>
+                                    {cat.name}
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══════════════════ TRENDING PRODUCTS (Scrollable) ═══════════════════ */}
+            {trendingProducts.length > 0 && (
+                <section style={{ paddingBottom: '48px' }}>
+                    <div className="container-main">
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            marginBottom: '24px',
+                        }}>
+                            <h2 style={{ fontFamily: "'Satoshi', sans-serif", fontSize: '22px', fontWeight: 700 }}>
+                                Trending Products
+                            </h2>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => scrollTrending(-1)} className="carousel-btn"
+                                    style={{
+                                        width: '36px', height: '36px', borderRadius: '50%',
+                                        border: '1px solid #d4d4d4', background: '#fff',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                    <FiChevronLeft size={18} />
+                                </button>
+                                <button onClick={() => scrollTrending(1)} className="carousel-btn"
+                                    style={{
+                                        width: '36px', height: '36px', borderRadius: '50%',
+                                        border: '1px solid #d4d4d4', background: '#fff',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                    <FiChevronRight size={18} />
+                                </button>
+                            </div>
+                        </div>
+                        <div ref={trendingScrollRef} className="scrollbar-hide"
+                            style={{
+                                display: 'flex', gap: '16px', overflowX: 'auto',
+                                scrollSnapType: 'x mandatory', paddingBottom: '8px',
+                            }}>
+                            {trendingProducts.map((product) => (
+                                <div key={product._id} style={{
+                                    flex: '0 0 220px', scrollSnapAlign: 'start',
+                                }}>
+                                    <ProductCard product={product} />
                                 </div>
                             ))}
                         </div>
                     </div>
-                    {/* Hero Image */}
-                    <div style={{ flex: '1 1 40%', minWidth: '280px', position: 'relative' }}>
-                        <img
-                            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&h=800&fit=crop"
-                            alt="Fashion hero"
-                            style={{ width: '100%', height: '500px', objectFit: 'cover', objectPosition: 'center top' }}
-                        />
-                        <div style={{ position: 'absolute', top: '40px', right: '40px', fontSize: '32px', opacity: 0.3 }}>✦</div>
-                        <div style={{ position: 'absolute', bottom: '80px', left: '20px', fontSize: '56px', opacity: 0.3 }}>✦</div>
+                </section>
+            )}
+
+            {/* ═══════════════════ TECH CATEGORIES — "The future in your hands" ═══════════════════ */}
+            <section style={{ padding: '48px 0', borderTop: '1px solid #f0f0f0', borderBottom: '1px solid #f0f0f0' }}>
+                <div className="container-main">
+                    <h2 style={{
+                        fontFamily: "'Satoshi', sans-serif", fontSize: '22px',
+                        fontWeight: 700, marginBottom: '32px', color: '#000',
+                    }}>
+                        The future in your hands
+                    </h2>
+                    <div style={{
+                        display: 'flex', gap: '20px', overflowX: 'auto',
+                        paddingBottom: '8px',
+                    }} className="scrollbar-hide">
+                        {techCategories.map((cat) => (
+                            <Link key={cat.name} to={`/shop?search=${cat.search}`}
+                                style={{ textAlign: 'center', flex: '0 0 auto', cursor: 'pointer' }}
+                                className="trending-cat-hover">
+                                <div style={{
+                                    width: '130px', height: '130px', borderRadius: '50%',
+                                    overflow: 'hidden', backgroundColor: '#f0f0f0',
+                                    margin: '0 auto 10px', transition: 'transform 0.3s, box-shadow 0.3s',
+                                }}>
+                                    <img src={cat.img} alt={cat.name}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        loading="lazy" />
+                                </div>
+                                <span style={{ fontSize: '12px', fontWeight: 500, color: '#000', maxWidth: '120px', display: 'block', margin: '0 auto' }}>
+                                    {cat.name}
+                                </span>
+                            </Link>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* ═══════════════════ BRAND BAR ═══════════════════ */}
-            <section style={{ backgroundColor: '#000', padding: '20px 0', overflow: 'hidden' }}>
-                <div className="container-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '32px', flexWrap: 'nowrap', overflow: 'hidden' }}>
-                    {['VERSACE', 'ZARA', 'GUCCI', 'PRADA', 'Calvin Klein'].map((brand) => (
-                        <span key={brand} style={{
-                            color: '#fff', fontSize: 'clamp(16px, 2.5vw, 28px)', fontWeight: 700, whiteSpace: 'nowrap',
-                            fontFamily: "'Integral CF', sans-serif", opacity: 0.85, cursor: 'pointer', transition: 'opacity 0.2s',
-                            flexShrink: 0
-                        }}>
-                            {brand}
-                        </span>
-                    ))}
-                </div>
-            </section>
 
             {/* ═══════════════════ NEW ARRIVALS ═══════════════════ */}
             <section className="section-pad">
                 <div className="container-main">
-                    <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(28px, 4vw, 48px)', textAlign: 'center', fontWeight: 700, marginBottom: '48px' }}>
-                        NEW ARRIVALS
-                    </h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
-                        {newArrivals.map((product) => (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        marginBottom: '32px',
+                    }}>
+                        <h2 style={{
+                            fontFamily: "'Integral CF', sans-serif",
+                            fontSize: 'clamp(24px, 4vw, 36px)',
+                            fontWeight: 700,
+                        }}>
+                            NEW ARRIVALS
+                        </h2>
+                        <Link to="/shop?sort=newest" style={{
+                            fontSize: '14px', fontWeight: 600, color: '#000',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                        }}>
+                            See all <FiArrowRight size={16} />
+                        </Link>
+                    </div>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                        gap: '20px',
+                    }}>
+                        {newArrivals.slice(0, 8).map((product) => (
                             <ProductCard key={product._id} product={product} />
                         ))}
-                    </div>
-                    <div style={{ textAlign: 'center', marginTop: '36px' }}>
-                        <Link to="/shop?sort=newest" className="btn-outline" style={{ padding: '14px 48px' }}>
-                            View All
-                        </Link>
                     </div>
                 </div>
             </section>
 
-            <hr style={{ maxWidth: '1200px', margin: '0 auto', border: 'none', borderTop: '1px solid #f0f0f0' }} />
+            <hr style={{ maxWidth: '1400px', margin: '0 auto', border: 'none', borderTop: '1px solid #f0f0f0' }} />
 
             {/* ═══════════════════ TOP SELLING ═══════════════════ */}
             <section className="section-pad">
                 <div className="container-main">
-                    <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(28px, 4vw, 48px)', textAlign: 'center', fontWeight: 700, marginBottom: '48px' }}>
-                        TOP SELLING
-                    </h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
-                        {topProducts.map((product) => (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        marginBottom: '32px',
+                    }}>
+                        <h2 style={{
+                            fontFamily: "'Integral CF', sans-serif",
+                            fontSize: 'clamp(24px, 4vw, 36px)',
+                            fontWeight: 700,
+                        }}>
+                            TOP SELLING
+                        </h2>
+                        <Link to="/shop?sort=popular" style={{
+                            fontSize: '14px', fontWeight: 600, color: '#000',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                        }}>
+                            See all <FiArrowRight size={16} />
+                        </Link>
+                    </div>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                        gap: '20px',
+                    }}>
+                        {dealsProducts.slice(0, 8).map((product) => (
                             <ProductCard key={product._id} product={product} />
                         ))}
-                    </div>
-                    <div style={{ textAlign: 'center', marginTop: '36px' }}>
-                        <Link to="/shop?sort=popular" className="btn-outline" style={{ padding: '14px 48px' }}>
-                            View All
-                        </Link>
                     </div>
                 </div>
             </section>
 
-            {/* ═══════════════════ BROWSE BY DRESS STYLE ═══════════════════ */}
+            {/* ═══════════════════ BROWSE BY CATEGORY (Grid) ═══════════════════ */}
             <section className="section-pad">
                 <div className="container-main">
-                    <div style={{ backgroundColor: '#f0f0f0', borderRadius: '32px', padding: 'clamp(24px, 4vw, 64px)' }}>
-                        <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(24px, 4vw, 48px)', textAlign: 'center', fontWeight: 700, marginBottom: '40px' }}>
-                            BROWSE BY DRESS STYLE
+                    <div style={{
+                        backgroundColor: '#f5f5f5', borderRadius: '32px',
+                        padding: 'clamp(24px, 4vw, 56px)',
+                    }}>
+                        <h2 style={{
+                            fontFamily: "'Integral CF', sans-serif",
+                            fontSize: 'clamp(24px, 4vw, 42px)',
+                            textAlign: 'center', fontWeight: 700, marginBottom: '40px',
+                        }}>
+                            BROWSE BY CATEGORY
                         </h2>
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: '1fr 2fr',
-                            gridTemplateRows: 'auto auto',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                             gap: '16px',
                         }}>
-                            {[
-                                { name: 'Casual', image: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=500&h=300&fit=crop' },
-                                { name: 'Formal', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=300&fit=crop' },
-                                { name: 'Party', image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800&h=300&fit=crop' },
-                                { name: 'Gym', image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=300&fit=crop' },
-                            ].map(({ name, image }, i) => (
-                                <Link
-                                    key={name}
-                                    to={`/shop?search=${name.toLowerCase()}`}
+                            {browseCategories.map(({ name, desc, img, search, span }) => (
+                                <Link key={name} to={`/shop?search=${search}`}
+                                    className="browse-card"
                                     style={{
-                                        position: 'relative',
-                                        height: '220px',
-                                        borderRadius: '16px',
-                                        overflow: 'hidden',
-                                        gridColumn: i === 1 || i === 2 ? 'span 1' : 'span 1',
-                                    }}
-                                >
-                                    <img src={image} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s' }} />
-                                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)' }} />
-                                    <h3 style={{
-                                        position: 'absolute', top: '20px', left: '24px',
-                                        color: '#000', fontSize: 'clamp(18px, 2.5vw, 28px)', fontWeight: 700,
-                                        fontFamily: "'Satoshi', sans-serif",
-                                        backgroundColor: 'rgba(255,255,255,0.9)',
-                                        padding: '4px 12px',
-                                        borderRadius: '8px'
-                                    }}>{name}</h3>
+                                        position: 'relative', height: '240px', borderRadius: '20px',
+                                        overflow: 'hidden', gridColumn: window.innerWidth > 768 ? `span ${span}` : 'span 1',
+                                    }}>
+                                    <img src={img} alt={name} style={{
+                                        width: '100%', height: '100%', objectFit: 'cover',
+                                        transition: 'transform 0.6s ease',
+                                    }} loading="lazy" />
+                                    <div style={{
+                                        position: 'absolute', inset: 0,
+                                        background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)',
+                                    }} />
+                                    <div style={{
+                                        position: 'absolute', bottom: '24px', left: '24px',
+                                    }}>
+                                        <h3 style={{
+                                            color: '#fff', fontSize: 'clamp(18px, 2.5vw, 26px)',
+                                            fontWeight: 700, fontFamily: "'Satoshi', sans-serif",
+                                            marginBottom: '4px',
+                                        }}>{name}</h3>
+                                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}>{desc}</p>
+                                    </div>
                                 </Link>
                             ))}
                         </div>
@@ -186,34 +548,64 @@ export default function HomePage() {
             </section>
 
             {/* ═══════════════════ HAPPY CUSTOMERS ═══════════════════ */}
-            <section className="section-pad" style={{ paddingBottom: '100px' }}>
+            <section className="section-pad" style={{ paddingBottom: '48px' }}>
                 <div className="container-main">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
-                        <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(24px, 4vw, 48px)', fontWeight: 700 }}>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        marginBottom: '40px', flexWrap: 'wrap', gap: '16px',
+                    }}>
+                        <h2 style={{
+                            fontFamily: "'Integral CF', sans-serif",
+                            fontSize: 'clamp(24px, 4vw, 42px)', fontWeight: 700,
+                        }}>
                             OUR HAPPY CUSTOMERS
                         </h2>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid #d4d4d4', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <button style={{
+                                width: '40px', height: '40px', borderRadius: '50%',
+                                border: '1px solid #d4d4d4', background: '#fff',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
                                 <FiArrowLeft size={18} />
                             </button>
-                            <button style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid #d4d4d4', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <button style={{
+                                width: '40px', height: '40px', borderRadius: '50%',
+                                border: '1px solid #d4d4d4', background: '#fff',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
                                 <FiArrowRight size={18} />
                             </button>
                         </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                        gap: '20px',
+                    }}>
                         {reviews.map((review, i) => (
-                            <div key={i} style={{ border: '1px solid #e5e5e5', borderRadius: '20px', padding: '28px 32px' }}>
+                            <div key={i} style={{
+                                border: '1px solid #e5e5e5', borderRadius: '20px',
+                                padding: '28px 32px', transition: 'box-shadow 0.3s, transform 0.3s',
+                            }}
+                                className="review-card-hover">
                                 <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
                                     {Array.from({ length: review.rating }, (_, j) => (
                                         <FaStar key={j} className="star-filled" size={20} />
                                     ))}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                                    <span style={{ fontWeight: 700, fontFamily: "'Satoshi', sans-serif", fontSize: '16px' }}>{review.name}</span>
+                                    <span style={{ fontWeight: 700, fontFamily: "'Satoshi', sans-serif", fontSize: '16px' }}>
+                                        {review.name}
+                                    </span>
                                     {review.verified && (
-                                        <span style={{ width: '20px', height: '20px', backgroundColor: '#01ab31', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M5 7l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                        <span style={{
+                                            width: '20px', height: '20px', backgroundColor: '#01ab31',
+                                            borderRadius: '50%', display: 'flex', alignItems: 'center',
+                                            justifyContent: 'center', flexShrink: 0,
+                                        }}>
+                                            <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+                                                <path d="M5 7l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
                                         </span>
                                     )}
                                 </div>
@@ -229,43 +621,64 @@ export default function HomePage() {
                 <div className="container-main">
                     <div style={{
                         background: 'linear-gradient(135deg, #000 0%, #1a1a2e 50%, #16213e 100%)',
-                        borderRadius: '32px', padding: 'clamp(32px, 5vw, 64px)', position: 'relative', overflow: 'hidden',
+                        borderRadius: '32px', padding: 'clamp(32px, 5vw, 64px)',
+                        position: 'relative', overflow: 'hidden',
                     }}>
                         <div style={{
                             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                             background: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(255,255,255,0.04) 0%, transparent 50%)',
                         }} />
-                        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>
+                        <div style={{
+                            position: 'relative', zIndex: 1, display: 'flex',
+                            flexWrap: 'wrap', alignItems: 'center', gap: 40,
+                        }}>
                             <div style={{ flex: '1 1 400px', minWidth: 280 }}>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 3 }}>
+                                <span style={{
+                                    fontSize: 12, fontWeight: 600,
+                                    color: 'rgba(255,255,255,0.5)',
+                                    textTransform: 'uppercase', letterSpacing: 3,
+                                }}>
                                     Start Selling Today
                                 </span>
                                 <h2 style={{
-                                    fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(24px, 4vw, 42px)',
-                                    fontWeight: 700, color: '#fff', lineHeight: 1.15, margin: '12px 0 20px',
+                                    fontFamily: "'Integral CF', sans-serif",
+                                    fontSize: 'clamp(24px, 4vw, 42px)',
+                                    fontWeight: 700, color: '#fff', lineHeight: 1.15,
+                                    margin: '12px 0 20px',
                                 }}>
                                     GROW YOUR BUSINESS WITH MARKAZ
                                 </h2>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, lineHeight: 1.8, marginBottom: 28, maxWidth: 520 }}>
-                                    Join hundreds of successful sellers on Pakistan's fastest-growing marketplace. Reach millions of customers, manage your store with powerful tools, and watch your business grow.
-                                </p>
-                                <Link to={user?.role === 'SELLER' ? '/seller/dashboard' : '/become-seller'} style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                                    padding: '16px 40px', borderRadius: 9999, backgroundColor: '#fff', color: '#000',
-                                    fontSize: 15, fontWeight: 600, textDecoration: 'none', transition: 'all 0.25s',
+                                <p style={{
+                                    color: 'rgba(255,255,255,0.7)', fontSize: 15,
+                                    lineHeight: 1.8, marginBottom: 28, maxWidth: 520,
                                 }}>
+                                    Join hundreds of successful sellers on Pakistan's fastest-growing marketplace.
+                                    Sell anything — electronics, fashion, home goods, and more.
+                                    Reach millions of customers and watch your business grow.
+                                </p>
+                                <Link to={user?.role === 'SELLER' ? '/seller/dashboard' : '/become-seller'}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                                        padding: '16px 40px', borderRadius: 9999,
+                                        backgroundColor: '#fff', color: '#000',
+                                        fontSize: 15, fontWeight: 600, textDecoration: 'none',
+                                    }}>
                                     {user?.role === 'SELLER' ? 'Seller Dashboard' : 'Start Selling'} <FiArrowRight size={18} />
                                 </Link>
                             </div>
-                            <div style={{ flex: '1 1 300px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div style={{
+                                flex: '1 1 300px', minWidth: 260,
+                                display: 'flex', flexDirection: 'column', gap: 16,
+                            }}>
                                 {[
-                                    { icon: <FiZap size={24} color="#fff" />, title: 'Free Setup', desc: 'No upfront costs. Create your store in minutes and start selling immediately.' },
+                                    { icon: <FiZap size={24} color="#fff" />, title: 'Sell Anything', desc: 'From electronics to fashion — list any product and start earning immediately.' },
                                     { icon: <FiUsers size={24} color="#fff" />, title: 'Millions of Customers', desc: 'Access our growing customer base across Pakistan with instant exposure.' },
                                     { icon: <FiBarChart2 size={24} color="#fff" />, title: 'Powerful Analytics', desc: 'Track sales, manage inventory, and optimize your business with real-time insights.' },
                                 ].map(({ icon, title, desc }) => (
                                     <div key={title} style={{
-                                        display: 'flex', gap: 16, padding: '20px 24px', borderRadius: 16,
-                                        backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)',
+                                        display: 'flex', gap: 16, padding: '20px 24px',
+                                        borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)',
+                                        backdropFilter: 'blur(10px)',
                                         border: '1px solid rgba(255,255,255,0.08)',
                                     }}>
                                         <span style={{ fontSize: 28, flexShrink: 0 }}>{icon}</span>
