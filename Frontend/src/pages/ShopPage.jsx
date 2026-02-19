@@ -56,7 +56,7 @@ export default function ShopPage() {
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalProducts: 0 });
     const [categories, setCategories] = useState([]);
-    const [priceRange, setPriceRange] = useState([0, 500]);
+    const [priceRange, setPriceRange] = useState([0, 5000]);
     const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: false, specs: true, condition: true, brands: true });
     const [expandedDepts, setExpandedDepts] = useState({});
 
@@ -275,7 +275,7 @@ export default function ShopPage() {
                                                 style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e5e5', fontSize: 13, outline: 'none' }} />
                                         </div>
                                     </div>
-                                    <input type="range" min="0" max="1000" value={priceRange[1]}
+                                    <input type="range" min="0" max="10000" value={priceRange[1]}
                                         onChange={e => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                                         style={{ width: '100%', accentColor: '#000' }} />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#737373', marginTop: 4 }}>

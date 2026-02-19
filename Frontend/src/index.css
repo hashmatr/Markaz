@@ -33,7 +33,7 @@ a {
   color: inherit;
 }
 
-/* ═══════════ PRODUCT CARD IMAGE FIX ═══════════ */
+/* ═══════════ PRODUCT CARD IMAGE ═══════════ */
 .product-img-wrap {
   background-color: #f0f0f0;
   border-radius: 16px;
@@ -43,15 +43,49 @@ a {
   position: relative;
 }
 
+/* ── Shared img base ── */
 .product-img-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  display: block;
 }
 
-.product-img-wrap:hover img {
-  transform: scale(1.05);
+/* ── MODE 1 : Two images – cross-fade ── */
+.product-img-wrap.has-alt .product-img-primary,
+.product-img-wrap.has-alt .product-img-secondary {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.5s ease;
+}
+
+.product-img-wrap.has-alt .product-img-primary {
+  opacity: 1;
+  z-index: 1;
+}
+
+.product-img-wrap.has-alt .product-img-secondary {
+  opacity: 0;
+  z-index: 1;
+}
+
+/* on hover, hide primary and show secondary */
+.product-img-wrap.has-alt.is-hovered .product-img-primary {
+  opacity: 0;
+}
+
+.product-img-wrap.has-alt.is-hovered .product-img-secondary {
+  opacity: 1;
+}
+
+/* ── MODE 2 : Single image – zoom (Ken Burns) ── */
+.product-img-wrap.single-img .product-img-primary {
+  transform: scale(1);
+  transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.product-img-wrap.single-img.is-hovered .product-img-primary {
+  transform: scale(1.08);
 }
 
 /* ═══════════ STAR COLORS ═══════════ */

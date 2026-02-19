@@ -9,7 +9,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "seed": "node src/scripts/seedDummyProducts.js",
+    "seed:all": "node src/scripts/seedAllSellers.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
