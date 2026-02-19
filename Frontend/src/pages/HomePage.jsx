@@ -72,7 +72,7 @@ const heroSlides = [
    TRENDING CATEGORIES — circular icons
    ════════════════════════════════════════════ */
 const trendingCategories = [
-    { name: 'Electronics', img: 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=200&h=200&fit=crop', search: 'electronics' },
+    { name: 'Electronics', img: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop', search: 'electronics' },
     { name: 'Motors', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=200&fit=crop', search: 'motors' },
     { name: 'Luxury', img: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=200&h=200&fit=crop', search: 'luxury' },
     { name: 'Collectibles & Art', img: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200&h=200&fit=crop', search: 'collectibles' },
@@ -92,12 +92,12 @@ const trendingCategories = [
 const techCategories = [
     { name: 'Laptops', img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&fit=crop', search: 'laptops' },
     { name: 'Computer Parts', img: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=200&h=200&fit=crop', search: 'computer parts' },
-    { name: 'Smartphones', img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop', search: 'smartphones' },
+    { name: 'Smartphones', img: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=200&h=200&fit=crop', search: 'smartphones' },
     { name: 'Networking', img: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=200&h=200&fit=crop', search: 'networking' },
     { name: 'Tablets', img: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200&h=200&fit=crop', search: 'tablets' },
     { name: 'Storage', img: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=200&h=200&fit=crop', search: 'storage' },
     { name: 'Cameras & Lenses', img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&h=200&fit=crop', search: 'cameras' },
-    { name: 'Smart Home', img: 'https://images.unsplash.com/photo-1558002038-103792e37a71?w=200&h=200&fit=crop', search: 'smart home' },
+    { name: 'Smart Home', img: 'https://images.unsplash.com/photo-1591393223703-56fe1347ac62?w=200&h=200&fit=crop', search: 'smart home' },
     { name: 'Audio', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop', search: 'audio' },
     { name: 'Video Games', img: 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=200&h=200&fit=crop', search: 'video games' },
     { name: 'Wearable Tech', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop', search: 'wearables' },
@@ -121,6 +121,7 @@ const reviews = [
     { name: 'Ahmed R.', rating: 5, text: '"Markaz has become my go-to marketplace. I\'ve bought electronics, home items, and fashion — all at great prices with fast delivery!"', verified: true },
     { name: 'Fatima K.', rating: 5, text: '"The variety is incredible! I found everything from a new laptop to kitchen appliances. The seller verification gives me confidence."', verified: true },
     { name: 'Hassan M.', rating: 5, text: '"As a seller, Markaz has transformed my business. The platform is easy to use and I\'m reaching customers I never could before."', verified: true },
+    { name: 'Ayesha T.', rating: 4, text: '"Excellent customer service and very high quality products. The delivery was surprising fast and the packaging was premium. Highly recommended!"', verified: true },
 ];
 
 export default function HomePage() {

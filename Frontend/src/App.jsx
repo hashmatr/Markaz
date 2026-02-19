@@ -17,6 +17,7 @@ import OrdersPage from './pages/OrdersPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 import SellersPage from './pages/SellersPage';
+import StorePage from './pages/StorePage';
 import BecomeSellerPage from './pages/BecomeSellerPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import AddProductPage from './pages/AddProductPage';
@@ -53,6 +54,7 @@ function App() {
                 <Route path="/orders/:id" element={<OrderTrackingPage />} />
                 <Route path="/order-success" element={<OrderSuccessPage />} />
                 <Route path="/sellers" element={<SellersPage />} />
+                <Route path="/store/:slug" element={<StorePage />} />
                 <Route path="/become-seller" element={<BecomeSellerPage />} />
                 <Route path="/seller/dashboard" element={<SellerDashboardPage />} />
                 <Route path="/seller/add-product" element={<AddProductPage />} />

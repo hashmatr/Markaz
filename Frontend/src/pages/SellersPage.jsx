@@ -9,39 +9,119 @@ export default function SellersPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        sellerAPI.getAll({ status: 'active' }).then(r => setSellers(r.data.data.sellers || [])).catch(() => { }).finally(() => setLoading(false));
+        // Increase limit to 100 to ensure all 14+ sellers are shown
+        sellerAPI.getAll({ status: 'active', limit: 100 })
+            .then(r => setSellers(r.data.data.sellers || []))
+            .catch(() => { })
+            .finally(() => setLoading(false));
     }, []);
-
-    const demoSellers = [
-        { _id: 's1', storeName: 'Versace Store', storeSlug: 'versace', storeDescription: 'Luxury fashion brand offering premium clothing.', rating: 4.8, totalProducts: 45 },
-        { _id: 's2', storeName: 'Urban Wear', storeSlug: 'urban-wear', storeDescription: 'Streetwear and casual fashion for everyday style.', rating: 4.5, totalProducts: 62 },
-        { _id: 's3', storeName: 'Elite Fashion', storeSlug: 'elite-fashion', storeDescription: 'Contemporary fashion designed for the modern individual.', rating: 4.2, totalProducts: 31 },
-        { _id: 's4', storeName: 'Classic Couture', storeSlug: 'classic-couture', storeDescription: 'Timeless elegance meets modern sophistication.', rating: 4.7, totalProducts: 78 },
-    ];
-
-    const displaySellers = sellers.length > 0 ? sellers : demoSellers;
 
     return (
         <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
             <Breadcrumb items={[{ label: 'Brands & Sellers' }]} />
-            <h1 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, marginBottom: '32px' }}>OUR SELLERS</h1>
+
+            <div style={{ marginBottom: '40px' }}>
+                <h1 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, marginBottom: '8px' }}>OUR SELLERS</h1>
+                <p style={{ color: '#737373', fontSize: '15px' }}>Discover unique stores and premium products from our community of sellers.</p>
+            </div>
 
             {loading ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-                    {[1, 2, 3, 4].map(i => <div key={i} style={{ height: '200px', backgroundColor: '#f0f0f0', borderRadius: '20px', animation: 'pulse 1.5s infinite' }} />)}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} style={{ height: '320px', backgroundColor: '#f5f5f5', borderRadius: '24px', animation: 'pulse 1.5s infinite' }} />
+                    ))}
+                </div>
+            ) : sellers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏬</div>
+                    <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>No Active Sellers Found</h2>
+                    <p style={{ color: '#737373' }}>We're currently onboarding new sellers. Check back soon!</p>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-                    {displaySellers.map(seller => (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+                    {sellers.map((seller, index) => (
                         <Link key={seller._id} to={`/store/${seller.storeSlug}`} className="animate-fade-in"
-                            style={{ border: '1px solid #e5e5e5', borderRadius: '20px', padding: '28px', display: 'block', transition: 'box-shadow 0.3s' }}>
-                            <div style={{ width: '56px', height: '56px', backgroundColor: '#f0f0f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', fontSize: '20px', fontWeight: 700, fontFamily: "'Integral CF', sans-serif" }}>
-                                {seller.storeName?.charAt(0)}
+                            style={{
+                                border: '1px solid #f0f0f0',
+                                borderRadius: '24px',
+                                padding: '32px',
+                                display: 'block',
+                                transition: 'all 0.3s ease',
+                                textDecoration: 'none',
+                                color: 'inherit',
+                                backgroundColor: '#fff',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                                animationDelay: `${index * 0.05}s`
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-5px)';
+                                e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.05)';
+                                e.currentTarget.style.borderColor = '#000';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.02)';
+                                e.currentTarget.style.borderColor = '#f0f0f0';
+                            }}
+                        >
+                            <div style={{
+                                width: '64px',
+                                height: '64px',
+                                backgroundColor: '#f0f0f0',
+                                borderRadius: '20px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: '20px',
+                                fontSize: '24px',
+                                fontWeight: 700,
+                                fontFamily: "'Integral CF', sans-serif"
+                            }}>
+                                {seller.storeLogo ? (
+                                    <img src={seller.storeLogo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '20px' }} />
+                                ) : (
+                                    seller.storeName?.charAt(0)
+                                )}
                             </div>
-                            <h3 style={{ fontWeight: 700, fontSize: '17px', marginBottom: '6px' }}>{seller.storeName}</h3>
-                            <StarRating rating={seller.rating || 0} size={14} showText />
-                            <p style={{ color: '#737373', fontSize: '13px', marginTop: '10px', lineHeight: 1.6 }}>{seller.storeDescription}</p>
-                            <p style={{ fontSize: '12px', color: '#a3a3a3', marginTop: '12px' }}>{seller.totalProducts || 0} Products</p>
+
+                            <h3 style={{ fontWeight: 700, fontSize: '19px', marginBottom: '8px', color: '#000' }}>{seller.storeName}</h3>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                                <StarRating rating={seller.rating || 0} size={14} />
+                                <span style={{ fontSize: '13px', color: '#737373', fontWeight: 500 }}>
+                                    {seller.rating ? seller.rating.toFixed(1) : 'New'}
+                                </span>
+                            </div>
+
+                            <p style={{
+                                color: '#737373',
+                                fontSize: '14px',
+                                lineHeight: 1.6,
+                                marginBottom: '20px',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                height: '67px'
+                            }}>
+                                {seller.storeDescription || "A trusted Markaz seller offering high-quality products and excellent service."}
+                            </p>
+
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                paddingTop: '20px',
+                                borderTop: '1px solid #f5f5f5',
+                                marginTop: 'auto'
+                            }}>
+                                <span style={{ fontSize: '13px', color: '#000', fontWeight: 600 }}>
+                                    {seller.totalProducts || 0} Products
+                                </span>
+                                <span style={{ fontSize: '13px', fontWeight: 700, color: '#000', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    Visit Store ➔
+                                </span>
+                            </div>
                         </Link>
                     ))}
                 </div>

@@ -137,8 +137,8 @@ export default function ProductDetailPage() {
 
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 6);
     const productImages = product.images?.length > 0 ? product.images : [{ url: 'https://placehold.co/600x600/f0f0f0/999?text=No+Image' }];
-    const productColors = product.color ? [product.color] : ['#314F4A'];
-    const productSizes = product.sizes?.length > 0 ? product.sizes : ['Small', 'Medium', 'Large', 'X-Large'];
+    const productColors = product.color ? [product.color] : [];
+    const productSizes = product.sizes?.length > 0 ? product.sizes : [];
 
     return (
         <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
@@ -184,42 +184,46 @@ export default function ProductDetailPage() {
                         {product.description}
                     </p>
 
-                    {/* Colors */}
-                    <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
-                        <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Select Colors</p>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            {productColors.map((color, i) => (
-                                <button key={i} onClick={() => setSelectedColor(i)}
-                                    style={{
-                                        width: '36px', height: '36px', borderRadius: '50%', backgroundColor: color, border: 'none', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        outline: selectedColor === i ? '2px solid #000' : 'none', outlineOffset: '3px',
-                                    }}>
-                                    {selectedColor === i && <FiCheck style={{ color: '#fff' }} size={16} />}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Sizes */}
-                    <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
-                        <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Choose Size</p>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                            {productSizes.map(size => {
-                                const sizeName = typeof size === 'object' ? size.name : size;
-                                return (
-                                    <button key={sizeName} onClick={() => setSelectedSize(sizeName)}
+                    {/* Colors — only shown when product has color data */}
+                    {productColors.length > 0 && (
+                        <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
+                            <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Select Colors</p>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                {productColors.map((color, i) => (
+                                    <button key={i} onClick={() => setSelectedColor(i)}
                                         style={{
-                                            padding: '10px 20px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none',
-                                            backgroundColor: selectedSize === sizeName ? '#000' : '#f0f0f0', color: selectedSize === sizeName ? '#fff' : '#000',
-                                            transition: 'all 0.15s',
+                                            width: '36px', height: '36px', borderRadius: '50%', backgroundColor: color, border: 'none', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            outline: selectedColor === i ? '2px solid #000' : 'none', outlineOffset: '3px',
                                         }}>
-                                        {sizeName}
+                                        {selectedColor === i && <FiCheck style={{ color: '#fff' }} size={16} />}
                                     </button>
-                                );
-                            })}
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Sizes — only shown when product has size data */}
+                    {productSizes.length > 0 && (
+                        <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
+                            <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Choose Size</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                {productSizes.map(size => {
+                                    const sizeName = typeof size === 'object' ? size.name : size;
+                                    return (
+                                        <button key={sizeName} onClick={() => setSelectedSize(sizeName)}
+                                            style={{
+                                                padding: '10px 20px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none',
+                                                backgroundColor: selectedSize === sizeName ? '#000' : '#f0f0f0', color: selectedSize === sizeName ? '#fff' : '#000',
+                                                transition: 'all 0.15s',
+                                            }}>
+                                            {sizeName}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Quantity + Add to Cart */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -291,7 +295,6 @@ export default function ProductDetailPage() {
                                     </button>
                                     <h3 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>Write a Review</h3>
                                     <form onSubmit={handleSubmitReview}>
-                                        {/* Star Rating Input */}
                                         <div style={{ marginBottom: '20px' }}>
                                             <p style={{ fontSize: '13px', color: '#737373', marginBottom: '8px' }}>Your Rating</p>
                                             <div style={{ display: 'flex', gap: '8px' }}>
@@ -306,7 +309,6 @@ export default function ProductDetailPage() {
                                                 ))}
                                             </div>
                                         </div>
-                                        {/* Comment */}
                                         <div style={{ marginBottom: '24px' }}>
                                             <p style={{ fontSize: '13px', color: '#737373', marginBottom: '8px' }}>Your Review</p>
                                             <textarea
@@ -373,44 +375,104 @@ export default function ProductDetailPage() {
                 )}
 
                 {activeTab === 'details' && (
-                    <div style={{ paddingTop: '32px', color: '#525252', lineHeight: 1.7, fontSize: '14px' }}>
-                        <p>{product.description}</p>
-                        {product.brand && (
-                            <p style={{ marginTop: '16px' }}>
-                                <strong>Brand:</strong>{' '}
+                    <div style={{ paddingTop: '32px' }}>
+                        <div style={{ marginBottom: '32px' }}>
+                            <h4 style={{ fontWeight: 700, fontSize: '16px', color: '#000', marginBottom: '12px' }}>About This Product</h4>
+                            <p style={{ color: '#525252', lineHeight: 1.8, fontSize: '14px' }}>{product.description}</p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '32px' }}>
+                            {product.brand && (
                                 <Link to={`/shop?brand=${encodeURIComponent(product.brand)}`}
-                                    style={{ color: '#000', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
-                                    {product.brand}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '9999px', backgroundColor: '#f0f0f0', fontSize: '13px', fontWeight: 600, color: '#000', textDecoration: 'none' }}>
+                                    🏷️ {product.brand}
                                 </Link>
-                            </p>
-                        )}
-                        {product.category?.name && (
-                            <p style={{ marginTop: '8px' }}>
-                                <strong>Category:</strong>{' '}
+                            )}
+                            {product.category?.name && (
                                 <Link to={`/shop?category=${product.category._id}`}
-                                    style={{ color: '#000', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
-                                    {product.category.name}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '9999px', backgroundColor: '#f0f0f0', fontSize: '13px', fontWeight: 600, color: '#000', textDecoration: 'none' }}>
+                                    📂 {product.category.name}
                                 </Link>
-                            </p>
-                        )}
-                        {product.seller?.storeName && (
-                            <p style={{ marginTop: '8px' }}>
-                                <strong>Sold by:</strong>{' '}
-                                <Link to={`/sellers`}
-                                    style={{ color: '#000', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
-                                    {product.seller.storeName}
-                                </Link>
-                            </p>
-                        )}
+                            )}
+                            {product.rating > 0 && (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '9999px', backgroundColor: '#fef9c3', fontSize: '13px', fontWeight: 600, color: '#854d0e' }}>
+                                    ⭐ {product.rating.toFixed(1)} / 5
+                                </span>
+                            )}
+                        </div>
+
                         {product.specifications?.length > 0 && (
-                            <div style={{ marginTop: '24px' }}>
-                                <h4 style={{ fontWeight: 700, marginBottom: '12px', fontSize: '16px', color: '#000' }}>Specifications</h4>
+                            <div style={{ marginBottom: '32px' }}>
+                                <h4 style={{ fontWeight: 700, fontSize: '16px', color: '#000', marginBottom: '16px' }}>Specifications</h4>
                                 <div style={{ border: '1px solid #e5e5e5', borderRadius: '16px', overflow: 'hidden' }}>
                                     {product.specifications.map((spec, i) => (
-                                        <div key={i} style={{ display: 'flex', padding: '12px 16px', borderBottom: i < product.specifications.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: i % 2 === 0 ? '#fafafa' : '#fff' }}>
-                                            <span style={{ fontWeight: 600, width: '40%', color: '#000' }}>{spec.key}</span>
-                                            <span style={{ color: '#525252' }}>{spec.value}</span>
+                                        <div key={i} style={{
+                                            display: 'flex', alignItems: 'flex-start',
+                                            padding: '14px 20px',
+                                            borderBottom: i < product.specifications.length - 1 ? '1px solid #f0f0f0' : 'none',
+                                            backgroundColor: i % 2 === 0 ? '#fafafa' : '#fff',
+                                        }}>
+                                            <span style={{ fontWeight: 600, width: '38%', minWidth: '120px', color: '#374151', fontSize: '13px', flexShrink: 0 }}>
+                                                {spec.key}
+                                            </span>
+                                            <span style={{ color: '#525252', fontSize: '13px', lineHeight: 1.6 }}>
+                                                {spec.value}
+                                            </span>
                                         </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Seller Info Card - FIXED AND LINKED */}
+                        {product.seller?.storeName && (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: '16px',
+                                padding: '24px', borderRadius: '20px',
+                                border: '1px solid #f0f0f0', backgroundColor: '#fafafa',
+                                marginBottom: '24px', flexWrap: 'wrap'
+                            }}>
+                                <div style={{
+                                    width: '56px', height: '56px', borderRadius: '16px',
+                                    backgroundColor: '#000', display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', flexShrink: 0,
+                                }}>
+                                    <span style={{ color: '#fff', fontWeight: 700, fontSize: '20px' }}>
+                                        {product.seller.storeName.charAt(0)}
+                                    </span>
+                                </div>
+                                <div style={{ flex: 1, minWidth: '200px' }}>
+                                    <p style={{ fontSize: '12px', color: '#737373', marginBottom: '2px' }}>Sold by</p>
+                                    <Link to={`/store/${product.seller.storeSlug}`} style={{ fontWeight: 700, fontSize: '17px', color: '#000', textDecoration: 'none' }}>
+                                        {product.seller.storeName}
+                                    </Link>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                        <StarRating rating={product.seller.rating || 0} size={12} />
+                                        <span style={{ fontSize: '12px', color: '#737373' }}>
+                                            {product.seller.rating?.toFixed(1) || '0.0'} Rating
+                                        </span>
+                                    </div>
+                                </div>
+                                <Link to={`/store/${product.seller.storeSlug}`} style={{
+                                    padding: '12px 24px', borderRadius: '9999px', border: '1px solid #000',
+                                    fontSize: '14px', fontWeight: 700, color: '#000', textDecoration: 'none',
+                                    backgroundColor: '#fff', transition: 'all 0.2s',
+                                }} onMouseEnter={(e) => { e.target.style.backgroundColor = '#000'; e.target.style.color = '#fff'; }}
+                                    onMouseLeave={(e) => { e.target.style.backgroundColor = '#fff'; e.target.style.color = '#000'; }}>
+                                    View Store
+                                </Link>
+                            </div>
+                        )}
+
+                        {product.tags?.length > 0 && (
+                            <div>
+                                <h4 style={{ fontWeight: 700, fontSize: '14px', color: '#737373', marginBottom: '10px' }}>TAGS</h4>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    {product.tags.map((tag, i) => (
+                                        <Link key={i} to={`/shop?search=${encodeURIComponent(tag)}`}
+                                            style={{ padding: '6px 14px', borderRadius: '9999px', border: '1px solid #e5e5e5', fontSize: '12px', color: '#525252', textDecoration: 'none', backgroundColor: '#fff' }}>
+                                            #{tag}
+                                        </Link>
                                     ))}
                                 </div>
                             </div>
@@ -418,55 +480,31 @@ export default function ProductDetailPage() {
                     </div>
                 )}
 
+
                 {activeTab === 'faqs' && (
                     <div style={{ paddingTop: '32px', maxWidth: '800px' }}>
                         <h3 style={{ fontFamily: "'Satoshi', sans-serif", fontSize: '18px', fontWeight: 700, marginBottom: '24px' }}>
                             Frequently Asked Questions
                         </h3>
-                        {[
-                            {
-                                q: `What materials is "${product.title}" made of?`,
-                                a: product.specifications?.find(s => s.key?.toLowerCase().includes('material'))?.value
-                                    || `This product is made with premium quality materials. Please check the product details tab for specific material information${product.brand ? ` from ${product.brand}` : ''}.`,
-                            },
-                            {
-                                q: 'What sizes are available?',
-                                a: productSizes.length > 0
-                                    ? `Available sizes: ${productSizes.map(s => typeof s === 'object' ? s.name : s).join(', ')}. We recommend checking our size guide for the best fit.`
-                                    : 'Please check the size options above for current availability.',
-                            },
-                            {
-                                q: 'How long does shipping take?',
-                                a: 'Standard shipping typically takes 5-7 business days. Express shipping (2-3 business days) is available at checkout. Delivery times may vary based on your location.',
-                            },
-                            {
-                                q: 'What is the return & exchange policy?',
-                                a: 'We offer a 30-day return policy for all unused items in original packaging. Exchanges are free of charge. Simply contact our customer support team to initiate a return or exchange.',
-                            },
-                            {
-                                q: 'Is Cash on Delivery (COD) available?',
-                                a: 'Yes, we offer Cash on Delivery as a payment option. You can select COD at checkout. Online payment options are also available for faster order processing.',
-                            },
-                            {
-                                q: 'How do I care for this product?',
-                                a: product.specifications?.find(s => s.key?.toLowerCase().includes('care'))?.value
-                                    || 'We recommend following the care instructions on the product label. Generally, machine wash cold with similar colors and tumble dry low for best results.',
-                            },
-                            {
-                                q: `Is this product genuine${product.brand ? ` from ${product.brand}` : ''}?`,
-                                a: `Yes, all products sold on our platform are 100% genuine and authentic. ${product.brand ? `This product is an official ${product.brand} product.` : ''} We work directly with authorized sellers to ensure quality.`,
-                            },
-                        ].map((faq, i) => (
-                            <FAQItem key={i} question={faq.q} answer={faq.a} defaultOpen={i === 0} />
-                        ))}
+                        {(() => {
+                            const specs = product.specifications || [];
+                            const getSpec = (key) => specs.find(s => s.key?.toLowerCase().includes(key))?.value;
+                            const faqs = [
+                                { q: "Is this product genuine?", a: "Yes, all products on Markaz are 100% authentic and sourced directly from verified sellers." },
+                                { q: "What is the return policy?", a: "We offer a 7-day easy return policy for this product if it's damaged or not as described." },
+                                { q: "How long does shipping take?", a: "Standard shipping takes 3-5 business days across Pakistan." }
+                            ];
+                            return faqs.map((faq, i) => (
+                                <FAQItem key={i} question={faq.q} answer={faq.a} defaultOpen={i === 0} />
+                            ));
+                        })()}
                     </div>
                 )}
             </div>
 
-            {/* ═══════════ RELATED PRODUCTS ═══════════ */}
             {relatedProducts.length > 0 && (
                 <section style={{ marginTop: '64px' }}>
-                    <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(24px, 4vw, 48px)', textAlign: 'center', fontWeight: 700, marginBottom: '40px' }}>
+                    <h2 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: '32px', textAlign: 'center', fontWeight: 700, marginBottom: '40px' }}>
                         YOU MIGHT ALSO LIKE
                     </h2>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
@@ -481,27 +519,20 @@ export default function ProductDetailPage() {
 function FAQItem({ question, answer, defaultOpen = false }) {
     const [open, setOpen] = useState(defaultOpen);
     return (
-        <div style={{ borderBottom: '1px solid #e5e5e5', marginBottom: 0 }}>
+        <div style={{ borderBottom: '1px solid #e5e5e5' }}>
             <button onClick={() => setOpen(!open)}
                 style={{
                     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '18px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
                 }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#000', flex: 1, paddingRight: '12px' }}>{question}</span>
-                <span style={{
-                    width: '28px', height: '28px', borderRadius: '50%', backgroundColor: open ? '#000' : '#f0f0f0',
-                    color: open ? '#fff' : '#525252', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '18px', flexShrink: 0, transition: 'all 0.2s',
-                }}>
-                    {open ? '−' : '+'}
-                </span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#000' }}>{question}</span>
+                <span style={{ fontSize: '18px' }}>{open ? '−' : '+'}</span>
             </button>
             {open && (
-                <div style={{ paddingBottom: '18px', fontSize: '14px', color: '#737373', lineHeight: 1.7, animation: 'fadeIn 0.2s ease-out' }}>
+                <div style={{ paddingBottom: '18px', fontSize: '14px', color: '#737373', lineHeight: 1.7 }}>
                     {answer}
                 </div>
             )}
         </div>
     );
 }
-
