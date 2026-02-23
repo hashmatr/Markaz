@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FiPackage, FiDollarSign, FiShoppingBag, FiStar, FiPlus, FiTrendingUp, FiFilter, FiChevronDown, FiChevronUp, FiX, FiClock } from 'react-icons/fi';
+import { FiPackage, FiDollarSign, FiShoppingBag, FiStar, FiPlus, FiTrendingUp, FiFilter, FiChevronDown, FiChevronUp, FiX, FiClock, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend);
 
@@ -46,6 +47,7 @@ function ChartCard({ title, children }) {
 
 export default function SellerDashboardPage() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [dashboard, setDashboard] = useState(null);
     const [charts, setCharts] = useState(null);
@@ -103,6 +105,17 @@ export default function SellerDashboardPage() {
     const handleSortChange = v => { const p = new URLSearchParams(searchParams); p.set('sort', v); p.set('page', '1'); setSearchParams(p); };
     const handlePageChange = pg => { const p = new URLSearchParams(searchParams); p.set('page', pg.toString()); setSearchParams(p); };
     const toggleFilter = k => setExpandedFilters(prev => ({ ...prev, [k]: !prev[k] }));
+
+    const handleDeleteProduct = async (productId, productTitle) => {
+        if (!window.confirm(`Are you sure you want to delete "${productTitle}"? This action cannot be undone.`)) return;
+        try {
+            await productAPI.delete(productId);
+            toast.success('Product deleted successfully');
+            fetchProducts();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to delete product');
+        }
+    };
 
     const FilterSection = ({ title, filterKey, children }) => (
         <div style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 16, marginBottom: 16 }}>
@@ -337,7 +350,21 @@ export default function SellerDashboardPage() {
                             </div>
                         ) : products.length > 0 ? (
                             <>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 20 }}>{products.map(p => <ProductCard key={p._id} product={p} />)}</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 20 }}>
+                                    {products.map(p => (
+                                        <div key={p._id} style={{ position: 'relative' }}>
+                                            <ProductCard product={p} />
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                                <button onClick={() => navigate(`/seller/edit-product/${p._id}`)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e5e5', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#000'; e.currentTarget.style.color = '#fff'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.color = '#000'; }}>
+                                                    <FiEdit size={14} /> Edit
+                                                </button>
+                                                <button onClick={() => handleDeleteProduct(p._id, p.title)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid #fca5a5', background: '#fff', color: '#dc2626', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#dc2626'; e.currentTarget.style.color = '#fff'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.color = '#dc2626'; }}>
+                                                    <FiTrash2 size={14} /> Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                                 {pagination.totalPages > 1 && (
                                     <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
                                         {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(pg => (

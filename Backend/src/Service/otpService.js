@@ -1,4 +1,5 @@
 const OTP = require('../Modal/OTP');
+const User = require('../Modal/User');
 const { generateOTP, hashOTP, verifyOTP, generateOTPExpiry, isOTPExpired } = require('../utils/generateOTP');
 const { sendOTPEmail } = require('../utils/sendEmail');
 
@@ -23,7 +24,15 @@ class OTPService {
       });
 
       if (recentOTP) {
-        throw new Error('OTP was recently sent. Please wait before requesting a new one.');
+        throw Object.assign(new Error('OTP was recently sent. Please wait before requesting a new one.'), { status: 429 });
+      }
+
+      // Check if user exists for types that require an existing account
+      if (['password_reset', 'login_2fa'].includes(type)) {
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) {
+          throw Object.assign(new Error('No account found with this email address.'), { status: 404 });
+        }
       }
 
       // Mark old unused OTPs as expired
@@ -66,6 +75,7 @@ class OTPService {
         type: type
       };
     } catch (error) {
+      if (error.status) throw error;
       throw new Error(`OTP Generation Error: ${error.message}`);
     }
   }
@@ -91,13 +101,13 @@ class OTPService {
       }).select('+otp');
 
       if (!otpRecord) {
-        throw new Error('OTP not found or has expired. Please request a new OTP.');
+        throw Object.assign(new Error('OTP not found or has expired. Please request a new OTP.'), { status: 404 });
       }
 
       // Check attempts limit
       if (otpRecord.attempts >= 5) {
         await OTP.deleteOne({ _id: otpRecord._id });
-        throw new Error('Maximum OTP verification attempts exceeded. Please request a new OTP.');
+        throw Object.assign(new Error('Maximum OTP verification attempts exceeded. Please request a new OTP.'), { status: 400 });
       }
 
       // Verify OTP
@@ -109,7 +119,7 @@ class OTPService {
         await otpRecord.save();
 
         const attemptsLeft = 5 - otpRecord.attempts;
-        throw new Error(`Invalid OTP. You have ${attemptsLeft} attempts remaining.`);
+        throw Object.assign(new Error(`Invalid OTP. You have ${attemptsLeft} attempts remaining.`), { status: 400 });
       }
 
       // OTP is valid - mark as used only if requested
@@ -125,6 +135,7 @@ class OTPService {
         type: type
       };
     } catch (error) {
+      if (error.status) throw error;
       throw new Error(`OTP Verification Error: ${error.message}`);
     }
   }
@@ -150,7 +161,7 @@ class OTPService {
         const timeSinceLastResend = (Date.now() - lastOTP.lastResendAt.getTime()) / 1000;
         if (timeSinceLastResend < 60) {
           const secondsToWait = Math.ceil(60 - timeSinceLastResend);
-          throw new Error(`Please wait ${secondsToWait} seconds before requesting another OTP.`);
+          throw Object.assign(new Error(`Please wait ${secondsToWait} seconds before requesting another OTP.`), { status: 429 });
         }
       }
 
@@ -163,6 +174,7 @@ class OTPService {
       // Generate and send new OTP
       return await this.generateOTP(normalizedEmail, type, metadata);
     } catch (error) {
+      if (error.status) throw error;
       throw new Error(`OTP Resend Error: ${error.message}`);
     }
   }
@@ -271,7 +283,7 @@ class OTPService {
    * @returns {Promise<object>} - Verification result
    */
   async verifyPasswordResetOTP(email, otp) {
-    return await this.verifyOTP(email, otp, 'password_reset');
+    return await this.verifyOTP(email, otp, 'password_reset', false);
   }
 
   /**

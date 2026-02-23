@@ -21,11 +21,13 @@ import StorePage from './pages/StorePage';
 import BecomeSellerPage from './pages/BecomeSellerPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import AddProductPage from './pages/AddProductPage';
+import EditProductPage from './pages/EditProductPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import BrandsPage from './pages/BrandsPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import ScrollToTop from './components/ScrollToTop';
+import Chatbot from './components/chatbot/Chatbot';
 import './App.css';
 
 function App() {
@@ -58,6 +60,7 @@ function App() {
                 <Route path="/become-seller" element={<BecomeSellerPage />} />
                 <Route path="/seller/dashboard" element={<SellerDashboardPage />} />
                 <Route path="/seller/add-product" element={<AddProductPage />} />
+                <Route path="/seller/edit-product/:id" element={<EditProductPage />} />
                 <Route path="/admin" element={<AdminDashboardPage />} />
                 <Route path="*" element={
                   <div className="max-w-[1400px] mx-auto px-4 py-20 text-center">
@@ -69,6 +72,7 @@ function App() {
               </Routes>
             </main>
             <Footer />
+            <Chatbot />
           </div>
           <Toaster
             position="top-right"

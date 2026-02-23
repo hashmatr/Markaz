@@ -92,7 +92,8 @@ class ProductController {
      * DELETE /api/products/:id - Delete product (seller only)
      */
     deleteProduct = asyncHandler(async (req, res) => {
-        const result = await productService.deleteProduct(req.params.id, req.user._id);
+        const isAdmin = req.user.role === 'ADMIN';
+        const result = await productService.deleteProduct(req.params.id, req.user._id, isAdmin);
 
         return res.status(200).json({
             success: true,

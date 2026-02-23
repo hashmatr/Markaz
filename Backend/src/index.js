@@ -18,6 +18,8 @@ const cartRoutes = require('./routes/cartRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const chatbotRoutes = require('./routes/chatbotRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
@@ -79,6 +81,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', contactRoutes);
+app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ─── Public Categories Route ─────────────────
 const Category = require('./Modal/Category');

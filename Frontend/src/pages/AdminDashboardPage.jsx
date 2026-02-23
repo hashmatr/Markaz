@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiShoppingBag, FiPackage, FiGrid, FiShoppingCart, FiUserCheck, FiCreditCard, FiTruck, FiCheckCircle, FiClock, FiXCircle, FiStar, FiTrendingUp, FiActivity, FiLayers } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiShoppingBag, FiPackage, FiGrid, FiShoppingCart, FiUserCheck, FiCreditCard, FiTruck, FiCheckCircle, FiClock, FiXCircle, FiStar, FiTrendingUp, FiActivity, FiLayers, FiTrash2 } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
-import { adminAPI } from '../api';
+import { adminAPI, productAPI } from '../api';
 import toast from 'react-hot-toast';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend);
@@ -64,6 +64,8 @@ export default function AdminDashboardPage() {
     const [orders, setOrders] = useState([]);
     const [fetchingData, setFetchingData] = useState(false);
     const [updatingOrderId, setUpdatingOrderId] = useState(null);
+    const [adminProducts, setAdminProducts] = useState([]);
+    const [productSearch, setProductSearch] = useState('');
 
     useEffect(() => { const h = () => setIsDesktop(window.innerWidth >= 1024); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
 
@@ -85,6 +87,7 @@ export default function AdminDashboardPage() {
                 if (activeSection === 'sellers') { const r = await adminAPI.getAllSellers(); setSellers(r?.data?.data?.sellers || []); }
                 else if (activeSection === 'users') { const r = await adminAPI.getUsers(); setUsers(r?.data?.data?.users || []); }
                 else if (activeSection === 'orders') { const r = await adminAPI.getAllOrders(); setOrders(r?.data?.data?.orders || []); }
+                else if (activeSection === 'products') { const r = await productAPI.getAll({ limit: 50 }); setAdminProducts(r?.data?.data?.products || []); }
             } catch (e) { console.error(e); }
             finally { setFetchingData(false); }
         };
@@ -94,6 +97,26 @@ export default function AdminDashboardPage() {
     const handleUpdateSellerStatus = async (id, status) => { try { await adminAPI.updateSellerStatus(id, { status }); toast.success(`Seller ${status}`); const r = await adminAPI.getAllSellers(); setSellers(r.data.data.sellers); } catch (e) { toast.error(e.response?.data?.message || 'Failed'); } };
     const handleUpdateOrderStatus = async (oid, ns) => { setUpdatingOrderId(oid); try { await adminAPI.updateOrderStatus(oid, { status: ns }); toast.success(`Order → ${ns}`); const r = await adminAPI.getAllOrders(); setOrders(r?.data?.data?.orders || []); } catch (e) { toast.error(e.response?.data?.message || 'Failed'); } finally { setUpdatingOrderId(null); } };
     const getNextStatuses = (s) => { const f = ['pending', 'confirmed', 'processing', 'shipped', 'delivered']; const i = f.indexOf(s); if (i === -1 || i >= f.length - 1) return []; return [...f.slice(i + 1), 'cancelled']; };
+
+    const handleDeleteSeller = async (sellerId, storeName) => {
+        if (!window.confirm(`Delete seller "${storeName}"? This will remove their store, all products, and downgrade their account to Customer. This cannot be undone.`)) return;
+        try {
+            const res = await adminAPI.deleteSeller(sellerId);
+            toast.success(res.data.message);
+            const r = await adminAPI.getAllSellers();
+            setSellers(r.data.data.sellers);
+        } catch (e) { toast.error(e.response?.data?.message || 'Failed to delete seller'); }
+    };
+
+    const handleAdminDeleteProduct = async (productId, productTitle) => {
+        if (!window.confirm(`Delete product "${productTitle}"? This action cannot be undone.`)) return;
+        try {
+            await productAPI.delete(productId);
+            toast.success('Product deleted');
+            const r = await productAPI.getAll({ limit: 50 });
+            setAdminProducts(r?.data?.data?.products || []);
+        } catch (e) { toast.error(e.response?.data?.message || 'Failed'); }
+    };
 
     if (!user || user.role !== 'ADMIN') return (
         <div className="container-main" style={{ paddingTop: 64, paddingBottom: 64, textAlign: 'center' }}>
@@ -107,6 +130,7 @@ export default function AdminDashboardPage() {
         { key: 'overview', icon: FiGrid, label: 'Overview' },
         { key: 'users', icon: FiUsers, label: 'Users' },
         { key: 'sellers', icon: FiUserCheck, label: 'Sellers' },
+        { key: 'products', icon: FiPackage, label: 'Products' },
         { key: 'orders', icon: FiShoppingCart, label: 'Orders' },
     ];
 
@@ -418,6 +442,7 @@ export default function AdminDashboardPage() {
                                                             {s.accountStatus === 'pending' && <><button onClick={() => handleUpdateSellerStatus(s._id, 'active')} style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#000', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12 }}>Approve</button><button onClick={() => handleUpdateSellerStatus(s._id, 'rejected')} style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #dc2626', cursor: 'pointer', fontSize: 12 }}>Reject</button></>}
                                                             {s.accountStatus === 'active' && <button onClick={() => handleUpdateSellerStatus(s._id, 'suspended')} style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #dc2626', cursor: 'pointer', fontSize: 12 }}>Suspend</button>}
                                                             {s.accountStatus === 'suspended' && <button onClick={() => handleUpdateSellerStatus(s._id, 'active')} style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#000', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12 }}>Reactivate</button>}
+                                                            <button onClick={() => handleDeleteSeller(s._id, s.storeName)} style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#fff', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><FiTrash2 size={12} /> Delete</button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -425,6 +450,47 @@ export default function AdminDashboardPage() {
                                         </table>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ═══════════ PRODUCTS SECTION ═══════════ */}
+                    {activeSection === 'products' && (
+                        <div style={{ border: '1px solid #e5e5e5', borderRadius: 20, overflow: 'hidden' }}>
+                            <div style={{ padding: 20, borderBottom: '1px solid #e5e5e5', backgroundColor: '#fafafa', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                                <h3 style={{ fontWeight: 700, fontSize: 18 }}>Product Management</h3>
+                                <input type="text" placeholder="Search products..." value={productSearch} onChange={e => setProductSearch(e.target.value)} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid #e5e5e5', fontSize: 13, outline: 'none', width: 'clamp(150px,20vw,300px)' }} />
+                            </div>
+                            <div style={{ padding: 20 }}>
+                                {fetchingData ? <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1, 2, 3].map(i => <div key={i} style={{ height: 60, backgroundColor: '#f0f0f0', borderRadius: 12, animation: 'pulse 1.5s infinite' }} />)}</div>
+                                    : adminProducts.length === 0 ? <p style={{ textAlign: 'center', padding: '32px 0', color: '#737373' }}>No products</p>
+                                        : (
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                                                    <thead><tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}><th style={{ padding: 12 }}>Product</th><th style={{ padding: 12 }}>Seller</th><th style={{ padding: 12 }}>Price</th><th style={{ padding: 12 }}>Stock</th><th style={{ padding: 12 }}>Actions</th></tr></thead>
+                                                    <tbody>{adminProducts.filter(p => !productSearch || p.title?.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
+                                                        <tr key={p._id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                            <td style={{ padding: 12 }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                                    <img src={p.images?.[0]?.url || 'https://placehold.co/40x40/f0f0f0/999?text=P'} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }} />
+                                                                    <div style={{ minWidth: 0 }}>
+                                                                        <p style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{p.title}</p>
+                                                                        <p style={{ fontSize: 11, color: '#a3a3a3' }}>{p.brand || '\u2014'}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td style={{ padding: 12, fontSize: 13 }}>{p.seller?.storeName || '\u2014'}</td>
+                                                            <td style={{ padding: 12, fontWeight: 600 }}>${p.discountedPrice || p.price}</td>
+                                                            <td style={{ padding: 12 }}><span style={{ padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 600, backgroundColor: p.quantity > 0 ? '#f0fdf4' : '#fef2f2', color: p.quantity > 0 ? '#16a34a' : '#dc2626' }}>{p.quantity > 0 ? `${p.quantity} in stock` : 'Out of stock'}</span></td>
+                                                            <td style={{ padding: 12 }}>
+                                                                <button onClick={() => handleAdminDeleteProduct(p._id, p.title)} style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#fff', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><FiTrash2 size={12} /> Delete</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}</tbody>
+                                                </table>
+                                            </div>
+                                        )
+                                }
                             </div>
                         </div>
                     )}

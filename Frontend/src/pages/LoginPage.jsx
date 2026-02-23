@@ -65,12 +65,12 @@ export default function LoginPage() {
 
                     <div style={{ position: 'relative' }}>
                         <FiMail className="auth-input-icon" size={18} />
-                        <input type="email" placeholder="Email address" required value={form.email}
+                        <input type="email" id="email" name="email" autoComplete="email" placeholder="Email address" required value={form.email}
                             onChange={(e) => setForm({ ...form, email: e.target.value })} className="auth-input" />
                     </div>
                     <div style={{ position: 'relative' }}>
                         <FiLock className="auth-input-icon" size={18} />
-                        <input type={showPass ? 'text' : 'password'} placeholder="Password" required value={form.password}
+                        <input type={showPass ? 'text' : 'password'} id="password" name="password" autoComplete="current-password" placeholder="Password" required value={form.password}
                             onChange={(e) => setForm({ ...form, password: e.target.value })}
                             className="auth-input" style={{ paddingRight: '48px' }} />
                         <button type="button" onClick={() => setShowPass(!showPass)}

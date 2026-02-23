@@ -68,17 +68,17 @@ export default function RegisterPage() {
 
                     <div style={{ position: 'relative' }}>
                         <FiUser className="auth-input-icon" size={18} />
-                        <input type="text" placeholder="Full Name" required value={form.fullName}
+                        <input type="text" id="fullName" name="fullName" autoComplete="name" placeholder="Full Name" required value={form.fullName}
                             onChange={(e) => setForm({ ...form, fullName: e.target.value })} className="auth-input" />
                     </div>
                     <div style={{ position: 'relative' }}>
                         <FiMail className="auth-input-icon" size={18} />
-                        <input type="email" placeholder="Email address" required value={form.email}
+                        <input type="email" id="email" name="email" autoComplete="email" placeholder="Email address" required value={form.email}
                             onChange={(e) => setForm({ ...form, email: e.target.value })} className="auth-input" />
                     </div>
                     <div style={{ position: 'relative' }}>
                         <FiLock className="auth-input-icon" size={18} />
-                        <input type={showPass ? 'text' : 'password'} placeholder="Password (min 6 chars)" required value={form.password}
+                        <input type={showPass ? 'text' : 'password'} id="password" name="password" autoComplete="new-password" placeholder="Password (min 6 chars)" required value={form.password}
                             onChange={(e) => setForm({ ...form, password: e.target.value })}
                             className="auth-input" style={{ paddingRight: '48px' }} />
                         <button type="button" onClick={() => setShowPass(!showPass)}

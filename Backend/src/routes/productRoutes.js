@@ -48,7 +48,7 @@ router.put(
 router.delete(
     '/:id',
     authenticate,
-    authorize('SELLER'),
+    authorize('SELLER', 'ADMIN'),
     productController.deleteProduct
 );
 

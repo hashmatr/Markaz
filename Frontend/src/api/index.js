@@ -25,7 +25,7 @@ API.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
             originalRequest._retry = true;
             try {
                 const { data } = await axios.post('/api/auth/refresh-token', {}, { withCredentials: true });
@@ -128,10 +128,23 @@ export const adminAPI = {
     deleteCategory: (id) => API.delete(`/admin/categories/${id}`),
     getAllSellers: (params) => API.get('/admin/sellers', { params }),
     updateSellerStatus: (id, data) => API.put(`/admin/sellers/${id}/status`, data),
+    deleteSeller: (id) => API.delete(`/admin/sellers/${id}`),
     getAllPayouts: (params) => API.get('/admin/payouts', { params }),
     processPayout: (id, data) => API.put(`/admin/payouts/${id}/process`, data),
     getAllOrders: (params) => API.get('/orders/admin/all', { params }),
     updateOrderStatus: (id, data) => API.put(`/orders/admin/${id}/status`, data),
+};
+// Chatbot API
+export const chatbotAPI = {
+    send: (data) => API.post('/chatbot', data),
+    clear: (data) => API.post('/chatbot/clear', data),
+};
+
+// Payment API (Stripe)
+export const paymentAPI = {
+    getConfig: () => API.get('/payments/config'),
+    createCheckoutSession: (data) => API.post('/payments/create-checkout-session', data),
+    verifySession: (data) => API.post('/payments/verify-session', data),
 };
 
 export default API;

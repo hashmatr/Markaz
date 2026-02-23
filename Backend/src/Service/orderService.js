@@ -5,6 +5,8 @@ const Seller = require('../Modal/seller');
 const calculateCommission = require('../utils/calculateCommission');
 const ORDER_STATUS = require('../domain/orderStatus');
 const Address = require('../Modal/Address');
+const User = require('../Modal/User');
+const { sendOrderConfirmationEmail } = require('../utils/sendEmail');
 
 class OrderService {
     /**
@@ -18,6 +20,11 @@ class OrderService {
             try {
                 const newAddress = await Address.create(shippingAddress);
                 shippingAddressId = newAddress._id;
+
+                // Save address to user's profile for future use
+                await User.findByIdAndUpdate(userId, {
+                    $addToSet: { addresses: shippingAddressId }
+                });
             } catch (err) {
                 console.error('OrderService: Address creation failed:', err.message);
                 throw Object.assign(new Error('Invalid shipping address: ' + err.message), { status: 400 });
@@ -100,6 +107,16 @@ class OrderService {
 
         // 4. Create order
         try {
+            // --- 3.5 Check for first order discount (20%) ---
+            let firstOrderDiscount = 0;
+            const existingOrder = await Order.findOne({ user: userId, orderStatus: { $ne: ORDER_STATUS.CANCELLED } });
+
+            if (!existingOrder) {
+                console.log('OrderService: First order detected! Applying 20% discount.');
+                firstOrderDiscount = Number((totalDiscountedPrice * 0.20).toFixed(2));
+                totalDiscountedPrice -= firstOrderDiscount;
+            }
+
             // Normalize payment method to match enum
             let normalizedPaymentMethod = paymentMethod || 'COD';
             if (paymentMethod && paymentMethod.toLowerCase() === 'cod') normalizedPaymentMethod = 'COD';
@@ -125,6 +142,7 @@ class OrderService {
                 totalPrice: finalTotalPrice,
                 totalDiscountedPrice: finalTotalDisc,
                 discount: Math.max(0, finalTotalPrice - finalTotalDisc),
+                firstOrderDiscount,
                 totalCommission: finalCommission,
                 orderNotes,
                 paymentStatus: 'pending',
@@ -134,6 +152,19 @@ class OrderService {
             // 5. Clear cart
             cart.items = [];
             await cart.save();
+
+            // 6. Send Confirmation Email (Async - don't await to avoid slowing down response)
+            User.findById(userId).then(fullUser => {
+                if (fullUser && fullUser.email) {
+                    // Populate product details for the email
+                    Order.findById(order._id)
+                        .populate('orderItems.product')
+                        .then(populatedOrder => {
+                            sendOrderConfirmationEmail(fullUser.email, populatedOrder);
+                        })
+                        .catch(err => console.error('OrderService: Email population failed:', err));
+                }
+            }).catch(err => console.error('OrderService: User fetch for email failed:', err));
 
             return order;
         } catch (err) {

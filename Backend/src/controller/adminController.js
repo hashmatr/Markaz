@@ -441,6 +441,30 @@ class AdminController {
         });
     });
 
+    /**
+     * DELETE /api/admin/sellers/:id - Delete seller (and their products + user account)
+     */
+    deleteSeller = asyncHandler(async (req, res) => {
+        const seller = await Seller.findById(req.params.id);
+        if (!seller) {
+            return res.status(404).json({ success: false, message: 'Seller not found' });
+        }
+
+        // Delete all products belonging to this seller
+        const deletedProducts = await Product.deleteMany({ seller: seller._id });
+
+        // Delete the seller profile
+        await Seller.findByIdAndDelete(seller._id);
+
+        // Downgrade the user role to CUSTOMER (instead of deleting the user)
+        await User.findByIdAndUpdate(seller.user, { role: 'CUSTOMER' });
+
+        return res.status(200).json({
+            success: true,
+            message: `Seller deleted. ${deletedProducts.deletedCount} products removed. User account downgraded to Customer.`,
+        });
+    });
+
     // --- Payout management (Admin) ---
 
     /**

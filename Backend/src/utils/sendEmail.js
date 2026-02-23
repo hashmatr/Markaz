@@ -322,8 +322,208 @@ const sendGenericEmail = async (email, subject, html) => {
   }
 };
 
+/**
+ * Send Order Confirmation Email
+ * @param {string} email - Recipient email
+ * @param {object} order - Order details
+ * @returns {Promise<object>} - Email sending result
+ */
+const sendOrderConfirmationEmail = async (email, order) => {
+  try {
+    const transporter = getEmailTransporter();
+    const html = getOrderConfirmationTemplate(order);
+
+    const mailOptions = {
+      from: `"Markaz Ecommerce" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Order Confirmation - #${order._id.toString().slice(-8).toUpperCase()}`,
+      html: html
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    return {
+      success: true,
+      messageId: result.messageId
+    };
+  } catch (error) {
+    console.error(`Error sending order confirmation email to ${email}:`, error);
+    // Don't throw error to avoid breaking order flow if email fails
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * HTML template for order confirmation
+ */
+const getOrderConfirmationTemplate = (order) => {
+  const orderIdShort = order._id.toString().slice(-8).toUpperCase();
+  const itemsHtml = order.orderItems.map(item => `
+    <tr>
+      <td style="padding: 10px; border-bottom: 1px solid #eee;">
+        ${item.product?.title || 'Product'} 
+        ${item.variantOptions ? `<br><small style="color: #666;">${Object.entries(item.variantOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}</small>` : ''}
+      </td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">$${(item.discountedPrice || item.price) * item.quantity}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #000; color: white; padding: 30px; text-align: center; border-radius: 5px 5px 0 0; }
+            .content { border: 1px solid #eee; border-top: none; padding: 30px; border-radius: 0 0 5px 5px; }
+            .order-info { background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 5px; }
+            .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; margin-top: 20px; }
+            .btn { display: inline-block; padding: 12px 24px; background: #000; color: white; text-decoration: none; border-radius: 9999px; font-weight: bold; margin-top: 20px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1 style="margin:0; letter-spacing: 2px;">MARKAZ</h1>
+                <p style="margin:5px 0 0 0; opacity: 0.8;">Order Confirmation</p>
+            </div>
+            <div class="content">
+                <h2>Thank you for your order!</h2>
+                <p>Hi,</p>
+                <p>We've received your order and are getting it ready. You'll receive another email once your items have shipped.</p>
+                
+                <div class="order-info">
+                    <p style="margin:5px 0;"><strong>Order ID:</strong> #${orderIdShort}</p>
+                    <p style="margin:5px 0;"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
+                    <p style="margin:5px 0;"><strong>Payment Method:</strong> ${order.paymentMethod === 'online' ? 'Credit/Debit Card' : 'Cash on Delivery'}</p>
+                </div>
+
+                <h3>Order Summary</h3>
+                <table class="table">
+                    <thead>
+                        <tr style="background: #f9f9f9;">
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #eee;">Item</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #eee;">Qty</th>
+                            <th style="padding: 10px; text-align: right; border-bottom: 2px solid #eee;">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Subtotal</td>
+                            <td style="padding: 10px; text-align: right;">$${order.totalPrice}</td>
+                        </tr>
+                        ${order.discount > 0 ? `
+                        <tr>
+                            <td colspan="2" style="padding: 10px; text-align: right; color: #ff3333;">Discount</td>
+                            <td style="padding: 10px; text-align: right; color: #ff3333;">-$${order.discount}</td>
+                        </tr>
+                        ` : ''}
+                        ${order.firstOrderDiscount > 0 ? `
+                        <tr>
+                            <td colspan="2" style="padding: 10px; text-align: right; color: #01ab31;">1st Order Bonus</td>
+                            <td style="padding: 10px; text-align: right; color: #01ab31;">-$${order.firstOrderDiscount}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold; font-size: 18px;">Total</td>
+                            <td style="padding: 10px; text-align: right; font-weight: bold; font-size: 18px;">$${order.totalDiscountedPrice}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div style="text-align: center;">
+                    <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/orders/${order._id}" class="btn">View Order Detail</a>
+                </div>
+            </div>
+            <div class="footer">
+                <p>&copy; 2026 Markaz Ecommerce. All rights reserved.</p>
+                <p>If you have any questions, reply to this email or contact support.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Send Payment Success Email
+ * @param {string} email - Recipient email
+ * @param {object} order - Order details
+ * @returns {Promise<object>} - Email sending result
+ */
+const sendPaymentSuccessEmail = async (email, order) => {
+  try {
+    const transporter = getEmailTransporter();
+    const orderIdShort = order._id.toString().slice(-8).toUpperCase();
+
+    const mailOptions = {
+      from: `"Markaz Ecommerce" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Payment Successful - Order #${orderIdShort}`,
+      html: getPaymentSuccessTemplate(order)
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error sending payment success email to ${email}:`, error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * HTML template for payment success
+ */
+const getPaymentSuccessTemplate = (order) => {
+  const orderIdShort = order._id.toString().slice(-8).toUpperCase();
+  return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <style>
+              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #10b981; color: white; padding: 30px; text-align: center; border-radius: 5px 5px 0 0; }
+              .content { border: 1px solid #eee; border-top: none; padding: 30px; border-radius: 0 0 5px 5px; }
+              .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; margin-top: 20px; }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <div class="header">
+                  <h1>Payment Received!</h1>
+              </div>
+              <div class="content">
+                  <h2>Payment for Order #${orderIdShort} was successful</h2>
+                  <p>Hi,</p>
+                  <p>This is to confirm that we have successfully received your payment for order <strong>#${orderIdShort}</strong>. Your order is now being processed and will be shipped soon.</p>
+                  <p><strong>Total Amount Paid:</strong> $${order.totalDiscountedPrice}</p>
+                  <p><strong>Payment Status:</strong> Paid</p>
+                  
+                  <p>You can track the progress of your order by clicking the button below:</p>
+                  <div style="text-align: center; margin-top: 30px;">
+                      <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/orders/${order._id}" style="display: inline-block; padding: 12px 24px; background: #10b981; color: white; text-decoration: none; border-radius: 9999px; font-weight: bold;">Track Order</a>
+                  </div>
+              </div>
+              <div class="footer">
+                  <p>&copy; 2026 Markaz Ecommerce. All rights reserved.</p>
+              </div>
+          </div>
+      </body>
+      </html>
+    `;
+};
+
 module.exports = {
   sendOTPEmail,
   sendGenericEmail,
+  sendOrderConfirmationEmail,
+  sendPaymentSuccessEmail,
   getEmailTransporter
 };
+

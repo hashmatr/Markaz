@@ -11,8 +11,7 @@ const validateRegister = [
     body('email')
         .trim()
         .isEmail()
-        .withMessage('Valid email is required')
-        .normalizeEmail(),
+        .withMessage('Valid email is required'),
 
     body('password')
         .isLength({ min: 6 })
@@ -25,8 +24,7 @@ const validateLogin = [
     body('email')
         .trim()
         .isEmail()
-        .withMessage('Valid email is required')
-        .normalizeEmail(),
+        .withMessage('Valid email is required'),
 
     body('password')
         .notEmpty()

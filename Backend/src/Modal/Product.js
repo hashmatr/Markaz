@@ -59,6 +59,29 @@ const productSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        // NEW: Flexible variants system
+        variantOptions: [
+            {
+                name: String, // e.g. "Size", "Color", "Storage", "RAM"
+                values: [String], // e.g. ["S", "M", "L"] or ["128GB", "256GB"]
+            },
+        ],
+        variants: [
+            {
+                options: {
+                    type: Map,
+                    of: String, // e.g. { "Size": "M", "Color": "Black" }
+                },
+                price: Number, // Optional: override base price for this variant
+                quantity: {
+                    type: Number,
+                    required: true,
+                    default: 0,
+                },
+                sku: String,
+            },
+        ],
+        // Keep legacy fields for backward compatibility if needed, or remove them
         color: {
             type: String,
             trim: true,

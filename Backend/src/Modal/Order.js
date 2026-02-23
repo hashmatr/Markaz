@@ -93,6 +93,10 @@ const orderSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        firstOrderDiscount: {
+            type: Number,
+            default: 0,
+        },
         orderNotes: {
             type: String,
             maxlength: [500, 'Order notes cannot exceed 500 characters'],

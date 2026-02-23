@@ -26,6 +26,7 @@ router.delete('/categories/:id', adminController.deleteCategory);
 // ─── Seller Management ──────────────────────
 router.get('/sellers', adminController.getAllSellers);
 router.put('/sellers/:id/status', adminController.updateSellerStatus);
+router.delete('/sellers/:id', adminController.deleteSeller);
 
 // ─── Payout Management ──────────────────────
 router.get('/payouts', adminController.getAllPayouts);

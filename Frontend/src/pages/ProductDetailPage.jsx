@@ -22,6 +22,7 @@ export default function ProductDetailPage() {
     const [selectedImage, setSelectedImage] = useState(0);
     const [selectedColor, setSelectedColor] = useState(0);
     const [selectedSize, setSelectedSize] = useState('');
+    const [selectedOptions, setSelectedOptions] = useState({});
     const [quantity, setQuantity] = useState(1);
     const [activeTab, setActiveTab] = useState('reviews');
     const [loadingCart, setLoadingCart] = useState(false);
@@ -43,12 +44,25 @@ export default function ProductDetailPage() {
         // Always fetch real product from backend
         productAPI.getById(id)
             .then(r => {
-                setProduct(r.data.data.product);
-                // Set default size
-                const sizes = r.data.data.product?.sizes;
+                const fetchedProduct = r.data.data.product;
+                setProduct(fetchedProduct);
+
+                // Set default size (legacy)
+                const sizes = fetchedProduct?.sizes;
                 if (sizes?.length > 0) {
                     const firstSize = typeof sizes[0] === 'object' ? sizes[0].name : sizes[0];
                     setSelectedSize(firstSize);
+                }
+
+                // Initialize default options for the new variant system
+                if (fetchedProduct?.variantOptions?.length > 0) {
+                    const defaults = {};
+                    fetchedProduct.variantOptions.forEach(opt => {
+                        if (opt.values?.length > 0) {
+                            defaults[opt.name] = opt.values[0];
+                        }
+                    });
+                    setSelectedOptions(defaults);
                 }
             })
             .catch(() => setProduct(null))
@@ -74,13 +88,37 @@ export default function ProductDetailPage() {
     const handleAddToCart = async () => {
         if (!user) { toast.error('Please login to add items to cart'); return; }
         if (!product) return;
+
+        // Validation: ensure all variant options are selected
+        if (product.variantOptions?.length > 0) {
+            for (const opt of product.variantOptions) {
+                if (!selectedOptions[opt.name]) {
+                    toast.error(`Please select ${opt.name}`);
+                    return;
+                }
+            }
+        }
+
         setLoadingCart(true);
         try {
-            await addToCart(product._id, quantity, selectedSize, product.colors?.[selectedColor] || product.color);
+            await addToCart(
+                product._id,
+                quantity,
+                selectedSize,
+                product.colors?.[selectedColor] || product.color,
+                selectedOptions
+            );
             toast.success('Added to cart!');
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to add to cart');
         } finally { setLoadingCart(false); }
+    };
+
+    const handleOptionSelect = (optionName, value) => {
+        setSelectedOptions(prev => ({
+            ...prev,
+            [optionName]: value
+        }));
     };
 
     const handleSubmitReview = async (e) => {
@@ -184,45 +222,77 @@ export default function ProductDetailPage() {
                         {product.description}
                     </p>
 
-                    {/* Colors — only shown when product has color data */}
-                    {productColors.length > 0 && (
-                        <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
-                            <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Select Colors</p>
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                {productColors.map((color, i) => (
-                                    <button key={i} onClick={() => setSelectedColor(i)}
-                                        style={{
-                                            width: '36px', height: '36px', borderRadius: '50%', backgroundColor: color, border: 'none', cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            outline: selectedColor === i ? '2px solid #000' : 'none', outlineOffset: '3px',
-                                        }}>
-                                        {selectedColor === i && <FiCheck style={{ color: '#fff' }} size={16} />}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* DYNAMIC VARIANT OPTIONS (The "Selection Filters") */}
+                    {product.variantOptions?.length > 0 ? (
+                        <div style={{ marginBottom: '4px' }}>
+                            {product.variantOptions.map((opt) => (
+                                <div key={opt.name} style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
+                                    <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Select {opt.name}</span>
+                                        {selectedOptions[opt.name] && <span style={{ color: '#000', fontWeight: 600 }}>{selectedOptions[opt.name]}</span>}
+                                    </p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {opt.values.map(val => {
+                                            const isSelected = selectedOptions[opt.name] === val;
 
-                    {/* Sizes — only shown when product has size data */}
-                    {productSizes.length > 0 && (
-                        <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
-                            <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Choose Size</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                {productSizes.map(size => {
-                                    const sizeName = typeof size === 'object' ? size.name : size;
-                                    return (
-                                        <button key={sizeName} onClick={() => setSelectedSize(sizeName)}
-                                            style={{
-                                                padding: '10px 20px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none',
-                                                backgroundColor: selectedSize === sizeName ? '#000' : '#f0f0f0', color: selectedSize === sizeName ? '#fff' : '#000',
-                                                transition: 'all 0.15s',
-                                            }}>
-                                            {sizeName}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                                            return (
+                                                <button key={val} onClick={() => handleOptionSelect(opt.name, val)}
+                                                    style={{
+                                                        padding: '10px 20px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none',
+                                                        backgroundColor: isSelected ? '#000' : '#f0f0f0', color: isSelected ? '#fff' : '#000',
+                                                        transition: 'all 0.15s',
+                                                    }}>
+                                                    {val}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
+                    ) : (
+                        <>
+                            {/* LEGACY FALLBACK: Colors */}
+                            {productColors.length > 0 && (
+                                <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
+                                    <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Select Colors</p>
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        {productColors.map((color, i) => (
+                                            <button key={i} onClick={() => setSelectedColor(i)}
+                                                style={{
+                                                    width: '36px', height: '36px', borderRadius: '50%', backgroundColor: color, border: 'none', cursor: 'pointer',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    outline: selectedColor === i ? '2px solid #000' : 'none', outlineOffset: '3px',
+                                                }}>
+                                                {selectedColor === i && <FiCheck style={{ color: '#fff' }} size={16} />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* LEGACY FALLBACK: Sizes */}
+                            {productSizes.length > 0 && (
+                                <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
+                                    <p style={{ fontSize: '13px', color: '#737373', marginBottom: '12px' }}>Choose Size</p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {productSizes.map(size => {
+                                            const sizeName = typeof size === 'object' ? size.name : size;
+                                            return (
+                                                <button key={sizeName} onClick={() => setSelectedSize(sizeName)}
+                                                    style={{
+                                                        padding: '10px 20px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none',
+                                                        backgroundColor: selectedSize === sizeName ? '#000' : '#f0f0f0', color: selectedSize === sizeName ? '#fff' : '#000',
+                                                        transition: 'all 0.15s',
+                                                    }}>
+                                                    {sizeName}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {/* Quantity + Add to Cart */}

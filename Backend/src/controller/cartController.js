@@ -25,7 +25,7 @@ class CartController {
      * POST /api/cart/add - Add item to cart
      */
     addToCart = asyncHandler(async (req, res) => {
-        const { productId, quantity = 1, size, color } = req.body;
+        const { productId, quantity = 1, size, color, selectedOptions } = req.body;
 
         // Validate product
         const product = await Product.findById(productId);
@@ -36,6 +36,8 @@ class CartController {
             });
         }
 
+        // Logic check: if product has variants, stock check should ideally be against the variant
+        // For simplicity now, we check against total product quantity or keep it flexible
         if (product.quantity < quantity) {
             return res.status(400).json({
                 success: false,
@@ -49,12 +51,21 @@ class CartController {
             cart = new Cart({ user: req.user._id, items: [] });
         }
 
-        // Check if product already in cart
+        // Check if product already in cart with same options
         const existingItemIndex = cart.items.findIndex(
-            (item) =>
-                item.product.toString() === productId &&
-                item.size === (size || null) &&
-                item.color === (color || null)
+            (item) => {
+                const sameProduct = item.product.toString() === productId;
+                if (!sameProduct) return false;
+
+                // Check complex options
+                if (selectedOptions) {
+                    const itemOptions = item.selectedOptions ? (item.selectedOptions instanceof Map ? Object.fromEntries(item.selectedOptions) : item.selectedOptions) : {};
+                    return JSON.stringify(itemOptions) === JSON.stringify(selectedOptions);
+                }
+
+                // Fallback to legacy size/color check
+                return item.size === (size || null) && item.color === (color || null);
+            }
         );
 
         if (existingItemIndex > -1) {
@@ -68,6 +79,7 @@ class CartController {
                 quantity,
                 size: size || undefined,
                 color: color || undefined,
+                selectedOptions: selectedOptions || undefined,
                 price: product.price,
                 discountedPrice: product.discountedPrice || product.price,
             });
