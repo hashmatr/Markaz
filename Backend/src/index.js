@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const connectDb = require('./Config/db');
+const { connectRedis } = require('./Config/redis');
 const errorHandler = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimitMiddleware');
 
@@ -116,6 +117,7 @@ app.listen(PORT, async () => {
     console.log(`📡 API Base URL: http://localhost:${PORT}`);
     console.log('────────────────────────────────────────');
     await connectDb();
+    await connectRedis(); // Non-fatal — falls back to MongoDB if Redis unavailable
 });
 
 module.exports = app;

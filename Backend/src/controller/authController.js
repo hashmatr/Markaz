@@ -82,7 +82,8 @@ class AuthController {
      */
     logout = asyncHandler(async (req, res) => {
         const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
-        await authService.logout(refreshToken, req.user?._id);
+        // Pass jti so the current access token is immediately blocklisted in Redis
+        await authService.logout(refreshToken, req.user?._id, req.tokenJti);
 
         res.clearCookie('refreshToken', { path: '/' });
 

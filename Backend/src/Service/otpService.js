@@ -1,299 +1,294 @@
 const OTP = require('../Modal/OTP');
 const User = require('../Modal/User');
-const { generateOTP, hashOTP, verifyOTP, generateOTPExpiry, isOTPExpired } = require('../utils/generateOTP');
+const { generateOTP, hashOTP, verifyOTP: verifyOTPHash, generateOTPExpiry, isOTPExpired } = require('../utils/generateOTP');
 const { sendOTPEmail } = require('../utils/sendEmail');
+const redisTokenService = require('./redisTokenService');
 
 class OTPService {
   /**
-   * Generate and send OTP to email
-   * @param {string} email - Email to send OTP to
-   * @param {string} type - OTP type (registration, password_reset, etc.)
-   * @param {object} metadata - Additional metadata (ipAddress, userAgent)
-   * @returns {Promise<object>} - Result object
+   * Generate and send OTP to email.
+   * Storage: Redis (primary) → MongoDB (fallback)
    */
   async generateOTP(email, type = 'registration', metadata = {}) {
-    try {
-      // Check if OTP was recently requested (cooldown check)
+    const normalizedEmail = email.toLowerCase();
+    const useRedis = redisTokenService.isAvailable();
+
+    // ── Cooldown check ──────────────────────────────────────────────────
+    if (useRedis) {
+      const cooldownTTL = await redisTokenService.getCooldownTTL(normalizedEmail, type);
+      if (cooldownTTL > 0) {
+        throw Object.assign(
+          new Error(`OTP was recently sent. Please wait ${cooldownTTL} seconds before requesting a new one.`),
+          { status: 429 }
+        );
+      }
+    } else {
+      // MongoDB fallback cooldown
       const recentOTP = await OTP.findOne({
-        email: email.toLowerCase(),
-        type: type,
+        email: normalizedEmail,
+        type,
         isUsed: false,
-        createdAt: {
-          $gte: new Date(Date.now() - 60 * 1000) // Last 60 seconds
-        }
+        createdAt: { $gte: new Date(Date.now() - 60 * 1000) }
       });
-
       if (recentOTP) {
-        throw Object.assign(new Error('OTP was recently sent. Please wait before requesting a new one.'), { status: 429 });
+        throw Object.assign(
+          new Error('OTP was recently sent. Please wait before requesting a new one.'),
+          { status: 429 }
+        );
       }
+    }
 
-      // Check if user exists for types that require an existing account
-      if (['password_reset', 'login_2fa'].includes(type)) {
-        const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) {
-          throw Object.assign(new Error('No account found with this email address.'), { status: 404 });
-        }
+    // ── Account existence check ─────────────────────────────────────────
+    if (['password_reset', 'login_2fa'].includes(type)) {
+      const user = await User.findOne({ email: normalizedEmail });
+      if (!user) {
+        throw Object.assign(
+          new Error('No account found with this email address.'),
+          { status: 404 }
+        );
       }
+    }
 
-      // Mark old unused OTPs as expired
-      await OTP.deleteMany({
-        email: email.toLowerCase(),
-        type: type,
-        isUsed: false,
-        expiresAt: { $lt: new Date() }
-      });
+    // ── Generate OTP ────────────────────────────────────────────────────
+    const plainOTP = generateOTP();
+    const hashedOTP = await hashOTP(plainOTP);
 
-      // Generate OTP
-      const plainOTP = generateOTP();
-      const hashedOTP = await hashOTP(plainOTP);
-      const expiresAt = generateOTPExpiry(10); // 10 minutes expiry
+    // ── Send email FIRST — don't store if sending fails ─────────────────
+    try {
+      await sendOTPEmail(email, plainOTP, type);
+    } catch (emailError) {
+      throw new Error(`Failed to send OTP email: ${emailError.message}`);
+    }
 
-      // Save OTP to database
-      const otpRecord = await OTP.create({
-        email: email.toLowerCase(),
+    // ── Store token ─────────────────────────────────────────────────────
+    if (useRedis) {
+      await redisTokenService.storeOTP(
+        normalizedEmail,
+        plainOTP,
+        type,
+        hashedOTP,
+        metadata.ipAddress,
+        metadata.userAgent
+      );
+    } else {
+      // MongoDB fallback: delete old, create new
+      await OTP.deleteMany({ email: normalizedEmail, type, isUsed: false });
+      const expiresAt = generateOTPExpiry(10);
+      await OTP.create({
+        email: normalizedEmail,
         otp: hashedOTP,
-        type: type,
-        expiresAt: expiresAt,
+        type,
+        expiresAt,
         lastResendAt: new Date(),
         ipAddress: metadata.ipAddress || null,
-        userAgent: metadata.userAgent || null
+        userAgent: metadata.userAgent || null,
       });
-
-      // Send OTP via email
-      try {
-        await sendOTPEmail(email, plainOTP, type);
-      } catch (emailError) {
-        // Delete OTP if email sending fails
-        await OTP.deleteOne({ _id: otpRecord._id });
-        throw new Error(`Failed to send OTP email: ${emailError.message}`);
-      }
-
-      return {
-        success: true,
-        message: `OTP has been sent to ${email}. It will expire in 10 minutes.`,
-        email: email,
-        type: type
-      };
-    } catch (error) {
-      if (error.status) throw error;
-      throw new Error(`OTP Generation Error: ${error.message}`);
     }
+
+    return {
+      success: true,
+      message: `OTP has been sent to ${email}. It will expire in 10 minutes.`,
+      email,
+      type,
+      storage: useRedis ? 'redis' : 'mongodb',
+    };
   }
 
   /**
-   * Verify OTP
-   * @param {string} email - Email to verify
-   * @param {string} otp - OTP provided by user
-   * @param {string} type - OTP type
-   * @param {boolean} consume - Whether to mark OTP as used (default: true)
-   * @returns {Promise<object>} - Verification result
+   * Verify OTP provided by user.
+   * @param {string} email
+   * @param {string} otp - The plaintext OTP from the user
+   * @param {string} type
+   * @param {boolean} consume - Whether to delete OTP after successful verify
    */
   async verifyOTP(email, otp, type = 'registration', consume = true) {
-    try {
-      const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.toLowerCase();
+    const useRedis = redisTokenService.isAvailable();
 
-      // Find OTP record
+    if (useRedis) {
+      // ── Redis path ──────────────────────────────────────────────────
+      const data = await redisTokenService.getOTPData(normalizedEmail, type);
+
+      if (!data) {
+        throw Object.assign(
+          new Error('OTP not found or has expired. Please request a new OTP.'),
+          { status: 404 }
+        );
+      }
+
+      if (data.attempts >= 5) {
+        await redisTokenService.deleteOTP(normalizedEmail, type);
+        throw Object.assign(
+          new Error('Maximum OTP verification attempts exceeded. Please request a new OTP.'),
+          { status: 400 }
+        );
+      }
+
+      const isValid = await verifyOTPHash(otp, data.hashedOTP);
+
+      if (!isValid) {
+        const newAttempts = await redisTokenService.incrementOTPAttempts(normalizedEmail, type);
+        const attemptsLeft = 5 - newAttempts;
+        if (attemptsLeft <= 0) {
+          await redisTokenService.deleteOTP(normalizedEmail, type);
+          throw Object.assign(
+            new Error('Maximum OTP verification attempts exceeded. Please request a new OTP.'),
+            { status: 400 }
+          );
+        }
+        throw Object.assign(
+          new Error(`Invalid OTP. You have ${attemptsLeft} attempts remaining.`),
+          { status: 400 }
+        );
+      }
+
+      if (consume) {
+        await redisTokenService.deleteOTP(normalizedEmail, type);
+      }
+    } else {
+      // ── MongoDB fallback path ───────────────────────────────────────
       const otpRecord = await OTP.findOne({
         email: normalizedEmail,
-        type: type,
+        type,
         isUsed: false,
-        expiresAt: { $gt: new Date() } // Not expired
+        expiresAt: { $gt: new Date() },
       }).select('+otp');
 
       if (!otpRecord) {
-        throw Object.assign(new Error('OTP not found or has expired. Please request a new OTP.'), { status: 404 });
+        throw Object.assign(
+          new Error('OTP not found or has expired. Please request a new OTP.'),
+          { status: 404 }
+        );
       }
 
-      // Check attempts limit
       if (otpRecord.attempts >= 5) {
         await OTP.deleteOne({ _id: otpRecord._id });
-        throw Object.assign(new Error('Maximum OTP verification attempts exceeded. Please request a new OTP.'), { status: 400 });
+        throw Object.assign(
+          new Error('Maximum OTP verification attempts exceeded. Please request a new OTP.'),
+          { status: 400 }
+        );
       }
 
-      // Verify OTP
-      const isValid = await verifyOTP(otp, otpRecord.otp);
+      const isValid = await verifyOTPHash(otp, otpRecord.otp);
 
       if (!isValid) {
-        // Increment attempts
         otpRecord.attempts += 1;
         await otpRecord.save();
-
         const attemptsLeft = 5 - otpRecord.attempts;
-        throw Object.assign(new Error(`Invalid OTP. You have ${attemptsLeft} attempts remaining.`), { status: 400 });
+        throw Object.assign(
+          new Error(`Invalid OTP. You have ${attemptsLeft} attempts remaining.`),
+          { status: 400 }
+        );
       }
 
-      // OTP is valid - mark as used only if requested
       if (consume) {
         otpRecord.isUsed = true;
         await otpRecord.save();
       }
-
-      return {
-        success: true,
-        message: 'OTP verified successfully',
-        email: normalizedEmail,
-        type: type
-      };
-    } catch (error) {
-      if (error.status) throw error;
-      throw new Error(`OTP Verification Error: ${error.message}`);
     }
+
+    return {
+      success: true,
+      message: 'OTP verified successfully',
+      email: normalizedEmail,
+      type,
+    };
   }
 
   /**
-   * Resend OTP (with cooldown check)
-   * @param {string} email - Email to resend OTP to
-   * @param {string} type - OTP type
-   * @param {object} metadata - Additional metadata
-   * @returns {Promise<object>} - Result object
+   * Resend OTP (enforces cooldown, resets old OTP).
    */
   async resendOTP(email, type = 'registration', metadata = {}) {
-    try {
-      const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.toLowerCase();
 
-      // Check last resend time (cooldown: 60 seconds)
-      const lastOTP = await OTP.findOne({
-        email: normalizedEmail,
-        type: type
-      }).sort({ lastResendAt: -1 });
-
+    if (!redisTokenService.isAvailable()) {
+      // MongoDB: check last resend time manually
+      const lastOTP = await OTP.findOne({ email: normalizedEmail, type }).sort({ lastResendAt: -1 });
       if (lastOTP && lastOTP.lastResendAt) {
-        const timeSinceLastResend = (Date.now() - lastOTP.lastResendAt.getTime()) / 1000;
-        if (timeSinceLastResend < 60) {
-          const secondsToWait = Math.ceil(60 - timeSinceLastResend);
-          throw Object.assign(new Error(`Please wait ${secondsToWait} seconds before requesting another OTP.`), { status: 429 });
+        const seconds = (Date.now() - lastOTP.lastResendAt.getTime()) / 1000;
+        if (seconds < 60) {
+          const wait = Math.ceil(60 - seconds);
+          throw Object.assign(
+            new Error(`Please wait ${wait} seconds before requesting another OTP.`),
+            { status: 429 }
+          );
         }
       }
-
-      // Delete old OTPs for this email/type
-      await OTP.deleteMany({
-        email: normalizedEmail,
-        type: type
-      });
-
-      // Generate and send new OTP
-      return await this.generateOTP(normalizedEmail, type, metadata);
-    } catch (error) {
-      if (error.status) throw error;
-      throw new Error(`OTP Resend Error: ${error.message}`);
+      await OTP.deleteMany({ email: normalizedEmail, type });
     }
+    // Redis: cooldown is auto-enforced inside generateOTP via TTL key
+
+    return await this.generateOTP(normalizedEmail, type, metadata);
   }
 
   /**
-   * Mark OTP as used (after successful password reset, etc.)
-   * @param {string} email - Email
-   * @param {string} type - OTP type
-   * @returns {Promise<void>}
-   */
-  async markOTPAsUsed(email, type) {
-    try {
-      await OTP.updateMany(
-        {
-          email: email.toLowerCase(),
-          type: type,
-          isUsed: false
-        },
-        { isUsed: true }
-      );
-    } catch (error) {
-      throw new Error(`Error marking OTP as used: ${error.message}`);
-    }
-  }
-
-  /**
-   * Delete expired OTPs (cleanup)
-   * @returns {Promise<number>} - Number of deleted OTPs
-   */
-  async cleanupExpiredOTPs() {
-    try {
-      const result = await OTP.deleteMany({
-        expiresAt: { $lt: new Date() }
-      });
-      return result.deletedCount;
-    } catch (error) {
-      throw new Error(`Error cleaning up expired OTPs: ${error.message}`);
-    }
-  }
-
-  /**
-   * Delete all OTPs for an email (after successful use)
-   * @param {string} email - Email
-   * @returns {Promise<void>}
+   * Delete all OTPs for an email (after successful password reset, etc.)
    */
   async deleteAllOTPsForEmail(email) {
-    try {
-      await OTP.deleteMany({
-        email: email.toLowerCase()
-      });
-    } catch (error) {
-      throw new Error(`Error deleting OTPs: ${error.message}`);
+    const normalizedEmail = email.toLowerCase();
+    if (redisTokenService.isAvailable()) {
+      await redisTokenService.deleteAllOTPsForEmail(normalizedEmail);
+    } else {
+      await OTP.deleteMany({ email: normalizedEmail });
     }
   }
 
   /**
-   * Get OTP status (for debugging/testing)
-   * @param {string} email - Email
-   * @param {string} type - OTP type
-   * @returns {Promise<object>} - Status information
+   * Get OTP status (dev / debug only).
    */
   async getOTPStatus(email, type) {
-    try {
-      const otpRecord = await OTP.findOne({
-        email: email.toLowerCase(),
-        type: type,
-        isUsed: false
-      }).select('-otp');
-
-      if (!otpRecord) {
-        return {
-          exists: false,
-          message: 'No valid OTP found'
-        };
-      }
-
-      return {
-        exists: true,
-        email: otpRecord.email,
-        type: otpRecord.type,
-        isUsed: otpRecord.isUsed,
-        attempts: otpRecord.attempts,
-        expiresAt: otpRecord.expiresAt,
-        isExpired: isOTPExpired(otpRecord.expiresAt),
-        createdAt: otpRecord.createdAt
-      };
-    } catch (error) {
-      throw new Error(`Error getting OTP status: ${error.message}`);
+    const normalizedEmail = email.toLowerCase();
+    if (redisTokenService.isAvailable()) {
+      return await redisTokenService.getOTPStatus(normalizedEmail, type);
     }
+
+    const otpRecord = await OTP.findOne({ email: normalizedEmail, type, isUsed: false }).select('-otp');
+    if (!otpRecord) return { exists: false, message: 'No valid OTP found' };
+
+    return {
+      exists: true,
+      email: otpRecord.email,
+      type: otpRecord.type,
+      isUsed: otpRecord.isUsed,
+      attempts: otpRecord.attempts,
+      expiresAt: otpRecord.expiresAt,
+      isExpired: isOTPExpired(otpRecord.expiresAt),
+      createdAt: otpRecord.createdAt,
+    };
   }
 
   /**
-   * Verify OTP for seller verification flow
-   * @param {string} email - Seller email
-   * @param {string} otp - OTP code
-   * @returns {Promise<object>} - Verification result
+   * Cleanup expired OTPs in MongoDB (for cron job).
+   * Redis TTL handles expiry automatically, so this is only for fallback store.
    */
+  async cleanupExpiredOTPs() {
+    const result = await OTP.deleteMany({ expiresAt: { $lt: new Date() } });
+    return result.deletedCount;
+  }
+
+  // ── Convenience wrappers ─────────────────────────────────────────────────
+
   async verifySellerOTP(email, otp) {
-    return await this.verifyOTP(email, otp, 'seller_verification');
+    return this.verifyOTP(email, otp, 'seller_verification');
   }
 
-  /**
-   * Verify OTP for password reset flow
-   * @param {string} email - User email
-   * @param {string} otp - OTP code
-   * @returns {Promise<object>} - Verification result
-   */
   async verifyPasswordResetOTP(email, otp) {
-    return await this.verifyOTP(email, otp, 'password_reset', false);
+    return this.verifyOTP(email, otp, 'password_reset', false); // Don't consume on verify
   }
 
-  /**
-   * Verify OTP for 2FA login flow
-   * @param {string} email - User email
-   * @param {string} otp - OTP code
-   * @returns {Promise<object>} - Verification result
-   */
   async verifyLoginOTP(email, otp) {
-    return await this.verifyOTP(email, otp, 'login_2fa');
+    return this.verifyOTP(email, otp, 'login_2fa');
+  }
+
+  async markOTPAsUsed(email, type) {
+    if (redisTokenService.isAvailable()) {
+      await redisTokenService.deleteOTP(email.toLowerCase(), type);
+    } else {
+      await OTP.updateMany(
+        { email: email.toLowerCase(), type, isUsed: false },
+        { isUsed: true }
+      );
+    }
   }
 }
 

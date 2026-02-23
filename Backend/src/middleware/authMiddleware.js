@@ -1,9 +1,11 @@
 const jwt = require('jsonwebtoken');
 const User = require('../Modal/User');
 const asyncHandler = require('./asyncHandler');
+const redisTokenService = require('../Service/redisTokenService');
 
 /**
  * Auth middleware - Verifies JWT access token
+ * Also checks the Redis blocklist for revoked tokens (logout support)
  * Attaches user to req.user
  */
 const authenticate = asyncHandler(async (req, res, next) => {
@@ -28,6 +30,17 @@ const authenticate = asyncHandler(async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.Secret_jwt_token);
 
+        // ── Blocklist check (Redis only, skip if Redis unavailable) ──────────
+        if (decoded.jti && redisTokenService.isAvailable()) {
+            const isBlocked = await redisTokenService.isAccessTokenBlocked(decoded.jti);
+            if (isBlocked) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Token has been revoked. Please login again.',
+                });
+            }
+        }
+
         const user = await User.findById(decoded.userId || decoded._id);
 
         if (!user) {
@@ -44,7 +57,9 @@ const authenticate = asyncHandler(async (req, res, next) => {
             });
         }
 
+        // Attach jti for logout use
         req.user = user;
+        req.tokenJti = decoded.jti || null;
         next();
     } catch (error) {
         if (error.name === 'TokenExpiredError') {
