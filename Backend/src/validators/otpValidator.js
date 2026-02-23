@@ -7,8 +7,7 @@ const validateOTPVerification = [
   body('email')
     .trim()
     .isEmail()
-    .withMessage('Valid email is required')
-    .normalizeEmail(),
+    .withMessage('Valid email is required'),
 
   body('otp')
     .trim()
@@ -45,8 +44,7 @@ const validateOTPGeneration = [
   body('email')
     .trim()
     .isEmail()
-    .withMessage('Valid email is required')
-    .normalizeEmail(),
+    .withMessage('Valid email is required'),
 
   body('type')
     .trim()
@@ -76,8 +74,7 @@ const validateOTPResend = [
   body('email')
     .trim()
     .isEmail()
-    .withMessage('Valid email is required')
-    .normalizeEmail(),
+    .withMessage('Valid email is required'),
 
   body('type')
     .trim()
@@ -107,8 +104,7 @@ const validatePasswordReset = [
   body('email')
     .trim()
     .isEmail()
-    .withMessage('Valid email is required')
-    .normalizeEmail(),
+    .withMessage('Valid email is required'),
 
   body('otp')
     .trim()
@@ -116,8 +112,8 @@ const validatePasswordReset = [
     .withMessage('OTP must be 6 digits'),
 
   body('newPassword')
-    .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters'),
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters'),
 
   body('confirmPassword')
     .trim(),

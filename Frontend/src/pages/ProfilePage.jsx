@@ -103,6 +103,25 @@ export default function ProfilePage() {
                 )}
             </div>
 
+            {/* Saved Addresses */}
+            <div style={{ border: '1px solid #e5e5e5', borderRadius: '20px', padding: '32px', marginBottom: '24px' }}>
+                <h3 style={{ fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>Saved Shipping Addresses</h3>
+                {user?.addresses?.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                        {user.addresses.map((addr, idx) => (
+                            <div key={idx} style={{ padding: '16px', border: '1px solid #e5e5e5', borderRadius: '16px' }}>
+                                <p style={{ fontWeight: 600, fontSize: '14px', marginBottom: '8px' }}>{addr.fullName || user.fullName}</p>
+                                <p style={{ fontSize: '13px', color: '#737373', marginBottom: '4px' }}>{addr.street}</p>
+                                <p style={{ fontSize: '13px', color: '#737373', marginBottom: '4px' }}>{addr.city}, {addr.state} {addr.zipCode}</p>
+                                <p style={{ fontSize: '13px', color: '#737373' }}>{addr.phone}</p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p style={{ fontSize: '14px', color: '#737373', textAlign: 'center', padding: '20px' }}>No saved addresses yet. They'll appear here after your first order!</p>
+                )}
+            </div>
+
             <button onClick={async () => { await logout(); navigate('/'); }}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff3333', fontWeight: 500, fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer' }}>
                 <FiLogOut size={16} /> Sign Out

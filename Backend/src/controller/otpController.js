@@ -89,14 +89,14 @@ class OTPController {
   resetPasswordWithOTP = asyncHandler(async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
-    // First, verify the OTP
-    await otpService.verifyPasswordResetOTP(email, otp);
-
-    // Find user and update password
+    // Find user first
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+
+    // Then verify the OTP
+    await otpService.verifyPasswordResetOTP(email, otp);
 
     // Update password (model pre-save hook handles hashing)
     user.password = newPassword;

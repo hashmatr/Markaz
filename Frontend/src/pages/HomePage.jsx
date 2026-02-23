@@ -11,6 +11,20 @@ import { productAPI, categoryAPI } from '../api';
    ════════════════════════════════════════════ */
 const heroSlides = [
     {
+        id: 0,
+        title: '20% OFF YOUR FIRST ORDER',
+        subtitle: 'Special welcome offer for new members. Join Markaz and save big on your first purchase!',
+        cta: 'Claim offer',
+        ctaLink: '/shop',
+        bg: '#0047ab',
+        textColor: '#fff',
+        cards: [
+            { label: 'Shop All', img: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=300&fit=crop' },
+            { label: 'New Arrivals', img: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=300&h=300&fit=crop' },
+            { label: 'Best Sellers', img: 'https://images.unsplash.com/photo-1511556820780-d912e42b4980?w=300&h=300&fit=crop' },
+        ],
+    },
+    {
         id: 1,
         title: 'Top tech for your ride',
         subtitle: 'Explore in-car entertainment, GPS, security devices, and more.',

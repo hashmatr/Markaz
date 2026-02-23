@@ -19,6 +19,10 @@ const cartItemSchema = new mongoose.Schema({
     },
     size: String,
     color: String,
+    selectedOptions: {
+        type: Map,
+        of: String, // e.g. { "Storage": "256GB", "Color": "Midnight Blue" }
+    },
     price: {
         type: Number,
         required: true,

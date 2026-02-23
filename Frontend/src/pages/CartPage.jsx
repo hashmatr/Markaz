@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiMinus, FiPlus, FiTrash2, FiTag } from 'react-icons/fi';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { orderAPI } from '../api';
 import toast from 'react-hot-toast';
 
 export default function CartPage() {
@@ -11,6 +12,18 @@ export default function CartPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [promoCode, setPromoCode] = useState('');
+    const [isFirstOrder, setIsFirstOrder] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            orderAPI.getMyOrders({ limit: 1 })
+                .then(res => {
+                    const totalOrders = res.data?.data?.pagination?.totalOrders || 0;
+                    setIsFirstOrder(totalOrders === 0);
+                })
+                .catch(() => setIsFirstOrder(false));
+        }
+    }, [user]);
 
     const items = cart?.items || [];
     const subtotal = items.reduce((s, i) => s + (i.price * i.quantity), 0);
@@ -61,8 +74,15 @@ export default function CartPage() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <div>
                                                 <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '4px' }}>{prod.title || 'Product'}</h3>
-                                                {item.size && <p style={{ fontSize: '12px', color: '#737373' }}>Size: {item.size}</p>}
-                                                {item.color && <p style={{ fontSize: '12px', color: '#737373' }}>Color: {item.color}</p>}
+                                                {/* Dynamic Options */}
+                                                {item.selectedOptions && (item.selectedOptions instanceof Map ? Object.fromEntries(item.selectedOptions) : item.selectedOptions) &&
+                                                    Object.entries(item.selectedOptions instanceof Map ? Object.fromEntries(item.selectedOptions) : item.selectedOptions).map(([key, val]) => (
+                                                        <p key={key} style={{ fontSize: '12px', color: '#737373' }}>{key}: {val}</p>
+                                                    ))
+                                                }
+                                                {/* Fallback legacy labels if no selectedOptions */}
+                                                {!item.selectedOptions && item.size && <p style={{ fontSize: '12px', color: '#737373' }}>Size: {item.size}</p>}
+                                                {!item.selectedOptions && item.color && <p style={{ fontSize: '12px', color: '#737373' }}>Color: {item.color}</p>}
                                             </div>
                                             <button onClick={() => handleRemove(item._id)} style={{ color: '#ff3333', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
                                                 <FiTrash2 size={18} />
@@ -115,6 +135,19 @@ export default function CartPage() {
                                 </div>
                                 <button className="btn-primary" style={{ padding: '12px 24px', fontSize: '13px' }}>Apply</button>
                             </div>
+
+                            {isFirstOrder && (
+                                <div style={{
+                                    padding: '16px', backgroundColor: 'rgba(1, 171, 49, 0.08)',
+                                    borderRadius: '16px', marginBottom: '20px', border: '1px dashed #01ab31'
+                                }}>
+                                    <p style={{ color: '#01ab31', fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>🎁 First Order Reward!</p>
+                                    <p style={{ color: '#333', fontSize: '12px', lineHeight: 1.5 }}>
+                                        You're eligible for <strong>20% extra discount</strong> on this order. Discount will be applied at checkout.
+                                    </p>
+                                </div>
+                            )}
+
                             <button onClick={() => navigate('/checkout')}
                                 className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '15px' }}>
                                 Go to Checkout →

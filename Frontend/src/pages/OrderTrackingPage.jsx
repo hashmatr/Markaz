@@ -234,7 +234,13 @@ export default function OrderTrackingPage() {
                                         style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', backgroundColor: '#f0f0f0', flexShrink: 0 }} />
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <p style={{ fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product?.title || 'Product'}</p>
-                                        <p style={{ fontSize: '12px', color: '#737373' }}>Qty: {item.quantity}{item.size ? ` • Size: ${item.size}` : ''}</p>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                            <p style={{ fontSize: '12px', color: '#737373' }}>Qty: {item.quantity}</p>
+                                            {item.selectedOptions && Object.entries(item.selectedOptions instanceof Map ? Object.fromEntries(item.selectedOptions) : item.selectedOptions).map(([k, v]) => (
+                                                <p key={k} style={{ fontSize: '12px', color: '#737373' }}>• {v}</p>
+                                            ))}
+                                            {!item.selectedOptions && item.size && <p style={{ fontSize: '12px', color: '#737373' }}>• {item.size}</p>}
+                                        </div>
                                     </div>
                                     <span style={{ fontSize: '14px', fontWeight: 700, flexShrink: 0 }}>${(item.discountedPrice || item.price) * item.quantity}</span>
                                 </div>

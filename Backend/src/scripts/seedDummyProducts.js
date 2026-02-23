@@ -184,6 +184,50 @@ async function seed() {
                 { name: SIZES[Math.floor(Math.random() * SIZES.length)], quantity: 50 }
             ];
 
+            // ─── Refined Variant Logic ───
+            const getVariantsByCategory = (cat) => {
+                const c = cat.toLowerCase();
+                if (['mens-shirts', 'womens-dresses', 'tops', 'womens-jewellery'].includes(c)) {
+                    return [{ name: 'Size', values: ['S', 'M', 'L', 'XL'] }, { name: 'Color', values: ['Black', 'White', 'Blue', 'Pink'] }];
+                }
+                if (['mens-shoes', 'womens-shoes'].includes(c)) {
+                    return [{ name: 'Size', values: ['38', '39', '40', '41', '42'] }, { name: 'Color', values: ['Black', 'Brown', 'White', 'Tan'] }];
+                }
+                if (['smartphones', 'tablets'].includes(c)) {
+                    return [{ name: 'Storage', values: ['128GB', '256GB', '512GB'] }, { name: 'Color', values: ['Black', 'Blue', 'Gold'] }];
+                }
+                if (c === 'laptops') {
+                    return [{ name: 'RAM', values: ['8GB', '16GB', '32GB'] }, { name: 'Storage', values: ['512GB SSD', '1TB NVMe'] }, { name: 'Color', values: ['Space Grey', 'Silver'] }];
+                }
+                if (['beauty', 'skin-care', 'fragrances'].includes(c)) {
+                    return [{ name: 'Size', values: ['50ml', '100ml', '150ml'] }];
+                }
+                if (['mens-watches', 'womens-watches'].includes(c)) {
+                    return [{ name: 'Strap', values: ['Leather', 'Metal Mesh'] }, { name: 'Color', values: ['Rose Gold', 'Black', 'Silver'] }];
+                }
+                if (c === 'motorcycle') {
+                    return [
+                        { name: 'Engine', values: ['70cc', '100cc', '125cc', '150cc'] },
+                        { name: 'Color', values: ['Red', 'Black', 'Blue'] }
+                    ];
+                }
+                if (c === 'vehicle') { // CARS
+                    return [
+                        { name: 'Engine', values: ['1300cc', '1500cc', '1800cc', '2500cc'] },
+                        { name: 'Color', values: ['Silver Metallic', 'Pearl White', 'Deep Black', 'Modern Grey'] }
+                    ];
+                }
+                if (['furniture', 'home-decoration', 'kitchen-accessories'].includes(c)) {
+                    return [{ name: 'Color', values: ['Walnut', 'Oak', 'White', 'Black'] }];
+                }
+                if (c === 'groceries') {
+                    return [{ name: 'Weight', values: ['500g', '1kg', '2kg', '5kg'] }];
+                }
+                return [];
+            };
+
+            const variantOptions = getVariantsByCategory(dp.category);
+
             product = await Product.create({
                 title: dp.title,
                 slug,
@@ -195,8 +239,9 @@ async function seed() {
                 category: categoryIdMap[dp.category],
                 seller: seller._id,
                 brand: dp.brand || 'Markaz Exclusive',
-                color: randomColor,
-                sizes: randomSizes,
+                variantOptions,
+                color: undefined,
+                sizes: [],
                 rating: Math.min(5, Math.max(0, dp.rating || 0)),
                 totalReviews: (dp.reviews || []).length,
                 totalSold: Math.floor(Math.random() * 200),
@@ -206,15 +251,58 @@ async function seed() {
             });
             created++;
         } else {
-            if (!product.color || !product.sizes || product.sizes.length === 0) {
-                product.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-                product.sizes = [
-                    { name: SIZES[Math.floor(Math.random() * SIZES.length)], quantity: 50 },
-                    { name: SIZES[Math.floor(Math.random() * SIZES.length)], quantity: 50 }
-                ];
-                product.brand = product.brand || 'Markaz Exclusive';
-                await product.save();
+            const getVariantsByCategory = (cat) => {
+                const c = cat.toLowerCase();
+                if (['mens-shirts', 'womens-dresses', 'tops', 'womens-jewellery'].includes(c)) {
+                    return [{ name: 'Size', values: ['S', 'M', 'L', 'XL'] }, { name: 'Color', values: ['Black', 'White', 'Blue', 'Pink'] }];
+                }
+                if (['mens-shoes', 'womens-shoes'].includes(c)) {
+                    return [{ name: 'Size', values: ['38', '39', '40', '41', '42'] }, { name: 'Color', values: ['Black', 'Brown', 'White', 'Tan'] }];
+                }
+                if (['smartphones', 'tablets'].includes(c)) {
+                    return [{ name: 'Storage', values: ['128GB', '256GB', '512GB'] }, { name: 'Color', values: ['Black', 'Blue', 'Gold'] }];
+                }
+                if (c === 'laptops') {
+                    return [{ name: 'RAM', values: ['8GB', '16GB', '32GB'] }, { name: 'Storage', values: ['512GB SSD', '1TB NVMe'] }, { name: 'Color', values: ['Space Grey', 'Silver'] }];
+                }
+                if (['beauty', 'skin-care', 'fragrances'].includes(c)) {
+                    return [{ name: 'Size', values: ['50ml', '100ml', '150ml'] }];
+                }
+                if (c === 'motorcycle') {
+                    return [{ name: 'Engine', values: ['70cc', '100cc', '125cc', '150cc'] }, { name: 'Color', values: ['Red', 'Black', 'Blue'] }];
+                }
+                if (c === 'vehicle') { // CARS
+                    return [{ name: 'Engine', values: ['1300cc', '1500cc', '1800cc', '2500cc'] }, { name: 'Color', values: ['Silver Metallic', 'White', 'Black'] }];
+                }
+                if (['furniture', 'home-decoration', 'kitchen-accessories'].includes(c)) {
+                    return [{ name: 'Color', values: ['Walnut', 'Oak', 'White', 'Black'] }];
+                }
+                return [];
+            };
+
+            const correctVariants = getVariantsByCategory(dp.category);
+            let changed = false;
+
+            if (JSON.stringify(product.variantOptions) !== JSON.stringify(correctVariants)) {
+                product.variantOptions = correctVariants;
+                changed = true;
             }
+
+            if (product.sizes && product.sizes.length > 0) {
+                product.sizes = [];
+                changed = true;
+            }
+            if (product.color) {
+                product.color = undefined;
+                changed = true;
+            }
+
+            if (!product.brand) {
+                product.brand = dp.brand || 'Markaz Exclusive';
+                changed = true;
+            }
+
+            if (changed) await product.save();
             skipped++;
         }
 

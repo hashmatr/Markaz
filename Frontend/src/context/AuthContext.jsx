@@ -12,7 +12,8 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
-        if (token && !user) {
+        if (token) {
+            // Always fetch fresh profile to get populated addresses
             authAPI.getProfile()
                 .then(res => {
                     const u = res.data.data.user;

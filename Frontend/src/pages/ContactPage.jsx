@@ -7,6 +7,14 @@ import API from '../api';
 export default function ContactPage() {
     const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
     const [loading, setLoading] = useState(false);
+    const [activeFaq, setActiveFaq] = useState(null);
+
+    const faqs = [
+        { q: 'How do I track my order?', a: 'You can track your order by visiting the "Orders" page in your profile or using the "Track Order" link in the header with your Order ID.' },
+        { q: 'What is the return policy?', a: 'We offer a 7-day easy return policy. If you receive a damaged or incorrect product, you can request a return through your dashboard.' },
+        { q: 'How do I become a seller?', a: 'Click on "Become a Seller" in the navigation, fill in your store details, and once verified, you can start listing your products.' },
+        { q: 'Is COD available?', a: 'Yes, Cash on Delivery is available for all orders across Pakistan to ensure a secure shopping experience.' }
+    ];
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -240,21 +248,36 @@ export default function ContactPage() {
                                 Check our frequently asked questions for instant answers to common queries.
                             </p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {[
-                                    'How do I track my order?',
-                                    'What is the return policy?',
-                                    'How do I become a seller?',
-                                    'Is COD available?',
-                                ].map(q => (
-                                    <div key={q} style={{
-                                        padding: '10px 14px', borderRadius: 10,
-                                        backgroundColor: 'rgba(255,255,255,0.08)', fontSize: 13,
-                                        cursor: 'pointer', transition: 'background 0.2s',
-                                    }}
-                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}
-                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
+                                {faqs.map((faq, index) => (
+                                    <div key={index}
+                                        onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                                        style={{
+                                            padding: '12px 14px', borderRadius: 12,
+                                            backgroundColor: activeFaq === index ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+                                            fontSize: 13, cursor: 'pointer', transition: 'all 0.3s ease',
+                                            border: '1px solid',
+                                            borderColor: activeFaq === index ? 'rgba(255,255,255,0.2)' : 'transparent',
+                                        }}
+                                        onMouseEnter={e => { if (activeFaq !== index) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; }}
+                                        onMouseLeave={e => { if (activeFaq !== index) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; }}
                                     >
-                                        {q}
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                                            <span style={{ fontWeight: 600, color: activeFaq === index ? '#fff' : 'rgba(255,255,255,0.9)' }}>{faq.q}</span>
+                                            <span style={{
+                                                fontSize: 16, transition: 'transform 0.3s',
+                                                transform: activeFaq === index ? 'rotate(45deg)' : 'rotate(0deg)',
+                                                color: 'rgba(255,255,255,0.5)'
+                                            }}>+</span>
+                                        </div>
+                                        {activeFaq === index && (
+                                            <div style={{
+                                                marginTop: 10, color: 'rgba(255,255,255,0.7)',
+                                                lineHeight: 1.6, fontSize: 12,
+                                                animation: 'fadeIn 0.3s ease'
+                                            }}>
+                                                {faq.a}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

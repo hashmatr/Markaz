@@ -24,8 +24,8 @@ export function CartProvider({ children }) {
 
     useEffect(() => { fetchCart(); }, [fetchCart]);
 
-    const addToCart = async (productId, quantity = 1, size, color) => {
-        const res = await cartAPI.add({ productId, quantity, size, color });
+    const addToCart = async (productId, quantity = 1, size, color, selectedOptions) => {
+        const res = await cartAPI.add({ productId, quantity, size, color, selectedOptions });
         const c = res.data.data.cart;
         setCart(c);
         setCartCount(c?.items?.length || 0);

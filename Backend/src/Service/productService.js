@@ -236,15 +236,26 @@ class ProductService {
     /**
      * Delete product
      */
-    async deleteProduct(productId, userId) {
-        const seller = await Seller.findOne({ user: userId });
-        if (!seller) {
-            throw Object.assign(new Error('Seller not found'), { status: 404 });
-        }
+    async deleteProduct(productId, userId, isAdmin = false) {
+        let product;
 
-        const product = await Product.findOne({ _id: productId, seller: seller._id });
-        if (!product) {
-            throw Object.assign(new Error('Product not found or unauthorized'), { status: 404 });
+        if (isAdmin) {
+            // Admin can delete any product
+            product = await Product.findById(productId);
+            if (!product) {
+                throw Object.assign(new Error('Product not found'), { status: 404 });
+            }
+        } else {
+            // Seller can only delete their own products
+            const seller = await Seller.findOne({ user: userId });
+            if (!seller) {
+                throw Object.assign(new Error('Seller not found'), { status: 404 });
+            }
+
+            product = await Product.findOne({ _id: productId, seller: seller._id });
+            if (!product) {
+                throw Object.assign(new Error('Product not found or unauthorized'), { status: 404 });
+            }
         }
 
         // Delete images from cloudinary
