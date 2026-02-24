@@ -3,6 +3,7 @@ const Seller = require('../Modal/seller');
 const Category = require('../Modal/Category');
 const slugify = require('slugify');
 const cloudinary = require('../Config/cloudinary');
+const embeddingService = require('./embeddingService');
 
 class ProductService {
     /**
@@ -47,11 +48,16 @@ class ProductService {
         seller.totalProducts += 1;
         await seller.save();
 
+        // ── Auto-embed in Pinecone (non-blocking) ──
+        this._embedProductAsync(product._id);
+
         return product;
     }
 
     /**
-     * Get all products with filters, search, and pagination
+     * Get all products with filters, search, and pagination.
+     * When a search query is present and Pinecone is available,
+     * uses vector similarity search (RAG) for smarter results.
      */
     async getAllProducts(query = {}) {
         const {
@@ -59,6 +65,42 @@ class ProductService {
             brand, color, size, rating, sort, page = 1, limit = 12,
         } = query;
 
+        // 1. TRY GROQ HYBRID SEARCH (Most Intelligent + Fast)
+        const groqSearchService = require('./groqSearchService');
+        if (search && groqSearchService.groq) {
+            try {
+                const results = await groqSearchService.hybridSearch(search, { category, brand });
+
+                // If Groq has results, return them. 
+                // If Groq EXPLICITLY says "no matches", return empty now to prevent "junk fallback"
+                if (results) {
+                    return {
+                        products: results.products,
+                        aiSummary: results.aiSummary,
+                        pagination: {
+                            currentPage: 1,
+                            totalPages: results.products.length > 0 ? 1 : 0,
+                            totalProducts: results.products.length
+                        }
+                    };
+                }
+            } catch (err) {
+                console.warn('ProductService: Groq search failed, trying fallback search:', err.message);
+            }
+        }
+
+        // 2. TRY VECTOR SEARCH (Pinecone)
+        if (search && embeddingService.isAvailable()) {
+            try {
+                return await this._vectorSearch(query);
+            } catch (err) {
+                console.error('ProductService: Vector search failed, falling back to text search:', err.message);
+            }
+        }
+
+        // ────────────────────────────────────────────────
+        // TRADITIONAL SEARCH (fallback / non-search queries)
+        // ────────────────────────────────────────────────
         const filter = { isActive: true };
 
         // Search
@@ -106,6 +148,112 @@ class ProductService {
                 currentPage: parseInt(page),
                 totalPages: Math.ceil(total / limit),
                 totalProducts: total,
+            },
+        };
+    }
+
+    /**
+     * ── RAG Vector Search ──
+     * 1. Takes user's natural language query
+     * 2. Generates an embedding for the query using Gemini
+     * 3. Searches Pinecone for the most similar product vectors
+     * 4. Fetches the full product documents from MongoDB by ID
+     * 5. Applies any additional MongoDB filters (price, color, etc.)
+     * 6. Returns ranked results
+     */
+    async _vectorSearch(query) {
+        const {
+            search, category, seller, minPrice, maxPrice,
+            brand, color, size, rating, sort, page = 1, limit = 12,
+        } = query;
+
+        console.log(`ProductService [RAG]: Vector search for "${search}"`);
+
+        // Build Pinecone metadata filter
+        const pineconeFilter = { isActive: true };
+        if (color) pineconeFilter.color = { $eq: color };
+        if (brand) pineconeFilter.brand = { $eq: brand };
+
+        // Query Pinecone — get top 50 similar results
+        const vectorResults = await embeddingService.searchSimilar(
+            search,
+            50,
+            Object.keys(pineconeFilter).length > 1 ? pineconeFilter : {}
+        );
+
+        if (!vectorResults || vectorResults.length === 0) {
+            console.log('ProductService [RAG]: No vector results, falling back to text search.');
+            throw new Error('No vector results');
+        }
+
+        console.log(`ProductService [RAG]: Pinecone returned ${vectorResults.length} matches.`);
+
+        // Extract product IDs in ranking order
+        const productIds = vectorResults.map((r) => r.productId);
+        const scoreMap = {};
+        vectorResults.forEach((r) => {
+            scoreMap[r.productId] = r.score;
+        });
+
+        // Fetch full products from MongoDB
+        const mongoFilter = {
+            _id: { $in: productIds },
+            isActive: true,
+        };
+
+        // Apply additional MongoDB filters
+        if (category) mongoFilter.category = category;
+        if (seller) mongoFilter.seller = seller;
+        if (rating) mongoFilter.rating = { $gte: parseFloat(rating) };
+        if (size) mongoFilter['sizes.name'] = { $regex: size, $options: 'i' };
+        if (minPrice || maxPrice) {
+            mongoFilter.discountedPrice = {};
+            if (minPrice) mongoFilter.discountedPrice.$gte = parseFloat(minPrice);
+            if (maxPrice) mongoFilter.discountedPrice.$lte = parseFloat(maxPrice);
+        }
+
+        let products = await Product.find(mongoFilter)
+            .populate('category', 'name slug')
+            .populate('seller', 'storeName storeSlug storeLogo rating')
+            .lean();
+
+        // Re-sort by Pinecone similarity score (preserving vector ranking)
+        products = products.map((p) => ({
+            ...p,
+            _vectorScore: scoreMap[p._id.toString()] || 0,
+        }));
+
+        // Apply sort override if user selected one
+        if (sort === 'price_asc') {
+            products.sort((a, b) => (a.discountedPrice || a.price) - (b.discountedPrice || b.price));
+        } else if (sort === 'price_desc') {
+            products.sort((a, b) => (b.discountedPrice || b.price) - (a.discountedPrice || a.price));
+        } else if (sort === 'rating') {
+            products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        } else if (sort === 'newest') {
+            products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        } else {
+            // Default: sort by vector similarity (most relevant first)
+            products.sort((a, b) => (b._vectorScore || 0) - (a._vectorScore || 0));
+        }
+
+        // Paginate
+        const totalProducts = products.length;
+        const totalPages = Math.ceil(totalProducts / limit);
+        const startIdx = (page - 1) * limit;
+        const paginatedProducts = products.slice(startIdx, startIdx + parseInt(limit));
+
+        // Remove internal score field before returning
+        const cleanProducts = paginatedProducts.map(({ _vectorScore, ...rest }) => rest);
+
+        console.log(`ProductService [RAG]: Returning ${cleanProducts.length} products (page ${page}/${totalPages}).`);
+
+        return {
+            products: cleanProducts,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages,
+                totalProducts,
             },
         };
     }
@@ -230,6 +378,9 @@ class ProductService {
             runValidators: true,
         });
 
+        // ── Re-embed in Pinecone (non-blocking) ──
+        this._embedProductAsync(productId);
+
         return updatedProduct;
     }
 
@@ -238,6 +389,7 @@ class ProductService {
      */
     async deleteProduct(productId, userId, isAdmin = false) {
         let product;
+        let seller;
 
         if (isAdmin) {
             // Admin can delete any product
@@ -245,9 +397,10 @@ class ProductService {
             if (!product) {
                 throw Object.assign(new Error('Product not found'), { status: 404 });
             }
+            seller = await Seller.findById(product.seller);
         } else {
             // Seller can only delete their own products
-            const seller = await Seller.findOne({ user: userId });
+            seller = await Seller.findOne({ user: userId });
             if (!seller) {
                 throw Object.assign(new Error('Seller not found'), { status: 404 });
             }
@@ -274,8 +427,13 @@ class ProductService {
         await Product.findByIdAndDelete(productId);
 
         // Decrement seller's product count
-        seller.totalProducts = Math.max(0, seller.totalProducts - 1);
-        await seller.save();
+        if (seller) {
+            seller.totalProducts = Math.max(0, seller.totalProducts - 1);
+            await seller.save();
+        }
+
+        // ── Remove from Pinecone ──
+        embeddingService.deleteProduct(productId).catch(() => { });
 
         return { message: 'Product deleted successfully' };
     }
@@ -333,6 +491,28 @@ class ProductService {
             avgRating: Math.round((b.avgRating || 0) * 10) / 10,
             image: b.image,
         }));
+    }
+
+    /**
+     * ── Helper: Embed a product into Pinecone asynchronously ──
+     * Called after create/update. Non-blocking (fire-and-forget).
+     */
+    async _embedProductAsync(productId) {
+        try {
+            if (!embeddingService.isAvailable()) return;
+
+            const product = await Product.findById(productId)
+                .populate('category', 'name slug')
+                .populate('seller', 'storeName storeSlug rating')
+                .lean();
+
+            if (product) {
+                await embeddingService.upsertProduct(product);
+                console.log(`ProductService: Product ${productId} embedded in Pinecone.`);
+            }
+        } catch (err) {
+            console.error(`ProductService: Failed to embed product ${productId}:`, err.message);
+        }
     }
 }
 

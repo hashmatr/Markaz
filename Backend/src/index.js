@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const connectDb = require('./Config/db');
 const { connectRedis } = require('./Config/redis');
+const { connectPinecone } = require('./Config/pinecone');
 const errorHandler = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimitMiddleware');
 
@@ -118,6 +119,7 @@ app.listen(PORT, async () => {
     console.log('────────────────────────────────────────');
     await connectDb();
     await connectRedis(); // Non-fatal — falls back to MongoDB if Redis unavailable
+    await connectPinecone(); // Non-fatal — falls back to text search if Pinecone unavailable
 });
 
 module.exports = app;
