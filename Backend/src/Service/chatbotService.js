@@ -123,7 +123,7 @@ ${productContext || 'NO PRODUCTS FOUND. DO NOT SUGGEST ANY SPECIFIC PRODUCTS.'}`
 
                 const completion = await this.client.chat.completions.create({
                     messages,
-                    model: 'llama-3.3-70b-versatile',
+                    model: 'llama-3.1-8b-instant',
                     temperature: 0.1, // Set temperature very low to prevent creativity/hallucination
                 });
 

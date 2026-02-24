@@ -84,7 +84,7 @@ Return a JSON object with: 1) "rankedIds": an array of IDs for products that mat
                     content: `User wants the exact type of item: "${query}"\n\nCandidates:\n${productContext}\n\nReturn JSON only.`
                 }
             ],
-            model: 'llama-3.3-70b-versatile',
+            model: 'llama-3.1-8b-instant',
             response_format: { type: 'json_object' }
         });
 
