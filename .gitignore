@@ -1,2 +1,5 @@
 node_modules/
 .env
+
+# Architecture & internal docs (sensitive)
+AI_STYLIST_ARCHITECTURE.md

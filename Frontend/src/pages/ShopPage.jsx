@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiFilter, FiChevronDown, FiChevronUp, FiX } from 'react-icons/fi';
 import ProductCard from '../components/product/ProductCard';
 import Breadcrumb from '../components/ui/Breadcrumb';
@@ -51,6 +51,8 @@ const sortOptions = [
 
 export default function ShopPage() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [filtersOpen, setFiltersOpen] = useState(false);
@@ -84,6 +86,14 @@ export default function ShopPage() {
     // Fetch products whenever URL params change
     useEffect(() => {
         const fetchProducts = async () => {
+            // If we have visual search results in state, use those instead of fetching
+            if (location.state?.visualSearchResults) {
+                setProducts(location.state.visualSearchResults);
+                setPagination({ currentPage: 1, totalPages: 1, totalProducts: location.state.visualSearchResults.length });
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
             try {
                 const params = { sort: currentSort, page: currentPage, limit: 9 };
@@ -101,7 +111,7 @@ export default function ShopPage() {
             finally { setLoading(false); }
         };
         fetchProducts();
-    }, [currentSort, currentSearch, currentPage, currentCategory, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand]);
+    }, [currentSort, currentSearch, currentPage, currentCategory, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, location.state]);
 
     // Helper to update a single filter param and reset page
     const setFilter = (key, value) => {
@@ -414,10 +424,44 @@ export default function ShopPage() {
 
                 {/* ═══════════ PRODUCTS ═══════════ */}
                 <div style={{ flex: 1, minWidth: 0 }}>
+                    {location.state?.visualSearchResults && (
+                        <div style={{
+                            marginBottom: 24, padding: '12px 20px', borderRadius: 12,
+                            background: 'linear-gradient(90deg, #f0fdf4 0%, #fff 100%)',
+                            border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center',
+                            justifyContent: 'space-between', gap: 16
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{
+                                    width: 40, height: 40, borderRadius: 8, overflow: 'hidden',
+                                    backgroundColor: '#fff', border: '1px solid #e5e5e5'
+                                }}>
+                                    <img src={location.state.visualSearchImage} alt="Search query" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                                <div>
+                                    <h4 style={{ fontSize: 14, fontWeight: 700, color: '#166534', margin: 0 }}>Visual Search Results</h4>
+                                    <p style={{ fontSize: 12, color: '#15803d', margin: 0 }}>Showing products matching your uploaded image</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    navigate('/shop', { replace: true, state: null });
+                                }}
+                                style={{
+                                    fontSize: 12, fontWeight: 600, color: '#166534',
+                                    background: '#dcfce7', border: 'none', padding: '6px 12px',
+                                    borderRadius: 8, cursor: 'pointer'
+                                }}
+                            >
+                                Clear x
+                            </button>
+                        </div>
+                    )}
+
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, gap: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <h1 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 700 }}>
-                                {currentBrand || currentSearch || 'All Products'}
+                                {location.state?.visualSearchResults ? 'Visual Matches' : (currentBrand || currentSearch || 'All Products')}
                             </h1>
                             {!isDesktop && (
                                 <button onClick={() => setFiltersOpen(true)} style={{ padding: 8, border: '1px solid #e5e5e5', borderRadius: 8, background: '#fff', cursor: 'pointer', position: 'relative' }}>

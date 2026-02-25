@@ -6,6 +6,8 @@ import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
 import { FiMapPin, FiPhone, FiMail, FiGlobe, FiInfo } from 'react-icons/fi';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 export default function StorePage() {
     const { slug } = useParams();
     const [seller, setSeller] = useState(null);
@@ -89,8 +91,14 @@ export default function StorePage() {
                         fontFamily: "'Integral CF', sans-serif",
                         boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
                     }}>
-                        {seller.storeLogo ? (
-                            <img src={seller.storeLogo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '32px' }} />
+                        {seller.storeLogo?.url ? (
+                            <img src={seller.storeLogo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '32px' }}
+                                onError={(e) => {
+                                    const currentSrc = e.target.src;
+                                    if (currentSrc.includes('/api/proxy/image') || currentSrc.includes('placehold.co')) return;
+                                    e.target.src = `${BACKEND_URL}/api/proxy/image?url=${encodeURIComponent(seller.storeLogo.url)}`;
+                                }}
+                            />
                         ) : (
                             seller.storeName?.charAt(0)
                         )}

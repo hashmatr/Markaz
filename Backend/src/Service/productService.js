@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Product = require('../Modal/Product');
 const Seller = require('../Modal/seller');
 const Category = require('../Modal/Category');
@@ -110,7 +111,18 @@ class ProductService {
 
         // Filters
         if (category) filter.category = category;
-        if (seller) filter.seller = seller;
+        if (seller) {
+            if (mongoose.Types.ObjectId.isValid(seller)) {
+                filter.seller = seller;
+            } else {
+                const sellerDoc = await Seller.findOne({ storeSlug: seller });
+                if (sellerDoc) {
+                    filter.seller = sellerDoc._id;
+                } else {
+                    filter.seller = new mongoose.Types.ObjectId();
+                }
+            }
+        }
         if (brand) filter.brand = { $regex: brand, $options: 'i' };
         if (color) filter.color = { $regex: color, $options: 'i' };
         if (size) filter['sizes.name'] = { $regex: size, $options: 'i' };

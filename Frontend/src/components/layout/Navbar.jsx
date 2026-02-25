@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX, FiChevronDown, FiChevronRight } from 'react-icons/fi';
+import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX, FiChevronDown, FiChevronRight, FiCamera } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { visualSearchAPI } from '../../api';
+import toast from 'react-hot-toast';
 
 const megaMenuCategories = [
     {
@@ -94,6 +96,8 @@ export default function Navbar() {
     const [mobileCatOpen, setMobileCatOpen] = useState(false);
     const userDropdownRef = useRef(null);
     const shopDropdownTimeout = useRef(null);
+    const visualSearchInputRef = useRef(null);
+    const [isVisualSearching, setIsVisualSearching] = useState(false);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -109,6 +113,50 @@ export default function Navbar() {
         await logout();
         setUserDropdown(false);
         navigate('/');
+    };
+
+    const handleVisualSearch = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Simple validation
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error('Please upload a valid image (JPEG, PNG, or WebP)');
+            return;
+        }
+
+        setIsVisualSearching(true);
+        const loadingToast = toast.loading('Analyzing image with CLIP AI...');
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const previewUrl = URL.createObjectURL(file);
+            const response = await visualSearchAPI.searchByImage(formData);
+
+            toast.dismiss(loadingToast);
+
+            if (response.data.success && response.data.data.products.length > 0) {
+                toast.success(`Found ${response.data.data.products.length} similar products!`);
+                navigate('/shop', {
+                    state: {
+                        visualSearchResults: response.data.data.products,
+                        visualSearchImage: previewUrl
+                    }
+                });
+            } else {
+                toast.error('No similar products found. Try a different image.');
+            }
+        } catch (err) {
+            toast.dismiss(loadingToast);
+            console.error('Visual search failed:', err);
+            toast.error('Search failed. Please try again.');
+        } finally {
+            setIsVisualSearching(false);
+            if (visualSearchInputRef.current) visualSearchInputRef.current.value = '';
+        }
     };
 
     useEffect(() => {
@@ -283,6 +331,34 @@ export default function Navbar() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => visualSearchInputRef.current?.click()}
+                                    disabled={isVisualSearching}
+                                    title="Search by image"
+                                    style={{
+                                        marginLeft: '8px', flexShrink: 0, padding: '4px',
+                                        color: isVisualSearching ? '#000' : '#a3a3a3',
+                                        transition: 'color 0.2s',
+                                        display: 'flex', alignItems: 'center',
+                                        background: 'none', border: 'none', cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.color = '#000'}
+                                    onMouseLeave={e => !isVisualSearching && (e.currentTarget.style.color = '#a3a3a3')}
+                                >
+                                    {isVisualSearching ? (
+                                        <div style={{ width: 18, height: 18, border: '2px solid #ccc', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                    ) : (
+                                        <FiCamera size={18} />
+                                    )}
+                                </button>
+                                <input
+                                    ref={visualSearchInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleVisualSearch}
+                                    style={{ display: 'none' }}
+                                />
                             </form>
                         )}
 
@@ -294,6 +370,24 @@ export default function Navbar() {
                                     <FiSearch size={22} />
                                 </button>
                             )}
+                            <button
+                                onClick={() => visualSearchInputRef.current?.click()}
+                                disabled={isVisualSearching}
+                                title="Search by image"
+                                style={{
+                                    padding: '4px', display: 'flex', color: '#000',
+                                    transition: 'opacity 0.2s', background: 'none',
+                                    border: 'none', cursor: 'pointer'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.opacity = '0.6'}
+                                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                            >
+                                {isVisualSearching ? (
+                                    <div style={{ width: 22, height: 22, border: '2px solid #ccc', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                ) : (
+                                    <FiCamera size={22} />
+                                )}
+                            </button>
 
                             <Link to="/cart" style={{ position: 'relative', padding: '4px' }}>
                                 <FiShoppingCart size={22} />

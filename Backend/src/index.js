@@ -22,22 +22,42 @@ const adminRoutes = require('./routes/adminRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const chatbotRoutes = require('./routes/chatbotRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const visualSearchRoutes = require('./routes/visualSearchRoutes');
+const stylistRoutes = require('./routes/stylistRoutes');
+const proxyRoutes = require('./routes/proxyRoutes');
+const flashSaleRoutes = require('./routes/flashSaleRoutes');
+const commentRoutes = require('./routes/commentRoutes');
+const { CACHE_KEYS, TTL, getCache, setCache } = require('./Service/cacheService');
 
 const app = express();
 
 // ─── Security Middleware ─────────────────────
-app.use(helmet());
+/*
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "img-src": ["'self'", "data:", "https://cdn.dummyjson.com", "https://fakestoreapi.com", "https://api.escuelajs.co", "https://placehold.co", "https://p1.akcdn.net", "https://makeup-api.herokuapp.com"],
+        },
+    },
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false
+}));
+*/
 
 // ─── CORS ────────────────────────────────────
 app.use(
     cors({
         origin: [
-            process.env.CLIENT_URL || 'http://localhost:3000',
+            process.env.CLIENT_URL || 'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
             process.env.ADMIN_URL || 'http://localhost:3001',
         ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
     })
 );
 
@@ -85,15 +105,31 @@ app.use('/api/admin', adminRoutes);
 app.use('/api', contactRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/visual-search', visualSearchRoutes);
+app.use('/api/stylist', stylistRoutes);
+app.use('/api/proxy', proxyRoutes);
+app.use('/api/flash-sales', flashSaleRoutes);
+app.use('/api/comments', commentRoutes);
 
-// ─── Public Categories Route ─────────────────
+// ─── Public Categories Route (Redis Cached) ─────────────────
 const Category = require('./Modal/Category');
 app.get('/api/categories', async (req, res) => {
     try {
+        // Try Redis cache first for sub-200ms response
+        const cached = await getCache(CACHE_KEYS.CATEGORY_TREE);
+        if (cached) {
+            return res.status(200).json({ success: true, data: cached, fromCache: true });
+        }
+
         const categories = await Category.find()
             .populate('parentCategory', 'name slug')
             .sort({ level: 1, name: 1 });
-        res.status(200).json({ success: true, data: { categories } });
+
+        const responseData = { categories };
+        // Cache for 10 minutes
+        await setCache(CACHE_KEYS.CATEGORY_TREE, responseData, TTL.CATEGORY_TREE);
+
+        res.status(200).json({ success: true, data: responseData });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Failed to fetch categories' });
     }
