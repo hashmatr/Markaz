@@ -134,10 +134,19 @@ export const adminAPI = {
     getAllOrders: (params) => API.get('/orders/admin/all', { params }),
     updateOrderStatus: (id, data) => API.put(`/orders/admin/${id}/status`, data),
 };
-// Chatbot API
+// AI Stylist / Personal Shopper API
+export const stylistAPI = {
+    chat: (data) => API.post('/stylist/chat', data),
+    clearChat: (data) => API.post('/stylist/chat/clear', data),
+    recordView: (data) => API.post('/stylist/view', data),
+    getRecommendations: (params) => API.get('/stylist/recommendations', { params }),
+    getProfile: () => API.get('/stylist/profile'),
+};
+
+// Legacy alias for backward compat
 export const chatbotAPI = {
-    send: (data) => API.post('/chatbot', data),
-    clear: (data) => API.post('/chatbot/clear', data),
+    send: (data) => API.post('/stylist/chat', data),
+    clear: (data) => API.post('/stylist/chat/clear', data),
 };
 
 // Payment API (Stripe)
@@ -145,6 +154,33 @@ export const paymentAPI = {
     getConfig: () => API.get('/payments/config'),
     createCheckoutSession: (data) => API.post('/payments/create-checkout-session', data),
     verifySession: (data) => API.post('/payments/verify-session', data),
+};
+
+
+// Visual Search API (CLIP-based)
+export const visualSearchAPI = {
+    searchByImage: (formData) => API.post('/visual-search', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000, // 60s timeout for CLIP processing
+    }),
+    getStatus: () => API.get('/visual-search/status'),
+    syncEmbeddings: () => API.post('/visual-search/sync'),
+};
+
+// Flash Sales API
+export const flashSaleAPI = {
+    getActive: () => API.get('/flash-sales/active'),
+    getUpcoming: () => API.get('/flash-sales/upcoming'),
+    create: (data) => API.post('/flash-sales', data),
+    delete: (id) => API.delete(`/flash-sales/${id}`),
+};
+
+// Product Comments (Buyer-Seller Chat) API
+export const commentAPI = {
+    getProductComments: (productId, params) => API.get(`/comments/product/${productId}`, { params }),
+    create: (data) => API.post('/comments', data),
+    update: (id, data) => API.put(`/comments/${id}`, data),
+    delete: (id) => API.delete(`/comments/${id}`),
 };
 
 export default API;

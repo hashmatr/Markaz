@@ -3,8 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FiArrowRight, FiArrowLeft, FiZap, FiUsers, FiBarChart2, FiHeart, FiChevronRight, FiChevronLeft, FiPause, FiPlay } from 'react-icons/fi';
 import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 import ProductCard from '../components/product/ProductCard';
+import FlashSalesBanner from '../components/ui/FlashSalesBanner';
 import { useAuth } from '../context/AuthContext';
-import { productAPI, categoryAPI } from '../api';
+import { productAPI, categoryAPI, flashSaleAPI } from '../api';
 
 /* ════════════════════════════════════════════
    HERO SLIDES — eBay-style promotional carousel
@@ -144,6 +145,7 @@ export default function HomePage() {
     const [newArrivals, setNewArrivals] = useState([]);
     const [trendingProducts, setTrendingProducts] = useState([]);
     const [dealsProducts, setDealsProducts] = useState([]);
+    const [flashSales, setFlashSales] = useState([]);
 
     // Hero carousel state
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -168,6 +170,11 @@ export default function HomePage() {
             } catch { }
         };
         fetchProducts();
+
+        // Fetch active flash sales
+        flashSaleAPI.getActive()
+            .then(res => setFlashSales(res.data.data.flashSales || []))
+            .catch(() => { });
     }, []);
 
     // Hero auto-rotation
@@ -324,6 +331,9 @@ export default function HomePage() {
                     </div>
                 </div>
             </section>
+
+            {/* ═══════════════════ FLASH SALES COUNTDOWN ═══════════════════ */}
+            <FlashSalesBanner flashSales={flashSales} />
 
             {/* ═══════════════════ TRENDING ON MARKAZ ═══════════════════ */}
             <section className="section-pad" style={{ paddingBottom: '32px' }}>

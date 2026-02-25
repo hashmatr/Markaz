@@ -5,10 +5,13 @@ import { FaStar, FaRegStar } from 'react-icons/fa';
 import StarRating from '../components/ui/StarRating';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
-import { productAPI, reviewAPI } from '../api';
+import { productAPI, reviewAPI, stylistAPI, commentAPI } from '../api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import ProductComments from '../components/product/ProductComments';
 import toast from 'react-hot-toast';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 export default function ProductDetailPage() {
     const { id } = useParams();
@@ -46,6 +49,11 @@ export default function ProductDetailPage() {
             .then(r => {
                 const fetchedProduct = r.data.data.product;
                 setProduct(fetchedProduct);
+
+                // Record this view for AI Stylist recommendations
+                if (user?._id) {
+                    stylistAPI.recordView({ productId: id }).catch(() => { });
+                }
 
                 // Set default size (legacy)
                 const sizes = fetchedProduct?.sizes;
@@ -190,12 +198,24 @@ export default function ProductDetailPage() {
                         {productImages.map((img, i) => (
                             <button key={i} onClick={() => setSelectedImage(i)}
                                 style={{ width: '76px', height: '76px', borderRadius: '12px', overflow: 'hidden', border: selectedImage === i ? '2px solid #000' : '2px solid #e5e5e5', padding: 0, cursor: 'pointer' }}>
-                                <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => {
+                                        const currentSrc = e.target.src;
+                                        if (currentSrc.includes('/api/proxy/image') || currentSrc.includes('placehold.co')) return;
+                                        e.target.src = `${BACKEND_URL}/api/proxy/image?url=${encodeURIComponent(img.url)}`;
+                                    }}
+                                />
                             </button>
                         ))}
                     </div>
                     <div style={{ flex: 1, backgroundColor: '#f0f0f0', borderRadius: '20px', overflow: 'hidden', aspectRatio: '1' }}>
-                        <img src={productImages[selectedImage]?.url} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={productImages[selectedImage]?.url} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                                const currentSrc = e.target.src;
+                                if (currentSrc.includes('/api/proxy/image') || currentSrc.includes('placehold.co')) return;
+                                e.target.src = `${BACKEND_URL}/api/proxy/image?url=${encodeURIComponent(productImages[selectedImage]?.url)}`;
+                            }}
+                        />
                     </div>
                 </div>
 
@@ -317,7 +337,7 @@ export default function ProductDetailPage() {
             {/* ═══════════ TABS ═══════════ */}
             <div style={{ marginTop: '64px' }}>
                 <div style={{ display: 'flex', borderBottom: '1px solid #e5e5e5' }}>
-                    {[{ key: 'details', label: 'Product Details' }, { key: 'reviews', label: 'Rating & Reviews' }, { key: 'faqs', label: 'FAQs' }].map(tab => (
+                    {[{ key: 'details', label: 'Product Details' }, { key: 'reviews', label: 'Rating & Reviews' }, { key: 'qa', label: 'Q&A' }, { key: 'faqs', label: 'FAQs' }].map(tab => (
                         <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                             style={{
                                 flex: 1, padding: '16px 0', textAlign: 'center', fontSize: '14px', fontWeight: 500, cursor: 'pointer',
@@ -547,6 +567,13 @@ export default function ProductDetailPage() {
                                 </div>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Q&A Tab (Buyer-Seller Chat) */}
+                {activeTab === 'qa' && (
+                    <div style={{ paddingTop: '32px' }}>
+                        <ProductComments productId={id} sellerId={product?.seller?._id} />
                     </div>
                 )}
 

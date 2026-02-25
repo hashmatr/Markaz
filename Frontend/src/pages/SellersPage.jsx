@@ -4,6 +4,8 @@ import { sellerAPI } from '../api';
 import StarRating from '../components/ui/StarRating';
 import Breadcrumb from '../components/ui/Breadcrumb';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 export default function SellersPage() {
     const [sellers, setSellers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -75,10 +77,17 @@ export default function SellersPage() {
                                 marginBottom: '20px',
                                 fontSize: '24px',
                                 fontWeight: 700,
-                                fontFamily: "'Integral CF', sans-serif"
+                                fontFamily: "'Integral CF', sans-serif",
+                                overflow: 'hidden'
                             }}>
-                                {seller.storeLogo ? (
-                                    <img src={seller.storeLogo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '20px' }} />
+                                {seller.storeLogo?.url ? (
+                                    <img src={seller.storeLogo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        onError={(e) => {
+                                            const currentSrc = e.target.src;
+                                            if (currentSrc.includes('/api/proxy/image') || currentSrc.includes('placehold.co')) return;
+                                            e.target.src = `${BACKEND_URL}/api/proxy/image?url=${encodeURIComponent(seller.storeLogo.url)}`;
+                                        }}
+                                    />
                                 ) : (
                                     seller.storeName?.charAt(0)
                                 )}
