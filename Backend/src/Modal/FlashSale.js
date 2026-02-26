@@ -62,6 +62,10 @@ const flashSaleSchema = new mongoose.Schema(
             type: String,
             default: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
         },
+        isPermanent: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true }
 );

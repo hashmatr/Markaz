@@ -4,6 +4,7 @@ import { FiFilter, FiChevronDown, FiChevronUp, FiX } from 'react-icons/fi';
 import ProductCard from '../components/product/ProductCard';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import { productAPI, categoryAPI } from '../api';
+import { motion } from 'framer-motion';
 
 const colors = [
     { name: 'Black', hex: '#000' }, { name: 'White', hex: '#fff' }, { name: 'Navy', hex: '#1a3a5c' },
@@ -76,9 +77,11 @@ export default function ShopPage() {
     const currentSize = searchParams.get('size') || '';
     const currentBrand = searchParams.get('brand') || '';
 
+    const currentFlashSale = searchParams.get('flashSale') || '';
+
     // Sync slider from URL on load
     useEffect(() => {
-        if (currentMinPrice || currentMaxPrice) setPriceRange([parseInt(currentMinPrice) || 0, parseInt(currentMaxPrice) || 500]);
+        if (currentMinPrice || currentMaxPrice) setPriceRange([parseInt(currentMinPrice) || 0, parseInt(currentMaxPrice) || 5000]);
     }, []);
 
     useEffect(() => { categoryAPI.getAll().then(r => setCategories(r.data.data.categories || [])).catch(() => { }); }, []);
@@ -96,7 +99,7 @@ export default function ShopPage() {
 
             setLoading(true);
             try {
-                const params = { sort: currentSort, page: currentPage, limit: 9 };
+                const params = { sort: currentSort, page: currentPage, limit: 30 };
                 if (currentSearch) params.search = currentSearch;
                 if (currentCategory) params.category = currentCategory;
                 if (currentMinPrice) params.minPrice = currentMinPrice;
@@ -104,6 +107,7 @@ export default function ShopPage() {
                 if (currentColor) params.color = currentColor;
                 if (currentSize) params.size = currentSize;
                 if (currentBrand) params.brand = currentBrand;
+                if (currentFlashSale) params.flashSale = currentFlashSale;
                 const res = await productAPI.getAll(params);
                 setProducts(res.data.data.products || []);
                 setPagination(res.data.data.pagination);
@@ -111,7 +115,7 @@ export default function ShopPage() {
             finally { setLoading(false); }
         };
         fetchProducts();
-    }, [currentSort, currentSearch, currentPage, currentCategory, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, location.state]);
+    }, [currentSort, currentSearch, currentPage, currentCategory, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentFlashSale, location.state]);
 
     // Helper to update a single filter param and reset page
     const setFilter = (key, value) => {
@@ -516,9 +520,33 @@ export default function ShopPage() {
                             )}
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
-                            {products.map(product => <ProductCard key={product._id} product={product} />)}
-                        </div>
+                        <motion.div
+                            initial="hidden"
+                            animate="show"
+                            variants={{
+                                hidden: { opacity: 0 },
+                                show: {
+                                    opacity: 1,
+                                    transition: {
+                                        staggerChildren: 0.1
+                                    }
+                                }
+                            }}
+                            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}
+                        >
+                            {products.map(product => (
+                                <motion.div
+                                    key={product._id}
+                                    layout
+                                    variants={{
+                                        hidden: { opacity: 0, y: 20 },
+                                        show: { opacity: 1, y: 0 }
+                                    }}
+                                >
+                                    <ProductCard product={product} />
+                                </motion.div>
+                            ))}
+                        </motion.div>
                     )}
 
                     {pagination.totalPages > 1 && (

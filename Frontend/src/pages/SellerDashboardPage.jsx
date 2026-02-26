@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FiPackage, FiDollarSign, FiShoppingBag, FiStar, FiPlus, FiTrendingUp, FiFilter, FiChevronDown, FiChevronUp, FiX, FiClock, FiEdit, FiTrash2, FiActivity, FiPieChart, FiTarget, FiUsers } from 'react-icons/fi';
-import { FaStar } from 'react-icons/fa';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend } from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
-import { sellerAPI, productAPI, orderAPI, categoryAPI } from '../api';
+import { sellerAPI, productAPI, orderAPI, categoryAPI, flashSaleAPI, notificationAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { FiPackage, FiDollarSign, FiShoppingBag, FiStar, FiPlus, FiTrendingUp, FiFilter, FiChevronDown, FiChevronUp, FiX, FiClock, FiEdit, FiTrash2, FiActivity, FiPieChart, FiTarget, FiUsers, FiZap, FiBell } from 'react-icons/fi';
+import { FaStar } from 'react-icons/fa';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend } from 'chart.js';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import AnimatedNumber from '../components/animation/AnimatedNumber';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend);
 
@@ -46,6 +47,8 @@ function ChartCard({ title, children }) {
 }
 
 export default function SellerDashboardPage() {
+    console.log("Seller Dashboard V1.2.1 [NOMINATION FIX]");
+    const [nominationModal, setNominationModal] = useState({ open: false, selectedFlashSale: null });
     const { user } = useAuth();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -64,6 +67,13 @@ export default function SellerDashboardPage() {
     const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: true, sort: true });
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
+    // New State for Flash Sale nomination
+    const [activeFlashSales, setActiveFlashSales] = useState([]);
+    const [flashSaleModal, setFlashSaleModal] = useState({ open: false, product: null, flashSaleId: '', flashPrice: '', maxQuantity: 50 });
+    const [notifications, setNotifications] = useState([]);
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+
     const currentSort = searchParams.get('sort') || 'newest';
     const currentSearch = searchParams.get('search') || '';
     const currentPage = parseInt(searchParams.get('page') || '1');
@@ -80,26 +90,42 @@ export default function SellerDashboardPage() {
             sellerAPI.getDashboard().catch(() => ({ data: { data: { dashboard: null } } })),
             orderAPI.getSellerOrders({ limit: 10 }).catch(() => ({ data: { data: { orders: [] } } })),
             categoryAPI.getAll().catch(() => ({ data: { data: { categories: [] } } })),
-        ]).then(([d, o, c]) => {
+            flashSaleAPI.getActive().catch(() => ({ data: { data: { flashSales: [] } } })),
+            notificationAPI.getAll({ limit: 5 }).catch(() => ({ data: { data: { notifications: [], unreadCount: 0 } } })),
+        ]).then(([d, o, c, f, n]) => {
             const db = d.data.data.dashboard;
             setDashboard(db);
             setCharts(db?.charts || null);
             setRecentOrders(db?.recentOrders || []);
             setSellerOrders(o.data.data.orders || []);
             setCategories(c.data.data.categories || []);
+            setActiveFlashSales(f?.data?.data?.flashSales || []);
+            setNotifications(n?.data?.data?.notifications || []);
+            setUnreadNotifications(n?.data?.data?.unreadCount || 0);
         }).finally(() => setLoading(false));
     }, []);
 
-    useEffect(() => { if (activeTab === 'products') fetchProducts(); }, [activeTab, currentSort, currentSearch, currentPage, currentCategory, currentMinPrice, currentMaxPrice, currentColor]);
+    useEffect(() => {
+        if (activeTab === 'products' || (typeof nominationModal !== 'undefined' && nominationModal?.open)) {
+            fetchProducts();
+        }
+    }, [activeTab, nominationModal?.open, currentSort, currentSearch, currentPage, currentCategory, currentMinPrice, currentMaxPrice, currentColor]);
 
     const fetchProducts = async () => {
         setProductsLoading(true);
         try {
-            const res = await productAPI.getMyProducts({ sort: currentSort, page: currentPage, limit: 10, search: currentSearch, category: currentCategory, minPrice: currentMinPrice, maxPrice: currentMaxPrice, color: currentColor });
+            const res = await productAPI.getMyProducts({ sort: currentSort, page: currentPage, limit: 20, search: currentSearch, category: currentCategory, minPrice: currentMinPrice, maxPrice: currentMaxPrice, color: currentColor });
             setProducts(res.data.data.products || []);
             setPagination(res.data.data.pagination);
         } catch { setProducts([]); }
         finally { setProductsLoading(false); }
+    };
+
+    const fetchActiveFlashSales = async () => {
+        try {
+            const res = await flashSaleAPI.getActive();
+            setActiveFlashSales(res.data.data.flashSales || []);
+        } catch (err) { console.error(err); }
     };
 
     const handleSortChange = v => { const p = new URLSearchParams(searchParams); p.set('sort', v); p.set('page', '1'); setSearchParams(p); };
@@ -115,6 +141,40 @@ export default function SellerDashboardPage() {
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to delete product');
         }
+    };
+
+
+
+    const handleNominateFlashSale = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await flashSaleAPI.addProduct({
+                flashSaleId: flashSaleModal.flashSaleId,
+                productId: flashSaleModal.product._id,
+                flashPrice: parseFloat(flashSaleModal.flashPrice),
+                maxQuantity: parseInt(flashSaleModal.maxQuantity)
+            });
+            if (res.data.success) {
+                toast.success('Product added to flash sale!');
+                setFlashSaleModal({ ...flashSaleModal, open: false });
+                setNominationModal({ ...nominationModal, open: false });
+                fetchActiveFlashSales();
+                fetchProducts(); // Refresh to show flash badge
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Nomination failed');
+        }
+    };
+
+    const markNotificationRead = async (notification) => {
+        try {
+            await notificationAPI.markAsRead(notification._id);
+            setNotifications(notifications.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
+            if (notification.link) {
+                navigate(notification.link);
+            }
+            setUnreadNotifications(prev => Math.max(0, prev - 1));
+        } catch (err) { console.error(err); }
     };
 
     const FilterSection = ({ title, filterKey, children }) => (
@@ -177,8 +237,16 @@ export default function SellerDashboardPage() {
             )}
 
             <div style={{ display: 'flex', gap: 16, borderBottom: '1px solid #e5e5e5', marginBottom: 24, overflowX: 'auto' }}>
-                {['overview', 'analytics', 'products', 'orders'].map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab)} style={{ paddingBottom: 12, fontSize: 14, fontWeight: 500, textTransform: 'capitalize', cursor: 'pointer', border: 'none', background: 'none', borderBottom: activeTab === tab ? '2px solid #000' : '2px solid transparent', color: activeTab === tab ? '#000' : '#a3a3a3', whiteSpace: 'nowrap' }}>{tab}</button>
+                {['overview', 'analytics', 'products', 'orders', 'promotions', 'notifications'].map(tab => (
+                    <button key={tab} onClick={() => setActiveTab(tab)} style={{ position: 'relative', paddingBottom: 12, fontSize: 13, fontWeight: 600, textTransform: 'uppercase', cursor: 'pointer', border: 'none', background: 'none', borderBottom: activeTab === tab ? '2px solid #000' : '2px solid transparent', color: activeTab === tab ? '#000' : '#a3a3a3', whiteSpace: 'nowrap', letterSpacing: '0.5px' }}>
+                        {tab === 'promotions' ? 'FLASH SALES' : tab}
+                        {tab === 'notifications' && unreadNotifications > 0 && (
+                            <span style={{ position: 'absolute', top: -5, right: -12, backgroundColor: '#ef4444', color: '#fff', borderRadius: '50%', width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{unreadNotifications}</span>
+                        )}
+                        {tab === 'promotions' && activeFlashSales.length > 0 && (
+                            <span style={{ marginLeft: 6, backgroundColor: '#fff1f2', color: '#e11d48', fontSize: 10, padding: '2px 3px', borderRadius: 4, fontWeight: 700 }}>{activeFlashSales.length}</span>
+                        )}
+                    </button>
                 ))}
             </div>
 
@@ -193,10 +261,10 @@ export default function SellerDashboardPage() {
                         <>
                             {/* Stat cards */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16, marginBottom: 28 }}>
-                                <StatCard label="Total Earnings" value={`$${(dashboard.totalEarnings || 0).toLocaleString()}`} icon={FiDollarSign} bg="#fefce8" fg="#ca8a04" sub={dashboard.pendingPayout > 0 ? `$${dashboard.pendingPayout} pending` : undefined} />
-                                <StatCard label="Total Orders" value={dashboard.totalOrders || 0} icon={FiShoppingBag} bg="#faf5ff" fg="#9333ea" sub={dashboard.newOrdersToday > 0 ? `+${dashboard.newOrdersToday} today` : undefined} />
-                                <StatCard label="Products" value={dashboard.totalProducts || 0} icon={FiPackage} bg="#eff6ff" fg="#2563eb" />
-                                <StatCard label="Store Rating" value={`${dashboard.rating || 0}/5`} icon={FiStar} bg="#fffbeb" fg="#f59e0b" sub={dashboard.totalReviews > 0 ? `${dashboard.totalReviews} reviews` : undefined} />
+                                <StatCard label="Total Earnings" value={<AnimatedNumber value={dashboard.totalEarnings || 0} prefix="$" />} icon={FiDollarSign} bg="#fefce8" fg="#ca8a04" sub={dashboard.pendingPayout > 0 ? `$${dashboard.pendingPayout} pending` : undefined} />
+                                <StatCard label="Total Orders" value={<AnimatedNumber value={dashboard.totalOrders || 0} />} icon={FiShoppingBag} bg="#faf5ff" fg="#9333ea" sub={dashboard.newOrdersToday > 0 ? `+${dashboard.newOrdersToday} today` : undefined} />
+                                <StatCard label="Products" value={<AnimatedNumber value={dashboard.totalProducts || 0} />} icon={FiPackage} bg="#eff6ff" fg="#2563eb" />
+                                <StatCard label="Store Rating" value={<><AnimatedNumber value={dashboard.rating || 0} decimals={1} />/5</>} icon={FiStar} bg="#fffbeb" fg="#f59e0b" sub={dashboard.totalReviews > 0 ? `${dashboard.totalReviews} reviews` : undefined} />
                             </div>
 
                             {/* Charts Row 1 - Earnings + Daily Orders */}
@@ -305,7 +373,9 @@ export default function SellerDashboardPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16, marginBottom: 28 }}>
                                 <div style={{ background: 'linear-gradient(135deg, #000 0%, #1a1a2e 100%)', borderRadius: 20, padding: 24, color: '#fff' }}>
                                     <FiActivity size={22} style={{ marginBottom: 12, opacity: 0.7 }} />
-                                    <p style={{ fontSize: 28, fontWeight: 800 }}>${(dashboard?.totalEarnings || 0).toLocaleString()}</p>
+                                    <p style={{ fontSize: 28, fontWeight: 800 }}>
+                                        <AnimatedNumber value={dashboard?.totalEarnings || 0} prefix="$" />
+                                    </p>
                                     <p style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>Total Revenue</p>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
                                         <FiTrendingUp size={12} style={{ color: '#10b981' }} />
@@ -314,7 +384,9 @@ export default function SellerDashboardPage() {
                                 </div>
                                 <div style={{ border: '1px solid #e5e5e5', borderRadius: 20, padding: 24 }}>
                                     <FiTarget size={22} style={{ marginBottom: 12, color: '#3b82f6' }} />
-                                    <p style={{ fontSize: 28, fontWeight: 800 }}>{dashboard?.totalOrders || 0}</p>
+                                    <p style={{ fontSize: 28, fontWeight: 800 }}>
+                                        <AnimatedNumber value={dashboard?.totalOrders || 0} />
+                                    </p>
                                     <p style={{ fontSize: 12, color: '#737373', marginTop: 4 }}>Total Conversions</p>
                                     <div style={{ marginTop: 8, height: 4, backgroundColor: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
                                         <div style={{ height: '100%', width: `${Math.min((dashboard?.totalOrders / Math.max(dashboard?.totalProducts, 1)) * 100, 100)}%`, backgroundColor: '#3b82f6', borderRadius: 4 }} />
@@ -322,10 +394,12 @@ export default function SellerDashboardPage() {
                                 </div>
                                 <div style={{ border: '1px solid #e5e5e5', borderRadius: 20, padding: 24 }}>
                                     <FiUsers size={22} style={{ marginBottom: 12, color: '#8b5cf6' }} />
-                                    <p style={{ fontSize: 28, fontWeight: 800 }}>{((dashboard?.totalOrders || 0) * 3.2).toFixed(0)}</p>
-                                    <p style={{ fontSize: 12, color: '#737373', marginTop: 4 }}>Est. Visitors (30d)</p>
+                                    <p style={{ fontSize: 28, fontWeight: 800 }}>
+                                        <AnimatedNumber value={dashboard?.storeViews || 0} />
+                                    </p>
+                                    <p style={{ fontSize: 12, color: '#737373', marginTop: 4 }}>Actual Visitors (Total)</p>
                                     <p style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginTop: 8 }}>
-                                        {((dashboard?.totalOrders / Math.max((dashboard?.totalOrders || 0) * 3.2, 1)) * 100).toFixed(1)}% conversion rate
+                                        {((dashboard?.totalOrders / Math.max(dashboard?.storeViews, 1)) * 100).toFixed(1)}% conversion rate
                                     </p>
                                 </div>
                                 <div style={{ border: '1px solid #e5e5e5', borderRadius: 20, padding: 24 }}>
@@ -418,10 +492,10 @@ export default function SellerDashboardPage() {
                                 <ChartCard title="Cart & Conversion Insights">
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
                                         {[
-                                            { label: 'Product Views', value: ((dashboard?.totalOrders || 0) * 8.5).toFixed(0), color: '#3b82f6', pct: 100 },
-                                            { label: 'Added to Cart', value: ((dashboard?.totalOrders || 0) * 3.2).toFixed(0), color: '#8b5cf6', pct: 37.6 },
-                                            { label: 'Reached Checkout', value: ((dashboard?.totalOrders || 0) * 1.5).toFixed(0), color: '#f59e0b', pct: 17.6 },
-                                            { label: 'Completed Purchase', value: dashboard?.totalOrders || 0, color: '#10b981', pct: ((dashboard?.totalOrders || 1) / ((dashboard?.totalOrders || 1) * 8.5) * 100).toFixed(1) },
+                                            { label: 'Product Views', value: (dashboard?.productViews || 0).toLocaleString(), color: '#3b82f6', pct: 100 },
+                                            { label: 'Units Sold', value: (dashboard?.totalOrders || 0).toLocaleString(), color: '#8b5cf6', pct: ((dashboard?.totalOrders || 0) / Math.max(dashboard?.productViews, 1) * 100).toFixed(1) },
+                                            { label: 'Unique Customers', value: (new Set(recentOrders.map(o => o.user?._id)).size || 0), color: '#f59e0b', pct: ((new Set(recentOrders.map(o => o.user?._id)).size || 0) / Math.max(dashboard?.totalOrders, 1) * 100).toFixed(1) },
+                                            { label: 'Sales Rate', value: dashboard?.totalOrders || 0, color: '#10b981', pct: ((dashboard?.totalOrders || 1) / Math.max(dashboard?.productViews, 1) * 100).toFixed(1) },
                                         ].map((item, i) => (
                                             <div key={i}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -560,19 +634,27 @@ export default function SellerDashboardPage() {
                         ) : products.length > 0 ? (
                             <>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 20 }}>
-                                    {products.map(p => (
-                                        <div key={p._id} style={{ position: 'relative' }}>
-                                            <ProductCard product={p} />
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                                <button onClick={() => navigate(`/seller/edit-product/${p._id}`)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e5e5', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#000'; e.currentTarget.style.color = '#fff'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.color = '#000'; }}>
-                                                    <FiEdit size={14} /> Edit
-                                                </button>
-                                                <button onClick={() => handleDeleteProduct(p._id, p.title)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid #fca5a5', background: '#fff', color: '#dc2626', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#dc2626'; e.currentTarget.style.color = '#fff'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.color = '#dc2626'; }}>
-                                                    <FiTrash2 size={14} /> Delete
-                                                </button>
+                                    {products.map(p => {
+                                        const isInFlash = activeFlashSales.some(fs => fs.products.some(fp => fp.product?._id === p._id || fp.product === p._id));
+                                        return (
+                                            <div key={p._id} style={{ position: 'relative' }}>
+                                                {isInFlash && (
+                                                    <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, backgroundColor: '#e11d48', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 9999, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        <FiZap size={10} /> FLASH SALE
+                                                    </div>
+                                                )}
+                                                <ProductCard product={p} />
+                                                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                                    <button onClick={() => navigate(`/seller/edit-product/${p._id}`)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e5e5', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#000'; e.currentTarget.style.color = '#fff'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.color = '#000'; }}>
+                                                        <FiEdit size={14} /> Edit
+                                                    </button>
+                                                    <button onClick={() => handleDeleteProduct(p._id, p.title)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid #fca5a5', background: '#fff', color: '#dc2626', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#dc2626'; e.currentTarget.style.color = '#fff'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.color = '#dc2626'; }}>
+                                                        <FiTrash2 size={14} /> Delete
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                                 {pagination.totalPages > 1 && (
                                     <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
@@ -618,6 +700,139 @@ export default function SellerDashboardPage() {
                     }) : (
                         <div style={{ textAlign: 'center', padding: 48 }}><p style={{ color: '#737373' }}>No orders yet.</p></div>
                     )}
+                </div>
+            )}
+
+            {/* ═══════════ PROMOTIONS TAB ═══════════ */}
+            {activeTab === 'promotions' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    <div style={{ background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)', borderRadius: 20, padding: 32, color: '#fff' }}>
+                        <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Boost Your Sales! 🚀</h3>
+                        <p style={{ opacity: 0.9, marginBottom: 20, maxWidth: 500 }}>Join our active flash sales to get featured on the homepage and drive 5x more traffic to your products.</p>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={() => setActiveTab('products')} style={{ backgroundColor: '#fff', color: '#e11d48', border: 'none', padding: '10px 20px', borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}>Select Products</button>
+                        </div>
+                    </div>
+
+                    <h3 style={{ fontSize: 18, fontWeight: 700 }}>Active Flash Sale Events</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+                        {activeFlashSales.length > 0 ? activeFlashSales.map(fs => (
+                            <div key={fs._id} style={{ border: '1px solid #e5e5e5', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <h4 style={{ fontWeight: 700, fontSize: 16 }}>{fs.title}</h4>
+                                        <p style={{ fontSize: 13, color: '#737373' }}>{fs.description}</p>
+                                    </div>
+                                    {fs.isPermanent && <span style={{ backgroundColor: '#f0fdf4', color: '#16a34a', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 9999 }}>PERMANENT</span>}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#525252' }}>
+                                    <FiClock size={14} />
+                                    <span>{fs.isPermanent ? 'Always Running' : `Ends on ${new Date(fs.endTime).toLocaleDateString()}`}</span>
+                                </div>
+                                <button onClick={() => setNominationModal({ open: true, selectedFlashSale: fs })} style={{ width: '100%', marginTop: 'auto', padding: '12px', borderRadius: 12, border: 'none', background: '#000', color: '#fff', fontWeight: 600, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>Nominate Products</button>
+                            </div>
+                        )) : (
+                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 48, border: '1px dashed #e5e5e5', borderRadius: 20 }}>
+                                <p style={{ color: '#737373' }}>No active flash sales at the moment.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Nomination Selection Modal */}
+            {nominationModal.open && (
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: 20 }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '100%', maxWidth: 700, maxHeight: '85vh', overflowY: 'auto', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <button onClick={() => setNominationModal({ ...nominationModal, open: false })} style={{ position: 'absolute', top: 24, right: 24, background: '#f5f5f5', border: 'none', borderRadius: '50%', padding: 8, cursor: 'pointer' }}><FiX size={20} /></button>
+                        <h2 style={{ fontFamily: "'Integral CF',sans-serif", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>SELECT PRODUCTS</h2>
+                        <p style={{ fontSize: 14, color: '#737373', marginBottom: 24 }}>Joining Sale: <span style={{ color: '#e11d48', fontWeight: 700 }}>{nominationModal.selectedFlashSale?.title}</span></p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                            {productsLoading ? (
+                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 40 }}>
+                                    <div style={{ width: 40, height: 40, border: '3px solid #f3f3f3', borderTop: '3px solid #000', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+                                    <p style={{ color: '#737373' }}>Loading your products...</p>
+                                </div>
+                            ) : products.length > 0 ? products.map(p => {
+                                const currentFS = activeFlashSales.find(fs => fs._id === nominationModal.selectedFlashSale?._id);
+                                const inThisFlash = currentFS?.products.some(fp => fp.product?._id === p._id || fp.product === p._id);
+                                return (
+                                    <div key={p._id} style={{ border: '1px solid #f0f0f0', borderRadius: 16, padding: 12, display: 'flex', gap: 12, opacity: inThisFlash ? 0.6 : 1 }}>
+                                        <img src={p.images?.[0]?.url || 'https://placehold.co/100'} style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover' }} alt="" />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <p style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</p>
+                                            <p style={{ fontSize: 12, color: '#737373' }}>Price: ${p.price}</p>
+                                            <button
+                                                disabled={inThisFlash}
+                                                onClick={() => setFlashSaleModal({ open: true, product: p, flashSaleId: nominationModal.selectedFlashSale._id, flashPrice: (p.price * 0.7).toFixed(2), maxQuantity: 20 })}
+                                                style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: inThisFlash ? '#16a34a' : '#2563eb', border: 'none', background: 'none', padding: 0, cursor: inThisFlash ? 'default' : 'pointer', textDecoration: inThisFlash ? 'none' : 'underline' }}
+                                            >
+                                                {inThisFlash ? '✓ Already in Sale' : 'Select for Sale'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }) : (
+                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 40, border: '1px dashed #e5e5e5', borderRadius: 20 }}>
+                                    <p style={{ color: '#737373' }}>No products found for nomination.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ═══════════ NOTIFICATIONS TAB ═══════════ */}
+            {activeTab === 'notifications' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {notifications.length > 0 ? notifications.map(n => (
+                        <div key={n._id} onClick={() => markNotificationRead(n)} style={{ border: '1px solid #e5e5e5', borderRadius: 20, padding: 20, backgroundColor: n.isRead ? '#fff' : '#f8fafc', display: 'flex', gap: 16, alignItems: 'flex-start', cursor: 'pointer', transition: 'all 0.2s' }}>
+                            <div style={{ padding: 10, borderRadius: 12, backgroundColor: n.type === 'COMMENT' ? '#eff6ff' : '#f1f5f9', color: n.type === 'COMMENT' ? '#3b82f6' : '#64748b' }}><FiBell size={20} /></div>
+                            <div style={{ flex: 1 }}>
+                                <p style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{n.title} {!n.isRead && <span style={{ color: '#ef4444', fontSize: 18, marginLeft: 4 }}>•</span>}</p>
+                                <p style={{ fontSize: 14, color: '#64748b' }}>{n.message}</p>
+                                <p style={{ fontSize: 12, color: '#a3a3a3', marginTop: 8 }}>{new Date(n.createdAt).toLocaleString()}</p>
+                            </div>
+                        </div>
+                    )) : (
+                        <div style={{ textAlign: 'center', padding: 64, border: '1px dashed #e5e5e5', borderRadius: 20 }}>
+                            <p style={{ color: '#737373' }}>No notifications found.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Flash Sale Modal */}
+            {flashSaleModal.open && (
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '100%', maxWidth: 450, position: 'relative' }}>
+                        <button onClick={() => setFlashSaleModal({ ...flashSaleModal, open: false })} style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', cursor: 'pointer' }}><FiX size={24} /></button>
+                        <h2 style={{ fontFamily: "'Integral CF',sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 8 }}>NOMINATE FOR FLASH SALE</h2>
+                        <p style={{ fontSize: 14, color: '#737373', marginBottom: 24 }}>System: {flashSaleModal.product?.title}</p>
+
+                        <form onSubmit={handleNominateFlashSale} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Select Flash Sale Event</label>
+                                <select value={flashSaleModal.flashSaleId} onChange={e => setFlashSaleModal({ ...flashSaleModal, flashSaleId: e.target.value })} required style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #e5e5e5', outline: 'none' }}>
+                                    {activeFlashSales.length > 0 ? activeFlashSales.map(fs => (
+                                        <option key={fs._id} value={fs._id}>{fs.title} {fs.isPermanent ? '(Permanent)' : ''}</option>
+                                    )) : <option value="">No Active Flash Sales Available</option>}
+                                </select>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div>
+                                    <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Flash Price ($)</label>
+                                    <input type="number" value={flashSaleModal.flashPrice} onChange={e => setFlashSaleModal({ ...flashSaleModal, flashPrice: e.target.value })} required min="1" step="0.01" style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #e5e5e5', outline: 'none' }} />
+                                    <p style={{ fontSize: 11, marginTop: 4, color: '#737373' }}>Original: ${flashSaleModal.product?.price}</p>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Max Quantity</label>
+                                    <input type="number" value={flashSaleModal.maxQuantity} onChange={e => setFlashSaleModal({ ...flashSaleModal, maxQuantity: e.target.value })} required min="1" style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #e5e5e5', outline: 'none' }} />
+                                </div>
+                            </div>
+                            <button type="submit" className="btn-primary" disabled={!flashSaleModal.flashSaleId} style={{ width: '100%', padding: '14px', borderRadius: 12, marginTop: 8 }}>Add to Flash Sale</button>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

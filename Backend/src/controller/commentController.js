@@ -89,6 +89,18 @@ class CommentController {
             isSellerReply,
         });
 
+        // NOTIFICATION: Trigger notification for the seller if they are not the one commenting
+        if (!isSellerReply) {
+            const Notification = require('../Modal/Notification');
+            await Notification.create({
+                recipient: product.seller.user, // Assuming seller model has a 'user' field that is the ObjectId of the User
+                type: 'COMMENT',
+                title: 'New Comment on Your Product',
+                message: `${req.user.fullName} commented on your product: "${product.title}"`,
+                link: `/product/${product._id}?tab=qa&commentId=${comment._id}`,
+            });
+        }
+
         const populated = await ProductComment.findById(comment._id)
             .populate('user', 'fullName avatar role');
 

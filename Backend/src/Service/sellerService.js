@@ -299,6 +299,12 @@ class SellerService {
             createdAt: { $gte: oneDayAgo },
         });
 
+        // ─── Total Product Views ────────────────
+        const totalProductViews = await Product.aggregate([
+            { $match: { seller: sellerId } },
+            { $group: { _id: null, total: { $sum: '$views' } } },
+        ]);
+
         return {
             storeName: seller.storeName,
             accountStatus: seller.accountStatus,
@@ -309,6 +315,8 @@ class SellerService {
             rating: seller.rating,
             totalReviews: seller.totalReviews,
             newOrdersToday,
+            storeViews: seller.storeViews || 0,
+            productViews: totalProductViews[0]?.total || 0,
             charts: {
                 monthlyEarnings,
                 dailyOrders,

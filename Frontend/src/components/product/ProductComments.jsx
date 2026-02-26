@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { FiMessageSquare, FiSend, FiCornerDownRight, FiTrash2, FiEdit3, FiCheck, FiX } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { commentAPI } from '../../api';
 import toast from 'react-hot-toast';
 
-export default function ProductComments({ productId, sellerId }) {
+export default function ProductComments({ productId, sellerId, highlightCommentId }) {
     const { user } = useAuth();
     const [comments, setComments] = useState([]);
     const [newMessage, setNewMessage] = useState('');
@@ -16,6 +16,8 @@ export default function ProductComments({ productId, sellerId }) {
     const [submitting, setSubmitting] = useState(false);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [highlightedId, setHighlightedId] = useState(highlightCommentId || null);
+    const scrolledRef = useRef(false);
 
     useEffect(() => {
         fetchComments();
@@ -29,6 +31,23 @@ export default function ProductComments({ productId, sellerId }) {
         } catch { setComments([]); }
         finally { setLoading(false); }
     };
+
+    // Scroll to highlighted comment after comments are loaded
+    useEffect(() => {
+        if (!loading && highlightCommentId && !scrolledRef.current && comments.length > 0) {
+            scrolledRef.current = true;
+            // Small delay to let the DOM render
+            setTimeout(() => {
+                const el = document.getElementById(`comment-${highlightCommentId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setHighlightedId(highlightCommentId);
+                    // Remove highlight after animation
+                    setTimeout(() => setHighlightedId(null), 3000);
+                }
+            }, 300);
+        }
+    }, [loading, comments, highlightCommentId]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -172,170 +191,183 @@ export default function ProductComments({ productId, sellerId }) {
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {comments.map(comment => (
-                        <div key={comment._id} style={{
-                            border: '1px solid #f0f0f0', borderRadius: '16px',
-                            overflow: 'hidden',
-                        }}>
-                            {/* Parent comment */}
-                            <div style={{ padding: '16px 20px' }}>
-                                <div style={{
-                                    display: 'flex', justifyContent: 'space-between',
-                                    alignItems: 'flex-start', marginBottom: '8px',
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={{
-                                            width: '32px', height: '32px', borderRadius: '50%',
-                                            backgroundColor: comment.isSellerReply ? '#000' : '#f0f0f0',
-                                            color: comment.isSellerReply ? '#fff' : '#000',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: '13px', fontWeight: 700, flexShrink: 0,
-                                        }}>
-                                            {comment.user?.fullName?.charAt(0) || '?'}
-                                        </div>
-                                        <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <span style={{ fontWeight: 600, fontSize: '13px' }}>
-                                                    {comment.user?.fullName || 'Anonymous'}
-                                                </span>
-                                                {comment.isSellerReply && (
-                                                    <span style={{
-                                                        background: '#000', color: '#fff',
-                                                        padding: '2px 8px', borderRadius: '9999px',
-                                                        fontSize: '10px', fontWeight: 600,
-                                                    }}>
-                                                        SELLER
-                                                    </span>
-                                                )}
-                                                {comment.isEdited && (
-                                                    <span style={{ color: '#a3a3a3', fontSize: '11px' }}>(edited)</span>
-                                                )}
+                    {comments.map(comment => {
+                        const isHighlighted = highlightedId === comment._id;
+                        const isReplyHighlighted = comment.replies?.some(r => r._id === highlightedId);
+                        return (
+                            <div key={comment._id} id={`comment-${comment._id}`} style={{
+                                border: isHighlighted ? '2px solid #3b82f6' : '1px solid #f0f0f0',
+                                borderRadius: '16px',
+                                overflow: 'hidden',
+                                transition: 'all 0.5s ease',
+                                boxShadow: isHighlighted ? '0 0 0 4px rgba(59,130,246,0.15)' : 'none',
+                                animation: isHighlighted ? 'commentHighlight 2s ease-in-out' : 'none',
+                            }}>
+                                {/* Parent comment */}
+                                <div style={{ padding: '16px 20px' }}>
+                                    <div style={{
+                                        display: 'flex', justifyContent: 'space-between',
+                                        alignItems: 'flex-start', marginBottom: '8px',
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{
+                                                width: '32px', height: '32px', borderRadius: '50%',
+                                                backgroundColor: comment.isSellerReply ? '#000' : '#f0f0f0',
+                                                color: comment.isSellerReply ? '#fff' : '#000',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: '13px', fontWeight: 700, flexShrink: 0,
+                                            }}>
+                                                {comment.user?.fullName?.charAt(0) || '?'}
                                             </div>
-                                            <span style={{ color: '#a3a3a3', fontSize: '11px' }}>{timeAgo(comment.createdAt)}</span>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ fontWeight: 600, fontSize: '13px' }}>
+                                                        {comment.user?.fullName || 'Anonymous'}
+                                                    </span>
+                                                    {comment.isSellerReply && (
+                                                        <span style={{
+                                                            background: '#000', color: '#fff',
+                                                            padding: '2px 8px', borderRadius: '9999px',
+                                                            fontSize: '10px', fontWeight: 600,
+                                                        }}>
+                                                            SELLER
+                                                        </span>
+                                                    )}
+                                                    {comment.isEdited && (
+                                                        <span style={{ color: '#a3a3a3', fontSize: '11px' }}>(edited)</span>
+                                                    )}
+                                                </div>
+                                                <span style={{ color: '#a3a3a3', fontSize: '11px' }}>{timeAgo(comment.createdAt)}</span>
+                                            </div>
                                         </div>
+                                        {/* Actions */}
+                                        {user && (user._id === comment.user?._id || user.role === 'ADMIN') && (
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                <button onClick={() => { setEditingId(comment._id); setEditMessage(comment.message); }}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a3a3a3', padding: '4px' }}>
+                                                    <FiEdit3 size={14} />
+                                                </button>
+                                                <button onClick={() => handleDelete(comment._id)}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}>
+                                                    <FiTrash2 size={14} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                    {/* Actions */}
-                                    {user && (user._id === comment.user?._id || user.role === 'ADMIN') && (
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            <button onClick={() => { setEditingId(comment._id); setEditMessage(comment.message); }}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a3a3a3', padding: '4px' }}>
-                                                <FiEdit3 size={14} />
+
+                                    {/* Edit mode */}
+                                    {editingId === comment._id ? (
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <input value={editMessage} onChange={(e) => setEditMessage(e.target.value)}
+                                                style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #e5e5e5', fontSize: '13px', outline: 'none' }} />
+                                            <button onClick={() => handleEdit(comment._id)}
+                                                style={{ background: '#000', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
+                                                <FiCheck size={14} />
                                             </button>
-                                            <button onClick={() => handleDelete(comment._id)}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}>
-                                                <FiTrash2 size={14} />
+                                            <button onClick={() => { setEditingId(null); setEditMessage(''); }}
+                                                style={{ background: '#f5f5f5', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
+                                                <FiX size={14} />
                                             </button>
                                         </div>
+                                    ) : (
+                                        <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6 }}>{comment.message}</p>
+                                    )}
+
+                                    {/* Reply button */}
+                                    {user && editingId !== comment._id && (
+                                        <button onClick={() => setReplyTo(replyTo === comment._id ? null : comment._id)}
+                                            style={{
+                                                background: 'none', border: 'none', cursor: 'pointer',
+                                                color: '#737373', fontSize: '12px', marginTop: '8px',
+                                                display: 'flex', alignItems: 'center', gap: '4px',
+                                                fontWeight: 500,
+                                            }}>
+                                            <FiCornerDownRight size={12} /> Reply
+                                        </button>
                                     )}
                                 </div>
 
-                                {/* Edit mode */}
-                                {editingId === comment._id ? (
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <input value={editMessage} onChange={(e) => setEditMessage(e.target.value)}
-                                            style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #e5e5e5', fontSize: '13px', outline: 'none' }} />
-                                        <button onClick={() => handleEdit(comment._id)}
-                                            style={{ background: '#000', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
-                                            <FiCheck size={14} />
-                                        </button>
-                                        <button onClick={() => { setEditingId(null); setEditMessage(''); }}
-                                            style={{ background: '#f5f5f5', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
-                                            <FiX size={14} />
+                                {/* Replies */}
+                                {comment.replies?.length > 0 && (
+                                    <div style={{ borderTop: '1px solid #f0f0f0', background: '#fafafa' }}>
+                                        {comment.replies.map(reply => {
+                                            const isReplyHL = highlightedId === reply._id;
+                                            return (
+                                                <div key={reply._id} id={`comment-${reply._id}`} style={{
+                                                    padding: '12px 20px 12px 52px',
+                                                    borderBottom: '1px solid #f0f0f0',
+                                                    backgroundColor: isReplyHL ? 'rgba(59,130,246,0.08)' : 'transparent',
+                                                    transition: 'background-color 0.5s ease',
+                                                }}>
+                                                    <div style={{
+                                                        display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px',
+                                                    }}>
+                                                        <div style={{
+                                                            width: '24px', height: '24px', borderRadius: '50%',
+                                                            backgroundColor: reply.isSellerReply ? '#000' : '#e5e5e5',
+                                                            color: reply.isSellerReply ? '#fff' : '#000',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: '10px', fontWeight: 700, flexShrink: 0,
+                                                        }}>
+                                                            {reply.user?.fullName?.charAt(0) || '?'}
+                                                        </div>
+                                                        <span style={{ fontWeight: 600, fontSize: '12px' }}>
+                                                            {reply.user?.fullName || 'Anonymous'}
+                                                        </span>
+                                                        {reply.isSellerReply && (
+                                                            <span style={{
+                                                                background: '#000', color: '#fff',
+                                                                padding: '1px 6px', borderRadius: '9999px',
+                                                                fontSize: '9px', fontWeight: 700,
+                                                            }}>
+                                                                SELLER
+                                                            </span>
+                                                        )}
+                                                        <span style={{ color: '#a3a3a3', fontSize: '11px' }}>{timeAgo(reply.createdAt)}</span>
+                                                    </div>
+                                                    <p style={{ fontSize: '13px', color: '#525252', lineHeight: 1.5, paddingLeft: '32px' }}>
+                                                        {reply.message}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Reply form */}
+                                {replyTo === comment._id && (
+                                    <div style={{
+                                        padding: '12px 20px', borderTop: '1px solid #f0f0f0',
+                                        background: '#fafafa', display: 'flex', gap: '8px',
+                                    }}>
+                                        <input
+                                            value={replyMessage}
+                                            onChange={(e) => setReplyMessage(e.target.value)}
+                                            placeholder="Write a reply..."
+                                            autoFocus
+                                            style={{
+                                                flex: 1, padding: '10px 14px', borderRadius: '10px',
+                                                border: '1px solid #e5e5e5', fontSize: '13px', outline: 'none',
+                                            }}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleReply(comment._id); }}
+                                        />
+                                        <button
+                                            onClick={() => handleReply(comment._id)}
+                                            disabled={submitting || !replyMessage.trim()}
+                                            style={{
+                                                padding: '10px 18px', borderRadius: '10px',
+                                                background: '#000', color: '#fff', border: 'none',
+                                                cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                                                opacity: submitting || !replyMessage.trim() ? 0.5 : 1,
+                                            }}
+                                        >
+                                            Reply
                                         </button>
                                     </div>
-                                ) : (
-                                    <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6 }}>{comment.message}</p>
-                                )}
-
-                                {/* Reply button */}
-                                {user && editingId !== comment._id && (
-                                    <button onClick={() => setReplyTo(replyTo === comment._id ? null : comment._id)}
-                                        style={{
-                                            background: 'none', border: 'none', cursor: 'pointer',
-                                            color: '#737373', fontSize: '12px', marginTop: '8px',
-                                            display: 'flex', alignItems: 'center', gap: '4px',
-                                            fontWeight: 500,
-                                        }}>
-                                        <FiCornerDownRight size={12} /> Reply
-                                    </button>
                                 )}
                             </div>
-
-                            {/* Replies */}
-                            {comment.replies?.length > 0 && (
-                                <div style={{ borderTop: '1px solid #f0f0f0', background: '#fafafa' }}>
-                                    {comment.replies.map(reply => (
-                                        <div key={reply._id} style={{
-                                            padding: '12px 20px 12px 52px',
-                                            borderBottom: '1px solid #f0f0f0',
-                                        }}>
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px',
-                                            }}>
-                                                <div style={{
-                                                    width: '24px', height: '24px', borderRadius: '50%',
-                                                    backgroundColor: reply.isSellerReply ? '#000' : '#e5e5e5',
-                                                    color: reply.isSellerReply ? '#fff' : '#000',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: '10px', fontWeight: 700, flexShrink: 0,
-                                                }}>
-                                                    {reply.user?.fullName?.charAt(0) || '?'}
-                                                </div>
-                                                <span style={{ fontWeight: 600, fontSize: '12px' }}>
-                                                    {reply.user?.fullName || 'Anonymous'}
-                                                </span>
-                                                {reply.isSellerReply && (
-                                                    <span style={{
-                                                        background: '#000', color: '#fff',
-                                                        padding: '1px 6px', borderRadius: '9999px',
-                                                        fontSize: '9px', fontWeight: 700,
-                                                    }}>
-                                                        SELLER
-                                                    </span>
-                                                )}
-                                                <span style={{ color: '#a3a3a3', fontSize: '11px' }}>{timeAgo(reply.createdAt)}</span>
-                                            </div>
-                                            <p style={{ fontSize: '13px', color: '#525252', lineHeight: 1.5, paddingLeft: '32px' }}>
-                                                {reply.message}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Reply form */}
-                            {replyTo === comment._id && (
-                                <div style={{
-                                    padding: '12px 20px', borderTop: '1px solid #f0f0f0',
-                                    background: '#fafafa', display: 'flex', gap: '8px',
-                                }}>
-                                    <input
-                                        value={replyMessage}
-                                        onChange={(e) => setReplyMessage(e.target.value)}
-                                        placeholder="Write a reply..."
-                                        autoFocus
-                                        style={{
-                                            flex: 1, padding: '10px 14px', borderRadius: '10px',
-                                            border: '1px solid #e5e5e5', fontSize: '13px', outline: 'none',
-                                        }}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') handleReply(comment._id); }}
-                                    />
-                                    <button
-                                        onClick={() => handleReply(comment._id)}
-                                        disabled={submitting || !replyMessage.trim()}
-                                        style={{
-                                            padding: '10px 18px', borderRadius: '10px',
-                                            background: '#000', color: '#fff', border: 'none',
-                                            cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                                            opacity: submitting || !replyMessage.trim() ? 0.5 : 1,
-                                        }}
-                                    >
-                                        Reply
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
 
                     {/* Pagination */}
                     {totalPages > 1 && (

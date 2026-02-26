@@ -110,9 +110,20 @@ export default function Navbar() {
     };
 
     const handleLogout = async () => {
-        await logout();
-        setUserDropdown(false);
-        navigate('/');
+        const loadingToast = toast.loading('Logging out...');
+        try {
+            await logout();
+            setUserDropdown(false);
+            // Small delay for smooth transition
+            setTimeout(() => {
+                toast.dismiss(loadingToast);
+                toast.success('Logged out successfully');
+                navigate('/');
+            }, 600);
+        } catch (err) {
+            toast.dismiss(loadingToast);
+            toast.error('Logout failed. Please try again.');
+        }
     };
 
     const handleVisualSearch = async (e) => {
