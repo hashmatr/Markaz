@@ -27,6 +27,7 @@ const stylistRoutes = require('./routes/stylistRoutes');
 const proxyRoutes = require('./routes/proxyRoutes');
 const flashSaleRoutes = require('./routes/flashSaleRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const { CACHE_KEYS, TTL, getCache, setCache } = require('./Service/cacheService');
 
 const app = express();
@@ -110,6 +111,7 @@ app.use('/api/stylist', stylistRoutes);
 app.use('/api/proxy', proxyRoutes);
 app.use('/api/flash-sales', flashSaleRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // ─── Public Categories Route (Redis Cached) ─────────────────
 const Category = require('./Modal/Category');

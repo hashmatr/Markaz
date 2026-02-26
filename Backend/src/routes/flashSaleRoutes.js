@@ -12,4 +12,7 @@ router.get('/upcoming', flashSaleController.getUpcomingFlashSales);
 router.post('/', authenticate, authorize('ADMIN'), flashSaleController.createFlashSale);
 router.delete('/:id', authenticate, authorize('ADMIN'), flashSaleController.deleteFlashSale);
 
+// Seller routes
+router.post('/add-product', authenticate, authorize('SELLER'), flashSaleController.addProductToFlashSale);
+
 module.exports = router;

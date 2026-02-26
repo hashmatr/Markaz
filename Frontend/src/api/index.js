@@ -173,6 +173,15 @@ export const flashSaleAPI = {
     getUpcoming: () => API.get('/flash-sales/upcoming'),
     create: (data) => API.post('/flash-sales', data),
     delete: (id) => API.delete(`/flash-sales/${id}`),
+    addProduct: (data) => API.post('/flash-sales/add-product', data), // Seller: nominate product
+};
+
+// Notification API
+export const notificationAPI = {
+    getAll: (params) => API.get('/notifications', { params }),
+    markAsRead: (id) => API.put(`/notifications/${id}/read`),
+    markAllAsRead: () => API.put('/notifications/read-all'),
+    delete: (id) => API.delete(`/notifications/${id}`),
 };
 
 // Product Comments (Buyer-Seller Chat) API

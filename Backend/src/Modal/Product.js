@@ -120,6 +120,10 @@ const productSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        views: {
+            type: Number,
+            default: 0,
+        },
         tags: [String],
     },
     { timestamps: true }

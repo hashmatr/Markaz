@@ -104,13 +104,41 @@ class ProductService {
         // ────────────────────────────────────────────────
         const filter = { isActive: true };
 
-        // Search
-        if (search) {
+        // Search Intelligence: Check if search term is a category
+        if (search && !category) {
+            const matchedCategory = await Category.findOne({
+                $or: [
+                    { name: { $regex: new RegExp(`^${search}$`, 'i') } },
+                    { slug: search.toLowerCase() }
+                ]
+            });
+            if (matchedCategory) {
+                // If search matches a category, use it as a category filter instead
+                query.category = matchedCategory._id.toString();
+                // We keep search null so we don't do $text search which might be too restrictive
+            } else {
+                filter.$text = { $search: search };
+            }
+        } else if (search) {
             filter.$text = { $search: search };
         }
 
-        // Filters
-        if (category) filter.category = category;
+        // Recursive Category Filter (include children)
+        if (query.category) {
+            const categoryIds = [query.category];
+            const subCategories = await Category.find({ parentCategory: query.category });
+            if (subCategories.length > 0) {
+                categoryIds.push(...subCategories.map(c => c._id));
+
+                // One more level for deeper nests if needed
+                const subSubCategories = await Category.find({ parentCategory: { $in: subCategories.map(c => c._id) } });
+                if (subSubCategories.length > 0) {
+                    categoryIds.push(...subSubCategories.map(c => c._id));
+                }
+            }
+            filter.category = { $in: categoryIds };
+        }
+
         if (seller) {
             if (mongoose.Types.ObjectId.isValid(seller)) {
                 filter.seller = seller;
@@ -133,6 +161,23 @@ class ProductService {
             filter.discountedPrice = {};
             if (minPrice) filter.discountedPrice.$gte = parseFloat(minPrice);
             if (maxPrice) filter.discountedPrice.$lte = parseFloat(maxPrice);
+        }
+
+        // Flash Sale Filter
+        if (query.flashSale === 'true') {
+            const FlashSale = require('../Modal/FlashSale');
+            const now = new Date();
+            const activeSales = await FlashSale.find({
+                isActive: true,
+                $or: [
+                    { startTime: { $lte: now }, endTime: { $gte: now } },
+                    { isPermanent: true }
+                ]
+            });
+            const flashProductIds = activeSales.reduce((acc, sale) => {
+                return [...acc, ...sale.products.map(p => p.product)];
+            }, []);
+            filter._id = { $in: flashProductIds };
         }
 
         // Sort options
@@ -274,13 +319,60 @@ class ProductService {
      * Get single product by ID
      */
     async getProductById(productId) {
-        const product = await Product.findById(productId)
-            .populate('category', 'name slug')
-            .populate('seller', 'storeName storeSlug storeLogo rating businessPhone');
+        let product;
+
+        // Try by ObjectId first, fallback to slug
+        if (mongoose.Types.ObjectId.isValid(productId)) {
+            product = await Product.findById(productId)
+                .populate('category', 'name slug')
+                .populate('seller', 'storeName storeSlug storeLogo rating businessPhone');
+        }
+
+        // If not found by ID, try by slug
+        if (!product) {
+            product = await Product.findOne({ slug: productId })
+                .populate('category', 'name slug')
+                .populate('seller', 'storeName storeSlug storeLogo rating businessPhone');
+        }
 
         if (!product) {
             throw Object.assign(new Error('Product not found'), { status: 404 });
         }
+
+        // Apply flash sale prices dynamically if active
+        const FlashSale = require('../Modal/FlashSale');
+        const now = new Date();
+        const activeFlashSale = await FlashSale.findOne({
+            isActive: true,
+            'products.product': product._id,
+            $or: [
+                { startTime: { $lte: now }, endTime: { $gte: now } },
+                { isPermanent: true }
+            ]
+        });
+
+        if (activeFlashSale) {
+            const flashInfo = activeFlashSale.products.find(p => p.product.toString() === product._id.toString());
+            if (flashInfo) {
+                product.discountedPrice = flashInfo.flashPrice;
+                product.discountPercent = flashInfo.flashDiscountPercent;
+                product.isFlashSale = true;
+            }
+        }
+
+        if (product) {
+            // Increment views in a background-like way
+            product.views = (product.views || 0) + 1;
+            product.save().catch(err => console.error('View increment failed:', err));
+
+            // Also increment seller store views
+            if (product.seller) {
+                const Seller = require('../Modal/seller');
+                Seller.findByIdAndUpdate(product.seller._id || product.seller, { $inc: { storeViews: 1 } })
+                    .catch(err => console.error('Seller view increment failed:', err));
+            }
+        }
+
         return product;
     }
 
@@ -455,7 +547,21 @@ class ProductService {
      */
     async getProductsByCategory(categoryId, query = {}) {
         const { page = 1, limit = 12, sort } = query;
-        const filter = { category: categoryId, isActive: true };
+
+        // Recursive Category Filter (include children)
+        const categoryIds = [categoryId];
+        const subCategories = await Category.find({ parentCategory: categoryId });
+        if (subCategories.length > 0) {
+            categoryIds.push(...subCategories.map(c => c._id));
+
+            // One more level for deeper nests
+            const subSubCategories = await Category.find({ parentCategory: { $in: subCategories.map(c => c._id) } });
+            if (subSubCategories.length > 0) {
+                categoryIds.push(...subSubCategories.map(c => c._id));
+            }
+        }
+
+        const filter = { category: { $in: categoryIds }, isActive: true };
 
         let sortOption = { createdAt: -1 };
         if (sort === 'price_asc') sortOption = { discountedPrice: 1 };

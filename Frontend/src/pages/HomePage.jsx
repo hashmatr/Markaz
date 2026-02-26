@@ -3,9 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FiArrowRight, FiArrowLeft, FiZap, FiUsers, FiBarChart2, FiHeart, FiChevronRight, FiChevronLeft, FiPause, FiPlay } from 'react-icons/fi';
 import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 import ProductCard from '../components/product/ProductCard';
+import FlashSalesProducts from '../components/product/FlashSalesProducts';
 import FlashSalesBanner from '../components/ui/FlashSalesBanner';
 import { useAuth } from '../context/AuthContext';
 import { productAPI, categoryAPI, flashSaleAPI } from '../api';
+import gsap from 'gsap';
+import { motion, AnimatePresence } from 'framer-motion';
+import ParallaxSection from '../components/animation/ParallaxSection';
 
 /* ════════════════════════════════════════════
    HERO SLIDES — eBay-style promotional carousel
@@ -83,9 +87,6 @@ const heroSlides = [
     },
 ];
 
-/* ════════════════════════════════════════════
-   TRENDING CATEGORIES — circular icons
-   ════════════════════════════════════════════ */
 const trendingCategories = [
     { name: 'Electronics', img: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop', search: 'electronics' },
     { name: 'Motors', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=200&fit=crop', search: 'motors' },
@@ -101,9 +102,6 @@ const trendingCategories = [
     { name: 'Musical Instruments', img: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=200&h=200&fit=crop', search: 'instruments' },
 ];
 
-/* ════════════════════════════════════════════
-   TECH CATEGORIES — "The future in your hands"
-   ════════════════════════════════════════════ */
 const techCategories = [
     { name: 'Laptops', img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&fit=crop', search: 'laptops' },
     { name: 'Computer Parts', img: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=200&h=200&fit=crop', search: 'computer parts' },
@@ -119,9 +117,6 @@ const techCategories = [
     { name: 'Monitors', img: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200&h=200&fit=crop', search: 'monitors' },
 ];
 
-/* ════════════════════════════════════════════
-   BROWSE BY CATEGORY GRID — large cards
-   ════════════════════════════════════════════ */
 const browseCategories = [
     { name: 'Electronics', desc: 'Gadgets & devices', img: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=600&h=400&fit=crop', search: 'electronics', span: 2 },
     { name: 'Fashion', desc: 'Clothing & accessories', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=400&fit=crop', search: 'fashion', span: 1 },
@@ -129,9 +124,6 @@ const browseCategories = [
     { name: 'Sports', desc: 'Equipment & gear', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=600&h=400&fit=crop', search: 'sports', span: 2 },
 ];
 
-/* ════════════════════════════════════════════
-   CUSTOMER REVIEWS
-   ════════════════════════════════════════════ */
 const reviews = [
     { name: 'Ahmed R.', rating: 5, text: '"Markaz has become my go-to marketplace. I\'ve bought electronics, home items, and fashion — all at great prices with fast delivery!"', verified: true },
     { name: 'Fatima K.', rating: 5, text: '"The variety is incredible! I found everything from a new laptop to kitchen appliances. The seller verification gives me confidence."', verified: true },
@@ -142,20 +134,47 @@ const reviews = [
 export default function HomePage() {
     const { user } = useAuth();
     const navigate = useNavigate();
+
+    // Refs for animations
+    const heroRef = useRef(null);
+    const titleRef = useRef(null);
+    const subtitleRef = useRef(null);
+    const ctaRef = useRef(null);
+    const trendingScrollRef = useRef(null);
+
+    // Page state
     const [newArrivals, setNewArrivals] = useState([]);
     const [trendingProducts, setTrendingProducts] = useState([]);
     const [dealsProducts, setDealsProducts] = useState([]);
     const [flashSales, setFlashSales] = useState([]);
-
-    // Hero carousel state
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isPlaying, setIsPlaying] = useState(true);
     const slideTimerRef = useRef(null);
 
-    // Trending products scroll
-    const trendingScrollRef = useRef(null);
+    // GSAP animation for slide changes
+    useEffect(() => {
+        if (!heroRef.current) return;
 
-    // Fetch products
+        const tl = gsap.timeline();
+
+        // Reset and animate
+        tl.fromTo(titleRef.current,
+            { y: 40, opacity: 0 },
+            { y: 0, opacity: 1, duration: 1, ease: "power4.out" }
+        )
+            .fromTo(subtitleRef.current,
+                { y: 20, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.8, ease: "power4.out" },
+                "-=0.7"
+            )
+            .fromTo(ctaRef.current,
+                { scale: 0.9, opacity: 0 },
+                { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.7)" },
+                "-=0.5"
+            );
+    }, [currentSlide]);
+
+    // Data fetching
     useEffect(() => {
         const fetchProducts = async () => {
             try {
@@ -164,20 +183,19 @@ export default function HomePage() {
                     productAPI.getAll({ sort: 'popular', limit: 8 }),
                     productAPI.getAll({ sort: 'price_asc', limit: 8 }),
                 ]);
-                if (newRes.data.data.products.length >= 0) setNewArrivals(newRes.data.data.products);
-                if (topRes.data.data.products.length >= 0) setTrendingProducts(topRes.data.data.products);
-                if (dealsRes.data.data.products.length >= 0) setDealsProducts(dealsRes.data.data.products);
-            } catch { }
+                if (newRes.data.data.products) setNewArrivals(newRes.data.data.products);
+                if (topRes.data.data.products) setTrendingProducts(topRes.data.data.products);
+                if (dealsRes.data.data.products) setDealsProducts(dealsRes.data.data.products);
+            } catch (err) { console.error("Error fetching products:", err); }
         };
         fetchProducts();
 
-        // Fetch active flash sales
         flashSaleAPI.getActive()
             .then(res => setFlashSales(res.data.data.flashSales || []))
-            .catch(() => { });
+            .catch(err => console.error("Error fetching flash sales:", err));
     }, []);
 
-    // Hero auto-rotation
+    // Carousel logic
     const nextSlide = useCallback(() => {
         setCurrentSlide(prev => (prev + 1) % heroSlides.length);
     }, []);
@@ -205,73 +223,93 @@ export default function HomePage() {
         <div style={{ background: '#fff' }}>
 
             {/* ═══════════════════ HERO CAROUSEL ═══════════════════ */}
-            <section className="hero-carousel" style={{ backgroundColor: currentHero.bg, transition: 'background-color 0.6s ease' }}>
+            <section ref={heroRef} className="hero-carousel" style={{ backgroundColor: currentHero.bg, transition: 'background-color 0.8s cubic-bezier(0.22, 1, 0.36, 1)', position: 'relative', overflow: 'hidden' }}>
                 <div className="container-main" style={{ padding: '0 20px' }}>
                     <div style={{
                         display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-                        minHeight: '320px', padding: '40px 0', gap: '32px',
+                        minHeight: '440px', padding: '60px 0', gap: '32px',
                     }}>
                         {/* Text side */}
-                        <div style={{ flex: '1 1 300px', minWidth: '280px' }}>
-                            <h1 style={{
+                        <div style={{ flex: '1 1 300px', minWidth: '280px', zIndex: 2 }}>
+                            <h1 ref={titleRef} style={{
                                 fontFamily: "'Satoshi', sans-serif",
-                                fontSize: 'clamp(24px, 4vw, 36px)',
-                                fontWeight: 700,
-                                lineHeight: 1.2,
-                                marginBottom: '12px',
+                                fontSize: 'clamp(32px, 5vw, 56px)',
+                                fontWeight: 800,
+                                lineHeight: 1.1,
+                                marginBottom: '20px',
                                 color: currentHero.textColor,
-                                transition: 'color 0.6s ease',
                             }}>
                                 {currentHero.title}
                             </h1>
-                            <p style={{
-                                color: currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.7)' : '#737373',
-                                fontSize: '15px', lineHeight: 1.7, marginBottom: '24px', maxWidth: '400px',
-                                transition: 'color 0.6s ease',
+                            <p ref={subtitleRef} style={{
+                                color: currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.75)' : '#4a4a4a',
+                                fontSize: '18px', lineHeight: 1.6, marginBottom: '32px', maxWidth: '450px',
                             }}>
                                 {currentHero.subtitle}
                             </p>
-                            <Link to={currentHero.ctaLink} style={{
+                            <Link ref={ctaRef} to={currentHero.ctaLink} style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '8px',
-                                padding: '14px 32px', borderRadius: '9999px',
+                                padding: '16px 40px', borderRadius: '9999px',
                                 backgroundColor: currentHero.textColor === '#fff' ? '#fff' : '#000',
                                 color: currentHero.textColor === '#fff' ? '#000' : '#fff',
-                                fontSize: '14px', fontWeight: 600, transition: 'all 0.3s',
-                            }}>
-                                {currentHero.cta}
+                                fontSize: '15px', fontWeight: 700, transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                                textDecoration: 'none'
+                            }}
+                                className="hover:scale-105 active:scale-95">
+                                {currentHero.cta} <FiArrowRight />
                             </Link>
                         </div>
 
                         {/* Product cards side */}
                         <div style={{
-                            flex: '1 1 400px', display: 'flex', gap: '24px',
+                            flex: '1 1 400px', display: 'flex', gap: '32px',
                             justifyContent: 'center', flexWrap: 'wrap',
                         }}>
-                            {currentHero.cards.map((card, i) => (
-                                <Link key={i} to={`/shop?search=${card.label.toLowerCase()}`}
-                                    className="hero-card-hover"
-                                    style={{
-                                        textAlign: 'center', cursor: 'pointer',
-                                        transition: 'transform 0.3s ease',
-                                    }}>
-                                    <div style={{
-                                        width: '160px', height: '160px', borderRadius: '16px',
-                                        overflow: 'hidden', backgroundColor: currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.1)' : '#fff',
-                                        marginBottom: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                                    }}>
-                                        <img src={card.img} alt={card.label}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            loading="lazy" />
-                                    </div>
-                                    <span style={{
-                                        fontSize: '13px', fontWeight: 600,
-                                        color: currentHero.textColor,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                                    }}>
-                                        {card.label} <FiChevronRight size={14} />
-                                    </span>
-                                </Link>
-                            ))}
+                            <AnimatePresence mode="popLayout">
+                                {currentHero.cards.map((card, idx) => (
+                                    <motion.div
+                                        key={`${currentSlide}-${idx}`}
+                                        initial={{ opacity: 0, scale: 0.8, y: 40 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                                        transition={{
+                                            duration: 0.8,
+                                            delay: idx * 0.1,
+                                            ease: [0.22, 1, 0.36, 1]
+                                        }}
+                                        style={{
+                                            width: '160px', backgroundColor: 'rgba(255,255,255,0.15)',
+                                            backdropFilter: 'blur(10px)',
+                                            borderRadius: '24px', padding: '16px',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                            border: '1px solid rgba(255,255,255,0.2)',
+                                            cursor: 'pointer'
+                                        }}
+                                        whileHover={{ y: -10, backgroundColor: 'rgba(255,255,255,0.25)' }}
+                                    >
+                                        <div style={{
+                                            width: '120px', height: '120px', borderRadius: '18px',
+                                            overflow: 'hidden', marginBottom: '12px',
+                                            boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                                        }}>
+                                            <motion.img
+                                                src={card.img}
+                                                alt={card.label}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                whileHover={{ scale: 1.15 }}
+                                                transition={{ duration: 0.6 }}
+                                            />
+                                        </div>
+                                        <p style={{
+                                            fontSize: '13px', fontWeight: 700,
+                                            color: currentHero.textColor, textAlign: 'center'
+                                        }}>
+                                            {card.label}
+                                        </p>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         </div>
                     </div>
 
@@ -335,8 +373,11 @@ export default function HomePage() {
             {/* ═══════════════════ FLASH SALES COUNTDOWN ═══════════════════ */}
             <FlashSalesBanner flashSales={flashSales} />
 
+            {/* ═══════════════════ FLASH SALES PRODUCTS ═══════════════════ */}
+            <FlashSalesProducts flashSales={flashSales} />
+
             {/* ═══════════════════ TRENDING ON MARKAZ ═══════════════════ */}
-            <section className="section-pad" style={{ paddingBottom: '32px' }}>
+            <section className="section-pad" style={{ paddingTop: '8px', paddingBottom: '32px' }}>
                 <div className="container-main">
                     <h2 style={{
                         fontFamily: "'Satoshi', sans-serif", fontSize: '22px',
@@ -350,7 +391,7 @@ export default function HomePage() {
                     }} className="scrollbar-hide">
                         {trendingCategories.map((cat) => (
                             <Link key={cat.name} to={`/shop?search=${cat.search}`}
-                                style={{ textAlign: 'center', flex: '0 0 auto', cursor: 'pointer' }}
+                                style={{ textAlign: 'center', flex: '0 0 auto', cursor: 'pointer', textDecoration: 'none' }}
                                 className="trending-cat-hover">
                                 <div style={{
                                     width: '120px', height: '120px', borderRadius: '50%',
@@ -368,7 +409,7 @@ export default function HomePage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* ═══════════════════ TRENDING PRODUCTS (Scrollable) ═══════════════════ */}
             {trendingProducts.length > 0 && (
@@ -432,7 +473,7 @@ export default function HomePage() {
                     }} className="scrollbar-hide">
                         {techCategories.map((cat) => (
                             <Link key={cat.name} to={`/shop?search=${cat.search}`}
-                                style={{ textAlign: 'center', flex: '0 0 auto', cursor: 'pointer' }}
+                                style={{ textAlign: 'center', flex: '0 0 auto', cursor: 'pointer', textDecoration: 'none' }}
                                 className="trending-cat-hover">
                                 <div style={{
                                     width: '130px', height: '130px', borderRadius: '50%',
@@ -452,6 +493,31 @@ export default function HomePage() {
                 </div>
             </section>
 
+            {/* ═══════════════════ CINEMATIC PARALLAX SECTION ═══════════════════ */}
+            <ParallaxSection
+                bgImage="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=900&fit=crop"
+                height="50vh"
+            >
+                <h2 style={{
+                    fontFamily: "'Integral CF', sans-serif",
+                    fontSize: 'clamp(32px, 6vw, 64px)',
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    marginBottom: '16px',
+                    textTransform: 'uppercase'
+                }}>
+                    Millions of Products
+                </h2>
+                <p style={{
+                    fontSize: 'clamp(16px, 2vw, 20px)',
+                    fontWeight: 500,
+                    opacity: 0.9,
+                    maxWidth: '600px',
+                    margin: '0 auto'
+                }}>
+                    Everything you need, delivered with premium speed and care across the nation.
+                </p>
+            </ParallaxSection>
 
             {/* ═══════════════════ NEW ARRIVALS ═══════════════════ */}
             <section className="section-pad">
@@ -470,19 +536,42 @@ export default function HomePage() {
                         <Link to="/shop?sort=newest" style={{
                             fontSize: '14px', fontWeight: 600, color: '#000',
                             display: 'flex', alignItems: 'center', gap: '4px',
+                            textDecoration: 'none'
                         }}>
                             See all <FiArrowRight size={16} />
                         </Link>
                     </div>
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                        gap: '20px',
-                    }}>
+                    <motion.div
+                        initial="hidden"
+                        whileInView="show"
+                        viewport={{ once: true, margin: "-100px" }}
+                        variants={{
+                            hidden: { opacity: 0 },
+                            show: {
+                                opacity: 1,
+                                transition: {
+                                    staggerChildren: 0.1
+                                }
+                            }
+                        }}
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                            gap: '20px',
+                        }}
+                    >
                         {newArrivals.slice(0, 8).map((product) => (
-                            <ProductCard key={product._id} product={product} />
+                            <motion.div
+                                key={product._id}
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    show: { opacity: 1, y: 0 }
+                                }}
+                            >
+                                <ProductCard product={product} />
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -505,19 +594,42 @@ export default function HomePage() {
                         <Link to="/shop?sort=popular" style={{
                             fontSize: '14px', fontWeight: 600, color: '#000',
                             display: 'flex', alignItems: 'center', gap: '4px',
+                            textDecoration: 'none'
                         }}>
                             See all <FiArrowRight size={16} />
                         </Link>
                     </div>
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                        gap: '20px',
-                    }}>
+                    <motion.div
+                        initial="hidden"
+                        whileInView="show"
+                        viewport={{ once: true, margin: "-100px" }}
+                        variants={{
+                            hidden: { opacity: 0 },
+                            show: {
+                                opacity: 1,
+                                transition: {
+                                    staggerChildren: 0.1
+                                }
+                            }
+                        }}
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                            gap: '20px',
+                        }}
+                    >
                         {dealsProducts.slice(0, 8).map((product) => (
-                            <ProductCard key={product._id} product={product} />
+                            <motion.div
+                                key={product._id}
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    show: { opacity: 1, y: 0 }
+                                }}
+                            >
+                                <ProductCard product={product} />
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -546,6 +658,7 @@ export default function HomePage() {
                                     style={{
                                         position: 'relative', height: '240px', borderRadius: '20px',
                                         overflow: 'hidden', gridColumn: window.innerWidth > 768 ? `span ${span}` : 'span 1',
+                                        textDecoration: 'none'
                                     }}>
                                     <img src={img} alt={name} style={{
                                         width: '100%', height: '100%', objectFit: 'cover',
@@ -615,7 +728,7 @@ export default function HomePage() {
                                 className="review-card-hover">
                                 <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
                                     {Array.from({ length: review.rating }, (_, j) => (
-                                        <FaStar key={j} className="star-filled" size={20} />
+                                        <FaStar key={j} style={{ color: '#FFC107' }} size={20} />
                                     ))}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>

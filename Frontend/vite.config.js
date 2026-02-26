@@ -9,6 +9,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: {
       port: 5173,
+      strictPort: true,
+      host: 'localhost',
+      hmr: {
+        host: 'localhost',
+        port: 5173,
+        protocol: 'ws',
+      },
       proxy: {
         '/api': {
           target: env.VITE_BACKEND_URL,

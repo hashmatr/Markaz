@@ -122,7 +122,20 @@ export default function ProfilePage() {
                 )}
             </div>
 
-            <button onClick={async () => { await logout(); navigate('/'); }}
+            <button onClick={async () => {
+                const loadingToast = toast.loading('Logging out...');
+                try {
+                    await logout();
+                    setTimeout(() => {
+                        toast.dismiss(loadingToast);
+                        toast.success('Logged out successfully');
+                        navigate('/');
+                    }, 600);
+                } catch (err) {
+                    toast.dismiss(loadingToast);
+                    toast.error('Logout failed');
+                }
+            }}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff3333', fontWeight: 500, fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer' }}>
                 <FiLogOut size={16} /> Sign Out
             </button>

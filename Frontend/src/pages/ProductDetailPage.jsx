@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { FiMinus, FiPlus, FiCheck, FiX } from 'react-icons/fi';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { FiMinus, FiPlus, FiCheck, FiX, FiZap } from 'react-icons/fi';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import StarRating from '../components/ui/StarRating';
 import Breadcrumb from '../components/ui/Breadcrumb';
@@ -17,6 +17,7 @@ export default function ProductDetailPage() {
     const { id } = useParams();
     const { addToCart } = useCart();
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -27,7 +28,14 @@ export default function ProductDetailPage() {
     const [selectedSize, setSelectedSize] = useState('');
     const [selectedOptions, setSelectedOptions] = useState({});
     const [quantity, setQuantity] = useState(1);
-    const [activeTab, setActiveTab] = useState('reviews');
+    const urlTab = searchParams.get('tab');
+    const highlightCommentId = searchParams.get('commentId');
+    // Normalize tab aliases (e.g. old notifications use 'comments' instead of 'qa')
+    const tabAliases = { comments: 'qa' };
+    const normalizedTab = urlTab ? (tabAliases[urlTab] || urlTab) : null;
+    const validTabs = ['details', 'reviews', 'qa', 'faqs'];
+    const initialTab = normalizedTab && validTabs.includes(normalizedTab) ? normalizedTab : 'reviews';
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [loadingCart, setLoadingCart] = useState(false);
     const [showAllReviews, setShowAllReviews] = useState(false);
 
@@ -35,6 +43,13 @@ export default function ProductDetailPage() {
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
     const [submittingReview, setSubmittingReview] = useState(false);
+
+    // Switch to the correct tab when URL params change (e.g. from notification click)
+    useEffect(() => {
+        if (normalizedTab && validTabs.includes(normalizedTab)) {
+            setActiveTab(normalizedTab);
+        }
+    }, [normalizedTab]);
 
     useEffect(() => {
         setSelectedImage(0);
@@ -50,9 +65,17 @@ export default function ProductDetailPage() {
                 const fetchedProduct = r.data.data.product;
                 setProduct(fetchedProduct);
 
+                // Now fetch reviews using the actual product _id (handles cases where id is a slug)
+                reviewAPI.getProductReviews(fetchedProduct._id)
+                    .then(r => {
+                        if (r.data.data.reviews?.length) setReviews(r.data.data.reviews);
+                        else setReviews([]);
+                    })
+                    .catch(() => setReviews([]));
+
                 // Record this view for AI Stylist recommendations
                 if (user?._id) {
-                    stylistAPI.recordView({ productId: id }).catch(() => { });
+                    stylistAPI.recordView({ productId: fetchedProduct._id }).catch(() => { });
                 }
 
                 // Set default size (legacy)
@@ -75,13 +98,6 @@ export default function ProductDetailPage() {
             })
             .catch(() => setProduct(null))
             .finally(() => setLoading(false));
-
-        reviewAPI.getProductReviews(id)
-            .then(r => {
-                if (r.data.data.reviews?.length) setReviews(r.data.data.reviews);
-                else setReviews([]);
-            })
-            .catch(() => setReviews([]));
 
         productAPI.getAll({ limit: 4 })
             .then(r => {
@@ -223,6 +239,18 @@ export default function ProductDetailPage() {
                 <div style={{ flex: '1 1 45%', minWidth: '300px' }}>
                     <h1 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(24px, 3.5vw, 40px)', fontWeight: 700, lineHeight: 1.15, marginBottom: '12px' }}>
                         {product.title}
+                        {product.isFlashSale && (
+                            <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                marginLeft: '12px', verticalAlign: 'middle',
+                                background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
+                                color: '#fff', fontSize: '12px', padding: '4px 12px',
+                                borderRadius: '9999px', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                                letterSpacing: '0.5px'
+                            }}>
+                                <FiZap size={10} /> FLASH SALE
+                            </span>
+                        )}
                     </h1>
                     <div style={{ marginBottom: '12px' }}>
                         <StarRating rating={product.rating || 0} size={20} showText />
@@ -571,9 +599,9 @@ export default function ProductDetailPage() {
                 )}
 
                 {/* Q&A Tab (Buyer-Seller Chat) */}
-                {activeTab === 'qa' && (
+                {activeTab === 'qa' && product && (
                     <div style={{ paddingTop: '32px' }}>
-                        <ProductComments productId={id} sellerId={product?.seller?._id} />
+                        <ProductComments productId={product._id} sellerId={product?.seller?._id} highlightCommentId={highlightCommentId} />
                     </div>
                 )}
 

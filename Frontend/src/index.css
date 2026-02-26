@@ -244,6 +244,20 @@ a {
   }
 }
 
+@keyframes commentHighlight {
+  0% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.15);
+  }
+
+  100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0);
+  }
+}
+
 /* ═══════════ SECTION SPACING ═══════════ */
 .section-pad {
   padding-top: 64px;
