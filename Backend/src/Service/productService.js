@@ -5,6 +5,7 @@ const Category = require('../Modal/Category');
 const { generateUniqueSlug } = require('../utils/slugUtils');
 const cloudinary = require('../Config/cloudinary');
 const { CACHE_KEYS, TTL, getCache, setCache, invalidateProductCaches } = require('./cacheService');
+const pineconeService = require('./pineconeService');
 
 class ProductService {
     /**
@@ -51,6 +52,10 @@ class ProductService {
 
         // Invalidate caches
         await invalidateProductCaches();
+
+        // ── Pinecone: Upsert text + image embeddings (fire-and-forget) ──
+        pineconeService.upsertProduct(product, { categoryName: category.name })
+            .catch(err => console.error('Pinecone sync (create) failed:', err.message));
 
         return product;
     }
@@ -479,6 +484,17 @@ class ProductService {
         // Invalidate caches
         await invalidateProductCaches();
 
+        // ── Pinecone: Re-upsert embeddings if relevant fields changed ──
+        const relevantFieldsChanged = updateData.title || updateData.description ||
+            updateData.category || updateData.images || (files && files.length > 0);
+        if (relevantFieldsChanged && updatedProduct) {
+            const populatedProduct = await Product.findById(productId)
+                .populate('category', 'name').lean();
+            const skipImage = !updateData.images && !(files && files.length > 0);
+            pineconeService.upsertProduct(populatedProduct, { skipImage })
+                .catch(err => console.error('Pinecone sync (update) failed:', err.message));
+        }
+
         return updatedProduct;
     }
 
@@ -530,6 +546,10 @@ class ProductService {
 
         // Invalidate caches
         await invalidateProductCaches();
+
+        // ── Pinecone: Remove vectors from both indexes ──
+        pineconeService.deleteProduct(productId)
+            .catch(err => console.error('Pinecone sync (delete) failed:', err.message));
 
         return { message: 'Product deleted successfully' };
     }

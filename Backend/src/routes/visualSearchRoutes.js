@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { searchByImage, getStatus } = require('../controller/visualSearchController');
+const { searchByImage, searchByText, getStatus } = require('../controller/visualSearchController');
 
 const router = express.Router();
 
@@ -22,7 +22,10 @@ const upload = multer({
 // POST /api/visual-search — Search by image (public)
 router.post('/', upload.single('image'), searchByImage);
 
-// GET /api/visual-search/status — Get status (public)
+// POST /api/visual-search/text — Semantic text search (public)
+router.post('/text', searchByText);
+
+// GET /api/visual-search/status — Get index status (public)
 router.get('/status', getStatus);
 
 module.exports = router;
