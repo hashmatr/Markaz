@@ -10,78 +10,71 @@ const megaMenuCategories = [
     {
         title: 'Electronics',
         links: [
-            { label: 'Smartphones', search: 'smartphones' },
-            { label: 'Laptops', search: 'laptops' },
-            { label: 'Tablets', search: 'tablets' },
-            { label: 'Headphones', search: 'headphones' },
-            { label: 'Cameras', search: 'cameras' },
-            { label: 'Smart Watches', search: 'smart watches' },
+            { label: 'Smartphones', slug: 'smartphones' },
+            { label: 'Laptops', slug: 'laptops' },
+            { label: 'Tablets', slug: 'tablets' },
+            { label: 'Headphones', slug: 'headphones' },
+            { label: 'Digital Cameras', slug: 'digital-cameras' },
+            { label: 'Smart Watches', slug: 'smart-watches' },
         ],
     },
     {
         title: 'Fashion',
         links: [
-            { label: 'Men\'s Clothing', search: 'mens clothing' },
-            { label: 'Women\'s Clothing', search: 'womens clothing' },
-            { label: 'Shoes', search: 'shoes' },
-            { label: 'Accessories', search: 'accessories' },
-            { label: 'Jewelry', search: 'jewelry' },
-            { label: 'Watches', search: 'watches' },
+            { label: "Men's Clothing", slug: 'men-s-clothing' },
+            { label: "Women's Clothing", slug: 'women-s-clothing' },
+            { label: 'Footwear', slug: 'footwear' },
+            { label: 'Accessories', slug: 'accessories' },
+            { label: 'Jewellery', slug: 'jewellery' },
+            { label: 'Watches', slug: 'watches' },
         ],
     },
     {
-        title: 'Home & Garden',
+        title: 'Home & Living',
         links: [
-            { label: 'Furniture', search: 'furniture' },
-            { label: 'Kitchen', search: 'kitchen' },
-            { label: 'Decor', search: 'decor' },
-            { label: 'Bedding', search: 'bedding' },
-            { label: 'Garden Tools', search: 'garden' },
-            { label: 'Lighting', search: 'lighting' },
+            { label: 'Furniture', slug: 'furniture' },
+            { label: 'Kitchen Accessories', slug: 'kitchen-accessories' },
+            { label: 'Home Decoration', slug: 'home-decoration' },
+            { label: 'Groceries', slug: 'groceries' },
         ],
     },
     {
         title: 'Sports & Outdoors',
         links: [
-            { label: 'Exercise Equipment', search: 'exercise' },
-            { label: 'Outdoor Gear', search: 'outdoor' },
-            { label: 'Team Sports', search: 'team sports' },
-            { label: 'Cycling', search: 'cycling' },
-            { label: 'Fitness', search: 'fitness' },
-            { label: 'Camping', search: 'camping' },
+            { label: 'Sports', slug: 'sports' },
+            { label: 'Sports Accessories', slug: 'sports-accessories' },
+            { label: 'Athletic Shoes', slug: 'athletic-shoes' },
         ],
     },
     {
         title: 'Motors',
         links: [
-            { label: 'Car Parts', search: 'car parts' },
-            { label: 'Car Accessories', search: 'car accessories' },
-            { label: 'Motorcycle Parts', search: 'motorcycle' },
-            { label: 'Tools', search: 'automotive tools' },
+            { label: 'Vehicle', slug: 'vehicle' },
+            { label: 'Motorcycle', slug: 'motorcycle' },
         ],
     },
     {
         title: 'More',
         links: [
-            { label: 'Health & Beauty', search: 'health beauty' },
-            { label: 'Toys & Games', search: 'toys games' },
-            { label: 'Books', search: 'books' },
-            { label: 'Collectibles', search: 'collectibles' },
-            { label: 'Pet Supplies', search: 'pet supplies' },
-            { label: 'Musical Instruments', search: 'musical instruments' },
+            { label: 'Beauty', slug: 'beauty' },
+            { label: 'Toys', slug: 'toys' },
+            { label: 'Books', slug: 'books' },
+            { label: 'Gaming', slug: 'gaming' },
+            { label: 'Fragrances', slug: 'fragrances' },
+            { label: 'Anime Merch', slug: 'anime' },
         ],
     },
 ];
 
 const mobileCategories = [
-    { label: 'Electronics', search: 'electronics' },
-    { label: 'Fashion', search: 'fashion' },
-    { label: 'Home & Garden', search: 'home garden' },
-    { label: 'Sports', search: 'sports' },
-    { label: 'Motors', search: 'motors' },
-    { label: 'Health & Beauty', search: 'health beauty' },
-    { label: 'Toys & Games', search: 'toys games' },
-    { label: 'Collectibles', search: 'collectibles' },
+    { label: 'Electronics', slug: 'electronics' },
+    { label: 'Fashion', slug: 'fashion' },
+    { label: 'Home & Living', slug: 'home-and-living' },
+    { label: 'Sports', slug: 'sports' },
+    { label: 'Vehicle', slug: 'vehicle' },
+    { label: 'Beauty', slug: 'beauty' },
+    { label: 'Toys', slug: 'toys' },
+    { label: 'Books', slug: 'books' },
 ];
 
 export default function Navbar() {
@@ -277,7 +270,7 @@ export default function Navbar() {
                                                             </h4>
                                                             {col.links.map((item) => (
                                                                 <Link key={item.label}
-                                                                    to={`/shop?search=${item.search}`}
+                                                                    to={`/category/${item.slug}`}
                                                                     onClick={() => setShopDropdown(false)}
                                                                     style={{
                                                                         display: 'block', padding: '6px 0',
@@ -381,24 +374,26 @@ export default function Navbar() {
                                     <FiSearch size={22} />
                                 </button>
                             )}
-                            <button
-                                onClick={() => visualSearchInputRef.current?.click()}
-                                disabled={isVisualSearching}
-                                title="Search by image"
-                                style={{
-                                    padding: '4px', display: 'flex', color: '#000',
-                                    transition: 'opacity 0.2s', background: 'none',
-                                    border: 'none', cursor: 'pointer'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.opacity = '0.6'}
-                                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                            >
-                                {isVisualSearching ? (
-                                    <div style={{ width: 22, height: 22, border: '2px solid #ccc', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                                ) : (
-                                    <FiCamera size={22} />
-                                )}
-                            </button>
+                            {!isDesktop && (
+                                <button
+                                    onClick={() => visualSearchInputRef.current?.click()}
+                                    disabled={isVisualSearching}
+                                    title="Search by image"
+                                    style={{
+                                        padding: '4px', display: 'flex', color: '#000',
+                                        transition: 'opacity 0.2s', background: 'none',
+                                        border: 'none', cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.opacity = '0.6'}
+                                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                                >
+                                    {isVisualSearching ? (
+                                        <div style={{ width: 22, height: 22, border: '2px solid #ccc', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                    ) : (
+                                        <FiCamera size={22} />
+                                    )}
+                                </button>
+                            )}
 
                             <Link to="/cart" style={{ position: 'relative', padding: '4px' }}>
                                 <FiShoppingCart size={22} />
@@ -495,19 +490,19 @@ export default function Navbar() {
                                 overflowX: 'auto', fontSize: '13px',
                             }} className="scrollbar-hide">
                                 {[
-                                    { label: 'Electronics', search: 'electronics' },
-                                    { label: 'Fashion', search: 'fashion' },
-                                    { label: 'Home & Garden', search: 'home garden' },
-                                    { label: 'Motors', search: 'motors' },
-                                    { label: 'Collectibles & Art', search: 'collectibles' },
-                                    { label: 'Sports', search: 'sports' },
-                                    { label: 'Health & Beauty', search: 'health beauty' },
-                                    { label: 'Toys & Games', search: 'toys games' },
-                                    { label: 'Books', search: 'books' },
-                                    { label: 'Pet Supplies', search: 'pet supplies' },
-                                    { label: 'Musical Instruments', search: 'musical instruments' },
+                                    { label: 'Electronics', slug: 'electronics' },
+                                    { label: 'Fashion', slug: 'fashion' },
+                                    { label: 'Home & Living', slug: 'home-and-living' },
+                                    { label: 'Footwear', slug: 'footwear' },
+                                    { label: 'Sports', slug: 'sports' },
+                                    { label: 'Beauty', slug: 'beauty' },
+                                    { label: 'Toys', slug: 'toys' },
+                                    { label: 'Books', slug: 'books' },
+                                    { label: 'Gaming', slug: 'gaming' },
+                                    { label: 'Watches', slug: 'watches' },
+                                    { label: 'Fragrances', slug: 'fragrances' },
                                 ].map((cat) => (
-                                    <Link key={cat.label} to={`/shop?search=${cat.search}`}
+                                    <Link key={cat.label} to={`/category/${cat.slug}`}
                                         style={{
                                             whiteSpace: 'nowrap', color: '#737373',
                                             transition: 'color 0.2s', fontWeight: 500,
@@ -588,7 +583,7 @@ export default function Navbar() {
                             {mobileCatOpen && (
                                 <div className="animate-fade-in" style={{ paddingLeft: '12px' }}>
                                     {mobileCategories.map((cat) => (
-                                        <Link key={cat.label} to={`/shop?search=${cat.search}`}
+                                        <Link key={cat.label} to={`/category/${cat.slug}`}
                                             onClick={() => { setMobileOpen(false); setMobileCatOpen(false); }}
                                             style={{
                                                 display: 'block', padding: '10px 0',

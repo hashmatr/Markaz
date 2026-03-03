@@ -8,7 +8,7 @@ const Payout = require('../Modal/Payout');
 const payoutService = require('../Service/payoutService');
 const sellerService = require('../Service/sellerService');
 const asyncHandler = require('../middleware/asyncHandler');
-const slugify = require('slugify');
+const { generateUniqueSlug } = require('../utils/slugUtils');
 
 class AdminController {
     /**
@@ -332,7 +332,7 @@ class AdminController {
 
         const category = await Category.create({
             name,
-            slug: slugify(name, { lower: true, strict: true }),
+            slug: await generateUniqueSlug(Category, 'slug', name),
             description,
             parentCategory: parentCategory || null,
             level: parentCategory ? 1 : 0,
@@ -368,7 +368,7 @@ class AdminController {
     updateCategory = asyncHandler(async (req, res) => {
         const updates = { ...req.body };
         if (updates.name) {
-            updates.slug = slugify(updates.name, { lower: true, strict: true });
+            updates.slug = await generateUniqueSlug(Category, 'slug', updates.name);
         }
         if (req.file) {
             updates.image = { public_id: req.file.filename, url: req.file.path };

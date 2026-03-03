@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { sellerAPI, productAPI } from '../api';
 import StarRating from '../components/ui/StarRating';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
+import SEO from '../components/ui/SEO';
 import { FiMapPin, FiPhone, FiMail, FiGlobe, FiInfo } from 'react-icons/fi';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -14,6 +15,7 @@ export default function StorePage() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingProducts, setLoadingProducts] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -23,6 +25,11 @@ export default function StorePage() {
             .then(r => {
                 const sellerData = r.data.data.seller;
                 setSeller(sellerData);
+
+                // SEO Redirect: if accessed by ID instead of slug, or if accessed via /store/ prefix
+                if (slug === sellerData._id || window.location.pathname.startsWith('/store/')) {
+                    navigate(`/vendor/${sellerData.storeSlug}`, { replace: true });
+                }
 
                 // Fetch products for this seller
                 setLoadingProducts(true);
@@ -36,6 +43,8 @@ export default function StorePage() {
             .catch(() => setSeller(null))
             .finally(() => setLoading(false));
     }, [slug]);
+
+
 
     if (loading) {
         return (
@@ -60,6 +69,14 @@ export default function StorePage() {
 
     return (
         <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '80px' }}>
+            {seller && (
+                <SEO
+                    title={`Shop ${seller.storeName} Products Online | Trusted Seller`}
+                    description={seller.storeDescription}
+                    image={seller.storeLogo?.url}
+                    url={`${window.location.origin}/vendor/${seller.storeSlug}`}
+                />
+            )}
             <Breadcrumb items={[{ label: 'Sellers', to: '/sellers' }, { label: seller.storeName }]} />
 
             {/* STORE HEADER */}

@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderAPI } from '../api';
 import toast from 'react-hot-toast';
+import SEO from '../components/ui/SEO';
 
 export default function CartPage() {
     const { cart, updateItem, removeItem } = useCart();
@@ -50,6 +51,7 @@ export default function CartPage() {
 
     return (
         <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
+            <SEO title="Your Shopping Cart | Markaz" noIndex />
             <Breadcrumb items={[{ label: 'Cart' }]} />
             <h1 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 700, marginBottom: '32px' }}>YOUR CART</h1>
 
@@ -89,7 +91,7 @@ export default function CartPage() {
                                             </button>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: '16px' }}>
-                                            <p style={{ fontWeight: 700, fontSize: '20px' }}>${item.discountedPrice || item.price}</p>
+                                            <p style={{ fontWeight: 700, fontSize: '20px' }}>PKR {item.discountedPrice || item.price}</p>
                                             <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f0f0f0', borderRadius: '9999px' }}>
                                                 <button onClick={() => handleQtyChange(item._id, item.quantity - 1)}
                                                     style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'none', cursor: 'pointer' }}>
@@ -114,18 +116,18 @@ export default function CartPage() {
                             <h3 style={{ fontWeight: 700, fontSize: '20px', marginBottom: '24px' }}>Order Summary</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                    <span style={{ color: '#737373' }}>Subtotal</span><span style={{ fontWeight: 500 }}>${subtotal}</span>
+                                    <span style={{ color: '#737373' }}>Subtotal</span><span style={{ fontWeight: 500 }}>PKR {subtotal}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                    <span style={{ color: '#737373' }}>Discount</span><span style={{ color: '#ff3333', fontWeight: 500 }}>-${discount}</span>
+                                    <span style={{ color: '#737373' }}>Discount</span><span style={{ color: '#ff3333', fontWeight: 500 }}>-PKR {discount}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                    <span style={{ color: '#737373' }}>Delivery Fee</span><span style={{ fontWeight: 500 }}>${deliveryFee}</span>
+                                    <span style={{ color: '#737373' }}>Delivery Fee</span><span style={{ fontWeight: 500 }}>PKR {deliveryFee}</span>
                                 </div>
                             </div>
                             <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0', marginBottom: '16px' }} />
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                                <span style={{ fontWeight: 500 }}>Total</span><span style={{ fontWeight: 700, fontSize: '20px' }}>${total}</span>
+                                <span style={{ fontWeight: 500 }}>Total</span><span style={{ fontWeight: 700, fontSize: '20px' }}>PKR {total}</span>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
                                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: '#f0f0f0', borderRadius: '9999px', padding: '0 16px' }}>

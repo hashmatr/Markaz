@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 export default function LoginPage() {
     const { login, user } = useAuth();
     const navigate = useNavigate();
-    const [form, setForm] = useState({ email: '', password: '', role: 'CUSTOMER' });
+    const [form, setForm] = useState({ email: '', password: '' });
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -45,23 +45,6 @@ export default function LoginPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Role Selection (Cosmetic/Intent) */}
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                        <button type="button" onClick={() => setForm({ ...form, role: 'CUSTOMER' })}
-                            style={{
-                                flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #e5e5e5',
-                                backgroundColor: form.role === 'CUSTOMER' ? '#000' : 'transparent', color: form.role === 'CUSTOMER' ? '#fff' : '#000',
-                            }}>
-                            Customer
-                        </button>
-                        <button type="button" onClick={() => setForm({ ...form, role: 'SELLER' })}
-                            style={{
-                                flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #e5e5e5',
-                                backgroundColor: form.role === 'SELLER' ? '#000' : 'transparent', color: form.role === 'SELLER' ? '#fff' : '#000',
-                            }}>
-                            Seller
-                        </button>
-                    </div>
 
                     <div style={{ position: 'relative' }}>
                         <FiMail className="auth-input-icon" size={18} />

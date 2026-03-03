@@ -1,9 +1,11 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import * as React from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
+import SEO from './components/ui/SEO';
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import ProductDetailPage from './pages/ProductDetailPage';
@@ -28,16 +30,15 @@ import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import ScrollToTop from './components/ScrollToTop';
 import Chatbot from './components/chatbot/Chatbot';
-import SmoothScroll from './components/animation/SmoothScroll';
 import PageTransition from './components/animation/PageTransition';
 import { AnimatePresence } from 'framer-motion';
-import { useLocation } from 'react-router-dom';
 
 function AppContent() {
   const location = useLocation();
 
   return (
     <div className="flex flex-col min-h-screen">
+      <SEO />
       <Navbar />
       <main className="flex-1">
         <AnimatePresence mode="wait">
@@ -48,6 +49,7 @@ function AppContent() {
             <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
             <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
             <Route path="/product/:id" element={<PageTransition><ProductDetailPage /></PageTransition>} />
+            <Route path="/category/:categorySlug" element={<PageTransition><ShopPage /></PageTransition>} />
             <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
             <Route path="/checkout" element={<PageTransition><CheckoutPage /></PageTransition>} />
             <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
@@ -59,6 +61,7 @@ function AppContent() {
             <Route path="/order-success" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
             <Route path="/sellers" element={<PageTransition><SellersPage /></PageTransition>} />
             <Route path="/store/:slug" element={<PageTransition><StorePage /></PageTransition>} />
+            <Route path="/vendor/:slug" element={<PageTransition><StorePage /></PageTransition>} />
             <Route path="/become-seller" element={<PageTransition><BecomeSellerPage /></PageTransition>} />
             <Route path="/seller/dashboard" element={<PageTransition><SellerDashboardPage /></PageTransition>} />
             <Route path="/seller/add-product" element={<PageTransition><AddProductPage /></PageTransition>} />
@@ -78,30 +81,28 @@ function AppContent() {
       </main>
       <Footer />
       <Chatbot />
+      <ScrollToTop />
     </div>
   );
 }
 
-function App() {
+function RootApp() {
   return (
     <BrowserRouter>
-      <SmoothScroll>
-        <ScrollToTop />
-        <AuthProvider>
-          <CartProvider>
-            <AppContent />
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 3000,
-                style: { background: '#000', color: '#fff', borderRadius: '12px', fontSize: '14px' },
-              }}
-            />
-          </CartProvider>
-        </AuthProvider>
-      </SmoothScroll>
+      <AuthProvider>
+        <CartProvider>
+          <AppContent />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: { background: '#000', color: '#fff', borderRadius: '12px', fontSize: '14px' },
+            }}
+          />
+        </CartProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
 
-export default App;
+export default RootApp;

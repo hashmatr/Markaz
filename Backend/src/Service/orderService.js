@@ -6,7 +6,8 @@ const calculateCommission = require('../utils/calculateCommission');
 const ORDER_STATUS = require('../domain/orderStatus');
 const Address = require('../Modal/Address');
 const User = require('../Modal/User');
-const { sendOrderConfirmationEmail } = require('../utils/sendEmail');
+const Notification = require('../Modal/Notification');
+const { sendOrderConfirmationEmail, sendGenericEmail } = require('../utils/sendEmail');
 
 class OrderService {
     /**
@@ -97,6 +98,51 @@ class OrderService {
             product.quantity -= itemQty;
             product.totalSold += itemQty;
             await product.save();
+
+            // --- LOW STOCK ALERT: Notify seller if product quantity < 5 ---
+            if (product.quantity < 5 && seller) {
+                const sellerUserId = seller.user;
+                const stockMsg = product.quantity === 0
+                    ? `Your product "${product.title}" is now OUT OF STOCK! Please restock immediately.`
+                    : `Your product "${product.title}" has only ${product.quantity} unit(s) left. Please restock soon.`;
+
+                // Create in-app notification (fire & forget)
+                Notification.create({
+                    recipient: sellerUserId,
+                    type: 'LOW_STOCK',
+                    title: product.quantity === 0 ? '🚨 Product Out of Stock!' : '⚠️ Low Stock Alert',
+                    message: stockMsg,
+                    link: `/seller/dashboard`,
+                }).catch(err => console.error('OrderService: Low stock notification failed:', err.message));
+
+                // Send email alert to seller (fire & forget)
+                User.findById(sellerUserId).then(sellerUser => {
+                    if (sellerUser && sellerUser.email) {
+                        const emailHtml = `
+                            <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                                <div style="background: ${product.quantity === 0 ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : 'linear-gradient(135deg, #f59e0b, #d97706)'}; padding: 32px; text-align: center;">
+                                    <h1 style="color: #fff; margin: 0; font-size: 24px;">${product.quantity === 0 ? '🚨 Out of Stock Alert' : '⚠️ Low Stock Alert'}</h1>
+                                </div>
+                                <div style="padding: 32px;">
+                                    <p style="font-size: 16px; color: #333; line-height: 1.6;">Hi <strong>${sellerUser.fullName || 'Seller'}</strong>,</p>
+                                    <p style="font-size: 16px; color: #333; line-height: 1.6;">${stockMsg}</p>
+                                    <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #e5e7eb;">
+                                        <p style="margin: 0 0 8px; font-weight: 600; color: #111;">Product: ${product.title}</p>
+                                        <p style="margin: 0; color: ${product.quantity === 0 ? '#dc2626' : '#d97706'}; font-weight: 700; font-size: 18px;">Remaining Stock: ${product.quantity}</p>
+                                    </div>
+                                    <p style="font-size: 14px; color: #6b7280;">Please visit your Seller Dashboard to update the stock for this product.</p>
+                                    <p style="font-size: 14px; color: #6b7280; margin-top: 24px;">— The Markaz Team</p>
+                                </div>
+                            </div>
+                        `;
+                        sendGenericEmail(
+                            sellerUser.email,
+                            product.quantity === 0 ? `🚨 Out of Stock: ${product.title}` : `⚠️ Low Stock Alert: ${product.title} (${product.quantity} left)`,
+                            emailHtml
+                        ).catch(err => console.error('OrderService: Low stock email failed:', err.message));
+                    }
+                }).catch(err => console.error('OrderService: Seller user fetch for low stock email failed:', err.message));
+            }
 
             // Update seller stats
             if (seller) {

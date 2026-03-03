@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import { productAPI } from '../api';
+import SEO from '../components/ui/SEO';
 
 export default function BrandsPage() {
     const [brands, setBrands] = useState([]);
@@ -22,6 +23,11 @@ export default function BrandsPage() {
 
     return (
         <div className="container-main" style={{ paddingTop: 24, paddingBottom: 64 }}>
+            <SEO
+                title="Top Brands in Pakistan | Shop by Brand at Markaz"
+                description="Browse products from the best local and international brands on Markaz. High-quality items across all categories."
+                url={`${window.location.origin}/brands`}
+            />
             <Breadcrumb items={[{ label: 'Brands' }]} />
 
             {/* Hero */}

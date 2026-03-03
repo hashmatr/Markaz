@@ -121,7 +121,7 @@ export default function OrderTrackingPage() {
                             </div>
                             <div>
                                 <p style={{ fontSize: '12px', color: '#a3a3a3', marginBottom: '4px' }}>Total Amount</p>
-                                <p style={{ fontWeight: 700, fontSize: '16px' }}>${order.totalDiscountedPrice || order.totalPrice}</p>
+                                <p style={{ fontWeight: 700, fontSize: '16px' }}>PKR {order.totalDiscountedPrice || order.totalPrice}</p>
                             </div>
                         </div>
                         {/* Estimated Delivery */}
@@ -242,7 +242,7 @@ export default function OrderTrackingPage() {
                                             {!item.selectedOptions && item.size && <p style={{ fontSize: '12px', color: '#737373' }}>• {item.size}</p>}
                                         </div>
                                     </div>
-                                    <span style={{ fontSize: '14px', fontWeight: 700, flexShrink: 0 }}>${(item.discountedPrice || item.price) * item.quantity}</span>
+                                    <span style={{ fontSize: '14px', fontWeight: 700, flexShrink: 0 }}>PKR {(item.discountedPrice || item.price) * item.quantity}</span>
                                 </div>
                             ))}
                         </div>
@@ -250,13 +250,13 @@ export default function OrderTrackingPage() {
                         <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0', marginBottom: '16px' }} />
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', marginBottom: '16px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Subtotal</span><span>${order.totalPrice}</span></div>
-                            {order.discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Discount</span><span style={{ color: '#ff3333' }}>-${order.discount}</span></div>}
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Shipping</span><span>${order.shippingCost || 0}</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Subtotal</span><span>PKR {order.totalPrice}</span></div>
+                            {order.discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Discount</span><span style={{ color: '#ff3333' }}>-PKR {order.discount}</span></div>}
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Shipping</span><span>PKR {order.shippingCost || 0}</span></div>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '18px', borderTop: '1px solid #f0f0f0', paddingTop: '16px', marginBottom: '20px' }}>
-                            <span>Total</span><span>${order.totalDiscountedPrice || order.totalPrice}</span>
+                            <span>Total</span><span>PKR {order.totalDiscountedPrice || order.totalPrice}</span>
                         </div>
 
                         {/* Shipping Address */}

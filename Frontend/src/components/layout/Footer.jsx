@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { FiTwitter, FiFacebook, FiInstagram } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -8,10 +9,17 @@ export default function Footer() {
     const sellerLink = user?.role === 'SELLER' ? '/seller/dashboard' : '/become-seller';
     const sellerLabel = user?.role === 'SELLER' ? 'Seller Dashboard' : 'Become a Seller';
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+    useEffect(() => {
+        const h = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', h);
+        return () => window.removeEventListener('resize', h);
+    }, []);
+
     return (
-        <footer style={{ backgroundColor: '#f0f0f0', marginTop: '160px' }}>
+        <footer style={{ backgroundColor: '#f0f0f0', marginTop: isMobile ? '40px' : '160px' }}>
             {/* Promotional Banner */}
-            <div className="container-main" style={{ transform: 'translateY(-50%)' }}>
+            <div className="container-main" style={{ transform: isMobile ? 'none' : 'translateY(-50%)', marginBottom: isMobile ? '40px' : '0' }}>
                 <div style={{
                     background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
                     borderRadius: '24px', padding: 'clamp(32px, 5vw, 48px)',
@@ -45,21 +53,23 @@ export default function Footer() {
                         </Link>
                     </div>
                     <div style={{
-                        flex: '1 1 300px', display: 'flex', gap: '12px',
+                        flex: '1 1 300px', display: 'flex', gap: isMobile ? '8px' : '12px',
                         justifyContent: 'center', zIndex: 1,
                     }}>
                         {[
-                            'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=250&fit=crop',
-                            'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=200&h=250&fit=crop',
-                            'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=200&h=250&fit=crop',
+                            { url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=250&fit=crop', alt: 'Premium White Watch' },
+                            { url: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=200&h=250&fit=crop', alt: 'Retro Polaroid Camera' },
+                            { url: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=200&h=250&fit=crop', alt: 'Running Shoes' },
                         ].map((img, i) => (
                             <div key={i} style={{
-                                width: '140px', height: '180px', borderRadius: '16px',
+                                width: isMobile ? '90px' : '140px',
+                                height: isMobile ? '120px' : '180px',
+                                borderRadius: isMobile ? '12px' : '16px',
                                 overflow: 'hidden', backgroundColor: '#fff',
-                                transform: i === 1 ? 'rotate(-3deg)' : i === 2 ? 'rotate(3deg)' : 'none',
+                                transform: isMobile ? 'none' : (i === 1 ? 'rotate(-3deg)' : i === 2 ? 'rotate(3deg)' : 'none'),
                                 boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                             }}>
-                                <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                <img src={img.url} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                             </div>
                         ))}
                     </div>
@@ -117,7 +127,7 @@ export default function Footer() {
 
                     {/* Links Columns */}
                     {[
-                        { title: 'CATEGORIES', links: [['Electronics', '/shop?search=electronics'], ['Fashion', '/shop?search=fashion'], ['Home & Garden', '/shop?search=home garden'], ['Sports', '/shop?search=sports'], ['Motors', '/shop?search=motors']] },
+                        { title: 'CATEGORIES', links: [['Electronics', '/category/electronics'], ['Fashion', '/category/fashion'], ['Home & Living', '/category/home-and-living'], ['Sports', '/category/sports'], ['Beauty', '/category/beauty']] },
                         { title: 'COMPANY', links: [['About', '/about'], ['Contact', '/contact'], [sellerLabel, sellerLink], ['Brands', '/brands']] },
                         { title: 'HELP', links: [['Customer Support', '/contact'], ['Delivery Details', '/about'], ['Terms & Conditions', '/about'], ['Privacy Policy', '/about']] },
                         { title: 'RESOURCES', links: [['My Account', '/profile'], ['Track Orders', '/orders'], ['All Sellers', '/sellers'], ['All Products', '/shop']] },

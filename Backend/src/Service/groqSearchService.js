@@ -1,6 +1,15 @@
-const Groq = require('groq-sdk');
+const mongoose = require('mongoose');
 const Product = require('../Modal/Product');
-const embeddingService = require('./embeddingService');
+const Category = require('../Modal/Category');
+
+/**
+ * GroqSearchService (simplified — Groq LLM re-ranking retained, Pinecone/embeddings removed)
+ *
+ * Flow:
+ * 1. MongoDB text/regex search to build candidates
+ * 2. Optional Groq LLM ranking to pick the most relevant results
+ */
+const Groq = require('groq-sdk');
 
 class GroqSearchService {
     constructor() {
@@ -12,93 +21,144 @@ class GroqSearchService {
     }
 
     /**
-     * THE PERFECT RAG SEARCH:
-     * 1. Pinecone Vector Search (finds semantic matches)
-     * 2. MongoDB Fetch (gets full data)
-     * 3. Groq LLM Ranking (picks the best)
+     * MongoDB-first search with optional Groq LLM ranking.
+     * Replaces the old Pinecone vector search + Groq pipeline.
      */
     async hybridSearch(query, filters = {}) {
         if (!this.groq) return null;
 
-        console.log(`GroqSearch: Starting AI search for "${query}"`);
+        const { category, categoryIds, brand, color, size, minPrice, maxPrice, seller, gender, categoryName } = filters;
 
+        let effectiveQuery = query;
+        if (!effectiveQuery && categoryName) effectiveQuery = categoryName;
+        if (!effectiveQuery && !filters.category) return null;
+
+        console.log(`GroqSearch: Starting MongoDB search for "${effectiveQuery}" with filters: category=${category}`);
+
+        // ── Build MongoDB filter ──────────────────────────────────────────
+        const baseFilter = { isActive: true };
+
+        if (categoryIds && categoryIds.length > 0) {
+            const objectIds = categoryIds
+                .filter(id => mongoose.Types.ObjectId.isValid(id))
+                .map(id => new mongoose.Types.ObjectId(id));
+            if (objectIds.length > 0) baseFilter.category = { $in: objectIds };
+        } else if (category && mongoose.Types.ObjectId.isValid(category)) {
+            baseFilter.category = new mongoose.Types.ObjectId(category);
+        }
+
+        if (brand) baseFilter.brand = { $regex: brand, $options: 'i' };
+        if (color) baseFilter.color = { $regex: color, $options: 'i' };
+        if (size) baseFilter['sizes.name'] = { $regex: size, $options: 'i' };
+        if (minPrice || maxPrice) {
+            baseFilter.discountedPrice = {};
+            if (minPrice) baseFilter.discountedPrice.$gte = parseFloat(minPrice);
+            if (maxPrice) baseFilter.discountedPrice.$lte = parseFloat(maxPrice);
+        }
+        if (seller && mongoose.Types.ObjectId.isValid(seller)) {
+            baseFilter.seller = new mongoose.Types.ObjectId(seller);
+        }
+
+        // Gender filter
+        if (gender === 'men') {
+            baseFilter.title = { $not: { $regex: 'women|girl|lady', $options: 'i' } };
+        } else if (gender === 'women') {
+            baseFilter.title = { $not: { $regex: '\\bmen\\b|\\bboy\\b|\\bguy\\b', $options: 'i' } };
+        }
+
+        // ── MongoDB text search ────────────────────────────────────────────
         let candidates = [];
 
-        try {
-            // 1. Try Vector Search first (The "RAG" way)
-            if (embeddingService.isAvailable()) {
-                const vectorMatches = await embeddingService.searchSimilar(query, 20);
-                if (vectorMatches && vectorMatches.length > 0) {
-                    const productIds = vectorMatches.map(m => m.productId);
-                    candidates = await Product.find({ _id: { $in: productIds }, isActive: true })
-                        .populate('category', 'name')
-                        .populate('seller', 'storeName')
-                        .lean();
-                    console.log(`GroqSearch: Found ${candidates.length} candidates via Vector Search`);
-                }
-            }
-        } catch (err) {
-            console.warn('GroqSearch: Vector search failed, falling back to MongoDB:', err.message);
-        }
-
-        // 2. Fallback to MongoDB Text Search if Pinecone is empty or failed
-        if (candidates.length === 0) {
-            candidates = await Product.find({
-                isActive: true,
+        if (effectiveQuery) {
+            const searchFilter = {
+                ...baseFilter,
                 $or: [
-                    { title: { $regex: query, $options: 'i' } },
-                    { brand: { $regex: query, $options: 'i' } },
-                    { tags: { $in: [new RegExp(query, 'i')] } }
-                ]
-            })
+                    { title: { $regex: effectiveQuery, $options: 'i' } },
+                    { brand: { $regex: effectiveQuery, $options: 'i' } },
+                    { description: { $regex: effectiveQuery, $options: 'i' } },
+                    { tags: { $regex: effectiveQuery, $options: 'i' } },
+                ],
+            };
+            candidates = await Product.find(searchFilter)
                 .populate('category', 'name')
                 .populate('seller', 'storeName')
-                .limit(30)
+                .limit(60)
                 .lean();
-            console.log(`GroqSearch: Found ${candidates.length} candidates via MongoDB fallback`);
+            console.log(`GroqSearch: MongoDB found ${candidates.length} candidates for query "${effectiveQuery}"`);
         }
 
-        if (candidates.length === 0) return { products: [], aiSummary: "No matches found." };
+        // If no query but category, just use the base category filter
+        if (candidates.length === 0 && baseFilter.category) {
+            candidates = await Product.find(baseFilter)
+                .populate('category', 'name')
+                .populate('seller', 'storeName')
+                .limit(60)
+                .lean();
+            console.log(`GroqSearch: MongoDB (category-only) found ${candidates.length} candidates`);
+        }
 
-        // 3. Use Groq to rank and explain
-        const productContext = candidates.map((p, i) =>
-            `MATCH ${i}: [${p.title}] | Price: Rs.${p.price} | ID: ${p._id} | Brand: ${p.brand}`
+        if (candidates.length === 0) {
+            console.log('GroqSearch: No candidates found.');
+            return { products: [], aiSummary: null };
+        }
+
+        // ── Groq LLM Ranking ─────────────────────────────────────────────
+        const productContext = candidates.slice(0, 40).map((p, i) =>
+            `${i}: [${p.title}] | Rs.${p.price} | ID: ${p._id} | Cat: ${p.category?.name || 'N/A'}`
         ).join('\n');
 
-        const completion = await this.groq.chat.completions.create({
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are a Strict Product Matcher. Your goal is to filtered candidates for EXACT relevance.
+        const categoryContext = categoryName || effectiveQuery || 'general';
 
-STRICT RULES:
-1. If user ask for "parts/accessories", EXCLUDE the main vehicle or device.
-2. If user ask for "clothes/garments", EXCLUDE perfumes, bags, or unrelated accessories.
-3. If a candidate is only "related" but not the "exact type" of item requested, EXCLUDE IT.
-4. If no candidates are exactly what was asked for, return "rankedIds": [].
+        try {
+            const completion = await this.groq.chat.completions.create({
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a product relevance ranker for an e-commerce store. Given a list of product candidates, return ONLY those that are genuinely relevant to the user's search context.
 
-Return a JSON object with: 1) "rankedIds": an array of IDs for products that match the EXACT TYPE requested. 2) "aiSummary": a short explanation.`
-                },
-                {
-                    role: 'user',
-                    content: `User wants the exact type of item: "${query}"\n\nCandidates:\n${productContext}\n\nReturn JSON only.`
-                }
-            ],
-            model: 'llama-3.1-8b-instant',
-            response_format: { type: 'json_object' }
-        });
+CRITICAL RULES:
+1. RELEVANCE IS KEY: Only include products that a real shopper would expect to find when browsing "${categoryContext}".
+2. Return between 5-20 product IDs ranked by relevance. Quality over quantity.
+3. GENDER: If context mentions "men" — exclude women's items. If "women" — exclude men's items.
+4. Return ONLY valid IDs from the candidate list.
 
-        const result = JSON.parse(completion.choices[0].message.content);
+Return JSON: { "rankedIds": ["id1", "id2", ...] }`
+                    },
+                    {
+                        role: 'user',
+                        content: `User is browsing: "${categoryContext}"\n${effectiveQuery && effectiveQuery !== categoryContext ? `Search query: "${effectiveQuery}"` : ''}\n\nCandidates:\n${productContext}\n\nReturn JSON only.`
+                    }
+                ],
+                model: 'llama-3.1-8b-instant',
+                response_format: { type: 'json_object' }
+            });
 
-        // 4. Sort candidates based on Groq's ranking
-        const rankedProducts = (result.rankedIds || [])
-            .map(id => candidates.find(p => p._id.toString() === id.toString()))
-            .filter(Boolean);
+            const result = JSON.parse(completion.choices[0].message.content);
+            console.log(`GroqSearch: Groq ranked ${(result.rankedIds || []).length} products from ${candidates.length} candidates.`);
 
-        return {
-            products: rankedProducts, // Return ONLY what Groq approved
-            aiSummary: rankedProducts.length > 0 ? result.aiSummary : "I couldn't find any products that exactly match your description in our current inventory."
-        };
+            const seenIds = new Set();
+            const uniqueRankedIds = (result.rankedIds || []).filter(id => {
+                const idStr = id.toString();
+                if (seenIds.has(idStr)) return false;
+                seenIds.add(idStr);
+                return true;
+            });
+
+            const rankedProducts = uniqueRankedIds
+                .map(id => candidates.find(p => p._id.toString() === id.toString()))
+                .filter(Boolean);
+
+            if (rankedProducts.length === 0 && candidates.length > 0) {
+                console.warn(`GroqSearch: Groq returned 0 rankings. Returning raw MongoDB candidates.`);
+                return { products: candidates, aiSummary: null };
+            }
+
+            return { products: rankedProducts, aiSummary: result.aiSummary || null };
+
+        } catch (groqErr) {
+            console.error('GroqSearch: LLM ranking failed, returning MongoDB candidates:', groqErr.message);
+            return { products: candidates, aiSummary: null };
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 const Seller = require('../Modal/seller');
 const User = require('../Modal/User');
 const userRoles = require('../domain/userRole');
-const slugify = require('slugify');
+const { generateUniqueSlug } = require('../utils/slugUtils');
 
 class SellerService {
     /**
@@ -30,7 +30,7 @@ class SellerService {
         const seller = await Seller.create({
             user: userId,
             storeName: sellerData.storeName,
-            storeSlug: slugify(sellerData.storeName, { lower: true, strict: true }),
+            storeSlug: await generateUniqueSlug(Seller, 'storeSlug', sellerData.storeName),
             storeDescription: sellerData.storeDescription,
             businessEmail: sellerData.businessEmail || user.email,
             businessPhone: sellerData.businessPhone,
@@ -135,7 +135,7 @@ class SellerService {
 
         // Update slug if store name changed
         if (updateData.storeName) {
-            seller.storeSlug = slugify(updateData.storeName, { lower: true, strict: true });
+            seller.storeSlug = await generateUniqueSlug(Seller, 'storeSlug', updateData.storeName);
         }
 
         await seller.save();
@@ -177,7 +177,7 @@ class SellerService {
      * Get seller dashboard stats (rich analytics)
      */
     async getSellerDashboard(userId) {
-        const seller = await Seller.findOne({ user: userId });
+        const seller = await Seller.findOne({ user: userId }).populate('pickupAddress');
         if (!seller) {
             throw Object.assign(new Error('Seller profile not found'), { status: 404 });
         }
@@ -308,6 +308,9 @@ class SellerService {
         return {
             storeName: seller.storeName,
             accountStatus: seller.accountStatus,
+            businessEmail: seller.businessEmail,
+            businessPhone: seller.businessPhone,
+            pickupAddress: seller.pickupAddress,
             totalProducts,
             totalOrders,
             totalEarnings: seller.totalEarnings,

@@ -6,7 +6,6 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const connectDb = require('./Config/db');
 const { connectRedis } = require('./Config/redis');
-const { connectPinecone } = require('./Config/pinecone');
 const errorHandler = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimitMiddleware');
 
@@ -113,6 +112,13 @@ app.use('/api/flash-sales', flashSaleRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Sitemap
+const sitemapController = require('./controller/sitemapController');
+app.get('/api/sitemap.xml', sitemapController.getSitemapIndex);
+app.get('/api/sitemap-products.xml', sitemapController.getProductSitemap);
+app.get('/api/sitemap-categories.xml', sitemapController.getCategorySitemap);
+app.get('/api/sitemap-vendors.xml', sitemapController.getVendorSitemap);
+
 // ─── Public Categories Route (Redis Cached) ─────────────────
 const Category = require('./Modal/Category');
 app.get('/api/categories', async (req, res) => {
@@ -156,8 +162,7 @@ app.listen(PORT, async () => {
     console.log(`📡 API Base URL: http://localhost:${PORT}`);
     console.log('────────────────────────────────────────');
     await connectDb();
-    await connectRedis(); // Non-fatal — falls back to MongoDB if Redis unavailable
-    await connectPinecone(); // Non-fatal — falls back to text search if Pinecone unavailable
+    await connectRedis(); // Non-fatal — falls back to in-memory if Redis unavailable
 });
 
 module.exports = app;

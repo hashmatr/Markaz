@@ -1,0 +1,74 @@
+ID=69906fe83cbb7b383ead9f11, NAME=Men, SLUG=men, PARENT=null
+ID=69906fe83cbb7b383ead9f14, NAME=Women, SLUG=women, PARENT=null
+ID=69906fe93cbb7b383ead9f17, NAME=Kids, SLUG=kids, PARENT=null
+ID=69906fe93cbb7b383ead9f1a, NAME=Electronics, SLUG=electronics, PARENT=null
+ID=69906fe93cbb7b383ead9f1d, NAME=Home & Living, SLUG=home-and-living, PARENT=null
+ID=69906fea3cbb7b383ead9f20, NAME=Beauty, SLUG=beauty, PARENT=null
+ID=69906fea3cbb7b383ead9f23, NAME=Accessories, SLUG=accessories, PARENT=null
+ID=69906fea3cbb7b383ead9f26, NAME=Footwear, SLUG=footwear, PARENT=null
+ID=69956b98045c3e756b64df43, NAME=Fragrances, SLUG=fragrances, PARENT=null
+ID=69956b98045c3e756b64df46, NAME=Furniture, SLUG=furniture, PARENT=null
+ID=69956b98045c3e756b64df49, NAME=Groceries, SLUG=groceries, PARENT=null
+ID=69956b99045c3e756b64df4c, NAME=Home Decoration, SLUG=home-decoration, PARENT=null
+ID=69956b99045c3e756b64df4f, NAME=Kitchen Accessories, SLUG=kitchen-accessories, PARENT=null
+ID=69956b99045c3e756b64df52, NAME=Laptops, SLUG=laptops, PARENT=null
+ID=69956b99045c3e756b64df55, NAME=Men's Shirts, SLUG=mens-shirts, PARENT=null
+ID=69956b9a045c3e756b64df58, NAME=Men's Shoes, SLUG=mens-shoes, PARENT=null
+ID=69956b9a045c3e756b64df5b, NAME=Men's Watches, SLUG=mens-watches, PARENT=null
+ID=69956b9a045c3e756b64df5e, NAME=Mobile Accessories, SLUG=mobile-accessories, PARENT=null
+ID=69956b9a045c3e756b64df61, NAME=Motorcycle, SLUG=motorcycle, PARENT=null
+ID=69956b9a045c3e756b64df64, NAME=Skin Care, SLUG=skin-care, PARENT=null
+ID=69956b9b045c3e756b64df67, NAME=Smartphones, SLUG=smartphones, PARENT=null
+ID=69956b9b045c3e756b64df6a, NAME=Sports Accessories, SLUG=sports-accessories, PARENT=null
+ID=69956b9b045c3e756b64df6d, NAME=Sunglasses, SLUG=sunglasses, PARENT=null
+ID=69956b9b045c3e756b64df70, NAME=Tablets, SLUG=tablets, PARENT=null
+ID=69956b9c045c3e756b64df73, NAME=Tops, SLUG=tops, PARENT=null
+ID=69956b9c045c3e756b64df76, NAME=Vehicle, SLUG=vehicle, PARENT=null
+ID=69956b9c045c3e756b64df79, NAME=Women's Bags, SLUG=womens-bags, PARENT=null
+ID=69956b9c045c3e756b64df7c, NAME=Women's Dresses, SLUG=womens-dresses, PARENT=null
+ID=69956b9d045c3e756b64df7f, NAME=Women's Jewellery, SLUG=womens-jewellery, PARENT=null
+ID=69956b9d045c3e756b64df82, NAME=Women's Shoes, SLUG=womens-shoes, PARENT=null
+ID=69956b9d045c3e756b64df85, NAME=Women's Watches, SLUG=womens-watches, PARENT=null
+ID=699574625470a96b8afce410, NAME=Books, SLUG=books, PARENT=null
+ID=6995749b5470a96b8afce754, NAME=Men's Fashion, SLUG=mens-fashion, PARENT=null
+ID=699574a15470a96b8afce7de, NAME=Women's Fashion, SLUG=womens-fashion, PARENT=null
+ID=69957969db235ed0da245ddc, NAME=Gaming, SLUG=gaming, PARENT=null
+ID=69957986db235ed0da245f60, NAME=Anime Merch, SLUG=anime, PARENT=null
+ID=699579bedb235ed0da246216, NAME=MEN'S CLOTHING, SLUG=men-s-clothing, PARENT=null
+ID=699579c3db235ed0da24625c, NAME=JEWELERY, SLUG=jewelery, PARENT=null
+ID=699579cedb235ed0da246308, NAME=WOMEN'S CLOTHING, SLUG=women-s-clothing, PARENT=null
+ID=6995cdb93b414d5fc3ba1b98, NAME=Jewellery, SLUG=jewellery, PARENT=null
+ID=6995cdc8e8758773c76707fb, NAME=Fashion, SLUG=fashion, PARENT=null
+ID=6995cdeae8758773c76709a1, NAME=Watches, SLUG=watches, PARENT=null
+ID=6995cdf2e8758773c7670a11, NAME=Sports, SLUG=sports, PARENT=null
+ID=6995ce3ce8758773c7670d01, NAME=Toys, SLUG=toys, PARENT=null
+ID=699747ec7c93a0f990a04165, NAME=PC Laptops & Netbooks, SLUG=pc-laptops-netbooks, PARENT=null
+ID=699747f17c93a0f990a0418d, NAME=Digital Cameras, SLUG=digital-cameras, PARENT=null
+ID=699747f77c93a0f990a041df, NAME=Apple Laptops, SLUG=apple-laptops, PARENT=null
+ID=699747fb7c93a0f990a0423b, NAME=Headphones, SLUG=headphones, PARENT=null
+ID=69974855fdb7e1bafc00a015, NAME=Cell Phones & Smartphones, SLUG=cell-phones-smartphones, PARENT=null
+ID=69974874fdb7e1bafc00a10a, NAME=Athletic Shoes, SLUG=athletic-shoes, PARENT=null
+ID=69974881fdb7e1bafc00a149, NAME=Wristwatch Bands, SLUG=wristwatch-bands, PARENT=null
+ID=69974883fdb7e1bafc00a157, NAME=Wristwatches, SLUG=wristwatches, PARENT=null
+ID=6997488cfdb7e1bafc00a241, NAME=Mobiles, SLUG=mobiles, PARENT=null
+ID=69974893fdb7e1bafc00a26f, NAME=Cans, SLUG=cans, PARENT=null
+ID=699748abfdb7e1bafc00a35a, NAME=Video Monitors, SLUG=video-monitors, PARENT=null
+ID=699748b7fdb7e1bafc00a3b8, NAME=Dried Fruit & Veg, SLUG=dried-fruit-veg, PARENT=null
+ID=699748bafdb7e1bafc00a3c4, NAME=Laptop Housings & Touchpads, SLUG=laptop-housings-touchpads, PARENT=null
+ID=699748c3fdb7e1bafc00a402, NAME=Test Category 1, SLUG=test-category-1, PARENT=null
+ID=699748c4fdb7e1bafc00a412, NAME=VoIP Home Phones, SLUG=voip-home-phones, PARENT=null
+ID=699748cbfdb7e1bafc00a439, NAME=Video Game Consoles, SLUG=video-game-consoles, PARENT=null
+ID=699748cffdb7e1bafc00a473, NAME=Every Other Thing, SLUG=every-other-thing, PARENT=null
+ID=699748d3fdb7e1bafc00a47d, NAME=Center & Overhead Consoles, SLUG=center-overhead-consoles, PARENT=null
+ID=699748d7fdb7e1bafc00a4aa, NAME=Lenses, SLUG=lenses, PARENT=null
+ID=699748dbfdb7e1bafc00a4c5, NAME=Smart Glasses, SLUG=smart-glasses, PARENT=null
+ID=699748e8fdb7e1bafc00a59b, NAME=Smart Watches, SLUG=smart-watches, PARENT=null
+ID=69974e427173201e0a5e06b5, NAME=Clothes, SLUG=clothes, PARENT=null
+ID=69974e5e7173201e0a5e07c7, NAME=pencil, SLUG=pencil, PARENT=null
+ID=69974e5f7173201e0a5e07cf, NAME=lipstick, SLUG=lipstick, PARENT=null
+ID=69974e607173201e0a5e07dd, NAME=liquid, SLUG=liquid, PARENT=null
+ID=69974e617173201e0a5e07fd, NAME=eyeshadow, SLUG=eyeshadow, PARENT=null
+ID=69974e627173201e0a5e0805, NAME=powder, SLUG=powder, PARENT=null
+ID=69974e627173201e0a5e0813, NAME=lip_gloss, SLUG=lip-gloss, PARENT=null
+ID=69974e657173201e0a5e085d, NAME=mascara, SLUG=mascara, PARENT=null
+ID=69974e677173201e0a5e0877, NAME=gel, SLUG=gel, PARENT=null

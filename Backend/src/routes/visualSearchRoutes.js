@@ -1,12 +1,10 @@
 const express = require('express');
 const multer = require('multer');
-const authenticate = require('../middleware/authMiddleware');
-const authorize = require('../middleware/roleMiddleware');
-const { searchByImage, syncEmbeddings, getStatus } = require('../controller/visualSearchController');
+const { searchByImage, getStatus } = require('../controller/visualSearchController');
 
 const router = express.Router();
 
-// In-memory storage for visual search uploads (no need to save to disk/cloud)
+// In-memory storage for visual search uploads
 const storage = multer.memoryStorage();
 const upload = multer({
     storage,
@@ -24,10 +22,7 @@ const upload = multer({
 // POST /api/visual-search — Search by image (public)
 router.post('/', upload.single('image'), searchByImage);
 
-// POST /api/visual-search/sync — Sync product embeddings (admin only)
-router.post('/sync', authenticate, authorize('ADMIN'), syncEmbeddings);
-
-// GET /api/visual-search/status — Get sync status (public)
+// GET /api/visual-search/status — Get status (public)
 router.get('/status', getStatus);
 
 module.exports = router;

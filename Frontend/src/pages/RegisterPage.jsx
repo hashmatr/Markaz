@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 export default function RegisterPage() {
     const { register, user } = useAuth();
     const navigate = useNavigate();
-    const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'CUSTOMER' });
+    const [form, setForm] = useState({ fullName: '', email: '', password: '' });
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -25,9 +25,9 @@ export default function RegisterPage() {
         if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
         setLoading(true);
         try {
-            await register(form);
+            await register({ ...form, role: 'CUSTOMER' });
             toast.success('Account created successfully!');
-            navigate(form.role === 'SELLER' ? '/seller/dashboard' : '/');
+            navigate('/');
         } catch (err) {
             const errorData = err.response?.data;
             if (errorData?.errors && Array.isArray(errorData.errors)) {
@@ -48,23 +48,6 @@ export default function RegisterPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Role Selection */}
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                        <button type="button" onClick={() => setForm({ ...form, role: 'CUSTOMER' })}
-                            style={{
-                                flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #e5e5e5',
-                                backgroundColor: form.role === 'CUSTOMER' ? '#000' : 'transparent', color: form.role === 'CUSTOMER' ? '#fff' : '#000',
-                            }}>
-                            Customer
-                        </button>
-                        <button type="button" onClick={() => setForm({ ...form, role: 'SELLER' })}
-                            style={{
-                                flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #e5e5e5',
-                                backgroundColor: form.role === 'SELLER' ? '#000' : 'transparent', color: form.role === 'SELLER' ? '#fff' : '#000',
-                            }}>
-                            Seller
-                        </button>
-                    </div>
 
                     <div style={{ position: 'relative' }}>
                         <FiUser className="auth-input-icon" size={18} />

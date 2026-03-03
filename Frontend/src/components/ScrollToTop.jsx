@@ -27,6 +27,6 @@ export default function ScrollToTop() {
             clearTimeout(timer);
             clearTimeout(timer2);
         };
-    }, [pathname, search]);
+    }, [pathname]); // Changed from [pathname, search] to prevent jumping on filter changes
     return null;
 }

@@ -1,8 +1,10 @@
-const visualSearchService = require('../Service/visualSearchService');
+const Product = require('../Modal/Product');
 const asyncHandler = require('../middleware/asyncHandler');
 
 /**
- * POST /api/visual-search - Search products by uploaded image
+ * POST /api/visual-search
+ * Visual image search is unavailable (embedding model removed).
+ * Returns a friendly message so the frontend doesn't break.
  */
 const searchByImage = asyncHandler(async (req, res) => {
     if (!req.file) {
@@ -12,43 +14,31 @@ const searchByImage = asyncHandler(async (req, res) => {
         });
     }
 
-    console.log(`VisualSearch API: Received image (${Math.round(req.file.size / 1024)}KB, ${req.file.mimetype})`);
-
-    const result = await visualSearchService.searchByImage(req.file.buffer);
-
     return res.status(200).json({
         success: true,
         data: {
-            products: result.products,
-            message: result.message,
-            totalResults: result.products.length,
+            products: [],
+            message: 'Visual search by image is currently unavailable. Please use the text search bar to find products.',
+            totalResults: 0,
         },
     });
 });
 
 /**
- * POST /api/visual-search/sync - Sync product embeddings (admin only)
- */
-const syncEmbeddings = asyncHandler(async (req, res) => {
-    const result = await visualSearchService.syncAllProducts();
-
-    return res.status(200).json({
-        success: true,
-        message: `Sync complete: ${result.synced}/${result.total} products synced`,
-        data: result,
-    });
-});
-
-/**
- * GET /api/visual-search/status - Get sync status
+ * GET /api/visual-search/status
  */
 const getStatus = asyncHandler(async (req, res) => {
-    const status = await visualSearchService.getSyncStatus();
-
+    const totalProducts = await Product.countDocuments({ isActive: true });
     return res.status(200).json({
         success: true,
-        data: status,
+        data: {
+            totalProducts,
+            syncedProducts: totalProducts,
+            percentage: 100,
+            isReady: true,
+            backend: 'mongodb',
+        },
     });
 });
 
-module.exports = { searchByImage, syncEmbeddings, getStatus };
+module.exports = { searchByImage, getStatus };

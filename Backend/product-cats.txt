@@ -1,0 +1,50 @@
+PRODUCT=Essence Mascara Lash Princess, CAT_NAME=Beauty, CAT_SLUG=beauty
+PRODUCT=Eyeshadow Palette with Mirror, CAT_NAME=Beauty, CAT_SLUG=beauty
+PRODUCT=Powder Canister, CAT_NAME=Beauty, CAT_SLUG=beauty
+PRODUCT=Red Lipstick, CAT_NAME=Beauty, CAT_SLUG=beauty
+PRODUCT=Red Nail Polish, CAT_NAME=Beauty, CAT_SLUG=beauty
+PRODUCT=Calvin Klein CK One, CAT_NAME=Fragrances, CAT_SLUG=fragrances
+PRODUCT=Chanel Coco Noir Eau De, CAT_NAME=Fragrances, CAT_SLUG=fragrances
+PRODUCT=Dior J'adore, CAT_NAME=Fragrances, CAT_SLUG=fragrances
+PRODUCT=Dolce Shine Eau de, CAT_NAME=Fragrances, CAT_SLUG=fragrances
+PRODUCT=Gucci Bloom Eau de, CAT_NAME=Fragrances, CAT_SLUG=fragrances
+PRODUCT=Annibale Colombo Bed, CAT_NAME=Furniture, CAT_SLUG=furniture
+PRODUCT=Annibale Colombo Sofa, CAT_NAME=Furniture, CAT_SLUG=furniture
+PRODUCT=Bedside Table African Cherry, CAT_NAME=Furniture, CAT_SLUG=furniture
+PRODUCT=Knoll Saarinen Executive Conference Chair, CAT_NAME=Furniture, CAT_SLUG=furniture
+PRODUCT=Wooden Bathroom Sink With Mirror, CAT_NAME=Furniture, CAT_SLUG=furniture
+PRODUCT=Apple, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Beef Steak, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Cat Food, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Chicken Meat, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Cooking Oil, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Cucumber, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Dog Food, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Eggs, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Fish Steak, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Green Bell Pepper, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Green Chili Pepper, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Honey Jar, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Ice Cream, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Juice, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Kiwi, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Lemon, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Milk, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Mulberry, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Nescafe Coffee, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Potatoes, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Protein Powder, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Red Onions, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Rice, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Soft Drinks, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Strawberry, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Tissue Paper Box, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Water, CAT_NAME=Groceries, CAT_SLUG=groceries
+PRODUCT=Decoration Swing, CAT_NAME=Home Decoration, CAT_SLUG=home-decoration
+PRODUCT=Family Tree Photo Frame, CAT_NAME=Home Decoration, CAT_SLUG=home-decoration
+PRODUCT=House Showpiece Plant, CAT_NAME=Home Decoration, CAT_SLUG=home-decoration
+PRODUCT=Plant Pot, CAT_NAME=Home Decoration, CAT_SLUG=home-decoration
+PRODUCT=Table Lamp, CAT_NAME=Home Decoration, CAT_SLUG=home-decoration
+PRODUCT=Bamboo Spatula, CAT_NAME=Kitchen Accessories, CAT_SLUG=kitchen-accessories
+PRODUCT=Black Aluminium Cup, CAT_NAME=Kitchen Accessories, CAT_SLUG=kitchen-accessories
+PRODUCT=Black Whisk, CAT_NAME=Kitchen Accessories, CAT_SLUG=kitchen-accessories

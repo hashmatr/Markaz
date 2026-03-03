@@ -4,6 +4,8 @@ import Breadcrumb from '../components/ui/Breadcrumb';
 import toast from 'react-hot-toast';
 import API from '../api';
 
+import SEO from '../components/ui/SEO';
+
 export default function ContactPage() {
     const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
     const [loading, setLoading] = useState(false);
@@ -34,6 +36,11 @@ export default function ContactPage() {
 
     return (
         <div style={{ paddingBottom: 80 }}>
+            <SEO
+                title="Contact Us | Markaz Support & Inquiries"
+                description="Get in touch with Markaz. We're here to help you with your orders, seller inquiries, and any other questions you may have."
+                url={`${window.location.origin}/contact`}
+            />
             {/* Hero */}
             <section style={{
                 background: 'linear-gradient(135deg, #000 0%, #1a1a2e 50%, #16213e 100%)',

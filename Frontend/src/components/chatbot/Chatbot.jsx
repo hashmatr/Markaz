@@ -226,6 +226,7 @@ export default function Chatbot() {
             {/* ═══════════ CHAT WINDOW ═══════════ */}
             <div
                 id="chatbot-window"
+                data-lenis-prevent
                 style={{
                     position: 'fixed', bottom: '24px', right: '24px', zIndex: 10000,
                     width: 'min(420px, calc(100vw - 32px))',
@@ -334,7 +335,7 @@ export default function Chatbot() {
                             style={{
                                 flex: 1, overflowY: 'auto', padding: '16px',
                                 display: 'flex', flexDirection: 'column', gap: '12px',
-                                background: '#f9f9f9',
+                                background: '#f9f9f9', overscrollBehavior: 'contain',
                             }}
                             className="scrollbar-hide"
                         >
@@ -433,7 +434,7 @@ export default function Chatbot() {
                                                         }}>{product.title}</p>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                             <span style={{ fontSize: '13px', fontWeight: 700 }}>
-                                                                Rs.{product.discountedPrice || product.price}
+                                                                PKR {product.discountedPrice || product.price}
                                                             </span>
                                                             {product.discountPercent > 0 && (
                                                                 <span style={{
@@ -564,7 +565,7 @@ export default function Chatbot() {
 
                 {/* ═══════════ FOR YOU TAB ═══════════ */}
                 {activeTab === 'forYou' && (
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '16px', background: '#f9f9f9' }} className="scrollbar-hide">
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '16px', background: '#f9f9f9', overscrollBehavior: 'contain' }} className="scrollbar-hide">
                         {!user ? (
                             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#128274;</div>
@@ -659,7 +660,7 @@ export default function Chatbot() {
                                                 }}>{product.title}</p>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#000' }}>
-                                                        $.{product.discountedPrice || product.price}
+                                                        PKR {product.discountedPrice || product.price}
                                                     </span>
                                                 </div>
                                                 {product.category?.name && (
@@ -678,7 +679,7 @@ export default function Chatbot() {
 
                 {/* ═══════════ PROFILE TAB ═══════════ */}
                 {activeTab === 'profile' && (
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '16px', background: '#f9f9f9' }} className="scrollbar-hide">
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '16px', background: '#f9f9f9', overscrollBehavior: 'contain' }} className="scrollbar-hide">
                         {!user ? (
                             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#128100;</div>

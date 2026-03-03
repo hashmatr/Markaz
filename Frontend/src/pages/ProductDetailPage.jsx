@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { FiMinus, FiPlus, FiCheck, FiX, FiZap } from 'react-icons/fi';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import StarRating from '../components/ui/StarRating';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
-import { productAPI, reviewAPI, stylistAPI, commentAPI } from '../api';
+import SEO from '../components/ui/SEO';
+import { productAPI, reviewAPI, cartAPI, stylistAPI } from '../api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import ProductComments from '../components/product/ProductComments';
@@ -17,6 +18,7 @@ export default function ProductDetailPage() {
     const { id } = useParams();
     const { addToCart } = useCart();
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
     const [product, setProduct] = useState(null);
@@ -57,13 +59,19 @@ export default function ProductDetailPage() {
         setQuantity(1);
         setShowAllReviews(false);
         setLoading(true);
-        window.scrollTo(0, 0);
+        setLoading(true);
+        // window.scrollTo(0, 0); // Removed as ScrollToTop component exists
 
         // Always fetch real product from backend
         productAPI.getById(id)
             .then(r => {
                 const fetchedProduct = r.data.data.product;
                 setProduct(fetchedProduct);
+
+                // SEO Redirect: if URL contains ID instead of SLUG, redirect to slug-based URL
+                if (id === fetchedProduct._id) {
+                    navigate(`/product/${fetchedProduct.slug}`, { replace: true });
+                }
 
                 // Now fetch reviews using the actual product _id (handles cases where id is a slug)
                 reviewAPI.getProductReviews(fetchedProduct._id)
@@ -74,8 +82,12 @@ export default function ProductDetailPage() {
                     .catch(() => setReviews([]));
 
                 // Record this view for AI Stylist recommendations
-                if (user?._id) {
-                    stylistAPI.recordView({ productId: fetchedProduct._id }).catch(() => { });
+                try {
+                    if (user?._id) {
+                        stylistAPI.recordView({ productId: fetchedProduct._id }).catch(() => { });
+                    }
+                } catch (e) {
+                    // Non-critical: don't let stylist tracking break product display
                 }
 
                 // Set default size (legacy)
@@ -96,7 +108,10 @@ export default function ProductDetailPage() {
                     setSelectedOptions(defaults);
                 }
             })
-            .catch(() => setProduct(null))
+            .catch((err) => {
+                console.error('Product fetch error:', err);
+                setProduct(null);
+            })
             .finally(() => setLoading(false));
 
         productAPI.getAll({ limit: 4 })
@@ -110,7 +125,11 @@ export default function ProductDetailPage() {
     }, [id]);
 
     const handleAddToCart = async () => {
-        if (!user) { toast.error('Please login to add items to cart'); return; }
+        if (!user) {
+            toast.error('Please register to add items to cart');
+            navigate('/register');
+            return;
+        }
         if (!product) return;
 
         // Validation: ensure all variant options are selected
@@ -197,6 +216,80 @@ export default function ProductDetailPage() {
         );
     }
 
+    // Generate Product Schema (JSON-LD)
+    const productSchema = product ? {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": product.title,
+        "image": product.images?.map(img => img.url) || [],
+        "description": product.description,
+        "sku": product.sku || product._id,
+        "brand": {
+            "@type": "Brand",
+            "name": product.brand || "Markaz"
+        },
+        ...(product.rating > 0 && {
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": product.rating,
+                "reviewCount": product.numReviews || reviews.length || 1
+            }
+        }),
+        "review": reviews.slice(0, 3).map(rev => ({
+            "@type": "Review",
+            "author": { "@type": "Person", "name": rev.user?.name || "Verified Buyer" },
+            "datePublished": rev.createdAt,
+            "reviewBody": rev.comment,
+            "reviewRating": {
+                "@type": "Rating",
+                "ratingValue": rev.rating
+            }
+        })),
+        "offers": {
+            "@type": "Offer",
+            "url": window.location.href,
+            "priceCurrency": "PKR",
+            "price": product.discountedPrice || product.price,
+            "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "seller": {
+                "@type": "Organization",
+                "name": product.seller?.storeName || "Markaz"
+            }
+        }
+    } : null;
+
+    // Generate FAQ Schema (JSON-LD)
+    const faqSchema = product ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Is this product genuine?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, all products on Markaz are 100% authentic and sourced directly from verified sellers."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What is the return policy?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "We offer a 7-day easy return policy for this product if it's damaged or not as described."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How long does shipping take?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Standard shipping takes 3-5 business days across Pakistan."
+                }
+            }
+        ]
+    } : null;
+
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 6);
     const productImages = product.images?.length > 0 ? product.images : [{ url: 'https://placehold.co/600x600/f0f0f0/999?text=No+Image' }];
     const productColors = product.color ? [product.color] : [];
@@ -204,6 +297,14 @@ export default function ProductDetailPage() {
 
     return (
         <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
+            <SEO
+                title={`${product.title} in Pakistan | Buy Online at Best Price`}
+                description={product.description}
+                image={product.images?.[0]?.url}
+                url={`${window.location.origin}/product/${product.slug}`}
+                type="product"
+                schemaData={[productSchema, faqSchema].filter(Boolean)}
+            />
             <Breadcrumb items={[{ label: 'Shop', to: '/shop' }, { label: product.category?.name || 'Products', to: '/shop' }, { label: product.title }]} />
 
             {/* PRODUCT SECTION */}
@@ -256,10 +357,10 @@ export default function ProductDetailPage() {
                         <StarRating rating={product.rating || 0} size={20} showText />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                        <span style={{ fontSize: '28px', fontWeight: 700 }}>${product.discountedPrice || product.price}</span>
+                        <span style={{ fontSize: '28px', fontWeight: 700 }}>PKR {product.discountedPrice || product.price}</span>
                         {product.discountPercent > 0 && (
                             <>
-                                <span style={{ fontSize: '24px', color: '#a3a3a3', textDecoration: 'line-through' }}>${product.price}</span>
+                                <span style={{ fontSize: '24px', color: '#a3a3a3', textDecoration: 'line-through' }}>PKR {product.price}</span>
                                 <span className="badge-danger" style={{ fontSize: '13px', padding: '4px 12px', borderRadius: '9999px', fontWeight: 500 }}>
                                     -{product.discountPercent}%
                                 </span>

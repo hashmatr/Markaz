@@ -3,7 +3,6 @@ const Product = require('../Modal/Product');
 const Category = require('../Modal/Category');
 const BrowsingHistory = require('../Modal/BrowsingHistory');
 const Order = require('../Modal/Order');
-const embeddingService = require('./embeddingService');
 
 class StylistService {
     constructor() {

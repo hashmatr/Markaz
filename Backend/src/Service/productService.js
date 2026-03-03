@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 const Product = require('../Modal/Product');
 const Seller = require('../Modal/seller');
 const Category = require('../Modal/Category');
-const slugify = require('slugify');
+const { generateUniqueSlug } = require('../utils/slugUtils');
 const cloudinary = require('../Config/cloudinary');
-const embeddingService = require('./embeddingService');
+const { CACHE_KEYS, TTL, getCache, setCache, invalidateProductCaches } = require('./cacheService');
 
 class ProductService {
     /**
@@ -40,7 +40,7 @@ class ProductService {
         // Create product
         const product = await Product.create({
             ...productData,
-            slug: slugify(productData.title, { lower: true, strict: true }) + '-' + Date.now(),
+            slug: await generateUniqueSlug(Product, 'slug', productData.title),
             seller: seller._id,
             images: images.length > 0 ? images : productData.images || [],
         });
@@ -49,93 +49,134 @@ class ProductService {
         seller.totalProducts += 1;
         await seller.save();
 
-        // ── Auto-embed in Pinecone (non-blocking) ──
-        this._embedProductAsync(product._id);
+        // Invalidate caches
+        await invalidateProductCaches();
 
         return product;
     }
 
     /**
      * Get all products with filters, search, and pagination.
-     * When a search query is present and Pinecone is available,
-     * uses vector similarity search (RAG) for smarter results.
+     * Uses pure MongoDB text search and regex matching.
      */
     async getAllProducts(query = {}) {
         const {
             search, category, seller, minPrice, maxPrice,
-            brand, color, size, rating, sort, page = 1, limit = 12,
+            brand, color, size, rating, sort, page = 1, limit = 12, freeDelivery
         } = query;
 
-        // 1. TRY GROQ HYBRID SEARCH (Most Intelligent + Fast)
-        const groqSearchService = require('./groqSearchService');
-        if (search && groqSearchService.groq) {
-            try {
-                const results = await groqSearchService.hybridSearch(search, { category, brand });
+        // RESOLVE: Category Slug -> ID
+        let resolvedCategoryId = category;
+        if (category && !mongoose.Types.ObjectId.isValid(category)) {
+            let foundCat = await Category.findOne({ slug: category });
+            if (!foundCat) {
+                foundCat = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
+            }
+            if (foundCat) resolvedCategoryId = foundCat._id.toString();
+            else resolvedCategoryId = new mongoose.Types.ObjectId().toString();
+        }
 
-                // If Groq has results, return them. 
-                // If Groq EXPLICITLY says "no matches", return empty now to prevent "junk fallback"
-                if (results) {
-                    return {
-                        products: results.products,
-                        aiSummary: results.aiSummary,
-                        pagination: {
-                            currentPage: 1,
-                            totalPages: results.products.length > 0 ? 1 : 0,
-                            totalProducts: results.products.length
-                        }
-                    };
+        // 1. RESOLVE RECURSIVE CATEGORIES (Parent -> Children -> Grandchildren)
+        let categoryIds = [];
+        if (resolvedCategoryId && mongoose.Types.ObjectId.isValid(resolvedCategoryId)) {
+            categoryIds = [resolvedCategoryId];
+            const subCategories = await Category.find({ parentCategory: resolvedCategoryId });
+            if (subCategories.length > 0) {
+                const subIds = subCategories.map(c => c._id.toString());
+                categoryIds.push(...subIds);
+                const subSubCategories = await Category.find({ parentCategory: { $in: subIds } });
+                if (subSubCategories.length > 0) {
+                    categoryIds.push(...subSubCategories.map(c => c._id.toString()));
                 }
-            } catch (err) {
-                console.warn('ProductService: Groq search failed, trying fallback search:', err.message);
             }
         }
 
-        // 2. TRY VECTOR SEARCH (Pinecone)
-        if (search && embeddingService.isAvailable()) {
-            try {
-                return await this._vectorSearch(query);
-            } catch (err) {
-                console.error('ProductService: Vector search failed, falling back to text search:', err.message);
-            }
+        // 0. CHECK CACHE FOR SPECIFIC HOME PAGE QUERIES
+        const isHomePageQuery = (limit == 8 || limit == 12) && !search && !category && !seller && !minPrice && !maxPrice && !brand && !color && !size && !rating;
+        let cacheKey = null;
+
+        if (isHomePageQuery) {
+            if (sort === 'newest') cacheKey = CACHE_KEYS.NEW_ARRIVALS;
+            else if (sort === 'popular') cacheKey = CACHE_KEYS.TRENDING_PRODUCTS;
+            else if (sort === 'price_asc') cacheKey = CACHE_KEYS.HOME_PAGE;
+        }
+
+        if (cacheKey) {
+            const cachedData = await getCache(cacheKey);
+            if (cachedData) return cachedData;
         }
 
         // ────────────────────────────────────────────────
-        // TRADITIONAL SEARCH (fallback / non-search queries)
+        // MONGODB SEARCH
         // ────────────────────────────────────────────────
         const filter = { isActive: true };
 
-        // Search Intelligence: Check if search term is a category
-        if (search && !category) {
-            const matchedCategory = await Category.findOne({
-                $or: [
-                    { name: { $regex: new RegExp(`^${search}$`, 'i') } },
-                    { slug: search.toLowerCase() }
-                ]
-            });
-            if (matchedCategory) {
-                // If search matches a category, use it as a category filter instead
-                query.category = matchedCategory._id.toString();
-                // We keep search null so we don't do $text search which might be too restrictive
-            } else {
-                filter.$text = { $search: search };
+        // Search
+        if (search) {
+            const isMen = /\b(men|male|boy|gent|him)\b/i.test(search);
+            const isWomen = /\b(women|female|girl|lady|her)\b/i.test(search);
+
+            if (isMen && !isWomen) {
+                filter.$and = filter.$and || [];
+                filter.$and.push({
+                    $or: [
+                        { title: { $regex: /\b(men|male|boy)\b/i } },
+                        { description: { $regex: /\b(men|male|boy)\b/i } },
+                        { tags: { $in: [/men/i, /male/i, /boy/i] } }
+                    ]
+                });
+            } else if (isWomen && !isMen) {
+                filter.$and = filter.$and || [];
+                filter.$and.push({
+                    $or: [
+                        { title: { $regex: /\b(women|female|girl|lady)\b/i } },
+                        { description: { $regex: /\b(women|female|girl|lady)\b/i } },
+                        { tags: { $in: [/women/i, /female/i, /girl/i, /lady/i] } }
+                    ]
+                });
             }
-        } else if (search) {
-            filter.$text = { $search: search };
+
+            if (!category) {
+                const matchedCategory = await Category.findOne({
+                    $or: [
+                        { name: { $regex: new RegExp(`^${search}$`, 'i') } },
+                        { slug: search.toLowerCase() }
+                    ]
+                });
+                if (matchedCategory) {
+                    resolvedCategoryId = matchedCategory._id.toString();
+                    categoryIds = [resolvedCategoryId];
+                    // Also get children
+                    const subCategories = await Category.find({ parentCategory: resolvedCategoryId });
+                    if (subCategories.length > 0) {
+                        const subIds = subCategories.map(c => c._id.toString());
+                        categoryIds.push(...subIds);
+                        const subSubCategories = await Category.find({ parentCategory: { $in: subIds } });
+                        if (subSubCategories.length > 0) {
+                            categoryIds.push(...subSubCategories.map(c => c._id.toString()));
+                        }
+                    }
+                } else {
+                    // Full text search with $or across key fields
+                    filter.$or = [
+                        { title: { $regex: search, $options: 'i' } },
+                        { brand: { $regex: search, $options: 'i' } },
+                        { description: { $regex: search, $options: 'i' } },
+                        { tags: { $regex: search, $options: 'i' } },
+                    ];
+                }
+            } else {
+                filter.$or = [
+                    { title: { $regex: search, $options: 'i' } },
+                    { brand: { $regex: search, $options: 'i' } },
+                    { description: { $regex: search, $options: 'i' } },
+                    { tags: { $regex: search, $options: 'i' } },
+                ];
+            }
         }
 
         // Recursive Category Filter (include children)
-        if (query.category) {
-            const categoryIds = [query.category];
-            const subCategories = await Category.find({ parentCategory: query.category });
-            if (subCategories.length > 0) {
-                categoryIds.push(...subCategories.map(c => c._id));
-
-                // One more level for deeper nests if needed
-                const subSubCategories = await Category.find({ parentCategory: { $in: subCategories.map(c => c._id) } });
-                if (subSubCategories.length > 0) {
-                    categoryIds.push(...subSubCategories.map(c => c._id));
-                }
-            }
+        if (categoryIds.length > 0) {
             filter.category = { $in: categoryIds };
         }
 
@@ -151,9 +192,57 @@ class ProductService {
                 }
             }
         }
-        if (brand) filter.brand = { $regex: brand, $options: 'i' };
-        if (color) filter.color = { $regex: color, $options: 'i' };
-        if (size) filter['sizes.name'] = { $regex: size, $options: 'i' };
+        if (freeDelivery === 'true' || freeDelivery === true) {
+            filter.freeDelivery = true;
+        }
+
+        // ────────────────────────────────────────────────
+        // ATTRIBUTE FILTERS (Properly AND-ed together)
+        // ────────────────────────────────────────────────
+        const andFilters = [];
+
+        if (brand) {
+            andFilters.push({
+                $or: [
+                    { brand: { $regex: brand, $options: 'i' } },
+                    { 'specifications.value': { $regex: brand, $options: 'i' } }
+                ]
+            });
+        }
+
+        if (color) {
+            andFilters.push({
+                $or: [
+                    { color: { $regex: color, $options: 'i' } },
+                    { 'variantOptions.values': { $regex: color, $options: 'i' } },
+                    { 'variants.options.Color': { $regex: color, $options: 'i' } }
+                ]
+            });
+        }
+
+        if (size) {
+            andFilters.push({
+                $or: [
+                    { 'sizes.name': { $regex: size, $options: 'i' } },
+                    { 'variantOptions.values': { $regex: size, $options: 'i' } },
+                    { 'variants.options.Size': { $regex: size, $options: 'i' } }
+                ]
+            });
+        }
+
+        if (query.condition) {
+            andFilters.push({
+                $or: [
+                    { description: { $regex: query.condition, $options: 'i' } },
+                    { 'specifications.value': { $regex: query.condition, $options: 'i' } }
+                ]
+            });
+        }
+
+        if (andFilters.length > 0) {
+            filter.$and = [...(filter.$and || []), ...andFilters];
+        }
+
         if (rating) filter.rating = { $gte: parseFloat(rating) };
 
         // Price range
@@ -187,7 +276,6 @@ class ProductService {
         else if (sort === 'rating') sortOption = { rating: -1 };
         else if (sort === 'popular') sortOption = { totalSold: -1 };
         else if (sort === 'newest') sortOption = { createdAt: -1 };
-
         const skip = (page - 1) * limit;
 
         const products = await Product.find(filter)
@@ -199,7 +287,7 @@ class ProductService {
 
         const total = await Product.countDocuments(filter);
 
-        return {
+        const finalResult = {
             products,
             pagination: {
                 currentPage: parseInt(page),
@@ -207,112 +295,13 @@ class ProductService {
                 totalProducts: total,
             },
         };
-    }
 
-    /**
-     * ── RAG Vector Search ──
-     * 1. Takes user's natural language query
-     * 2. Generates an embedding for the query using Gemini
-     * 3. Searches Pinecone for the most similar product vectors
-     * 4. Fetches the full product documents from MongoDB by ID
-     * 5. Applies any additional MongoDB filters (price, color, etc.)
-     * 6. Returns ranked results
-     */
-    async _vectorSearch(query) {
-        const {
-            search, category, seller, minPrice, maxPrice,
-            brand, color, size, rating, sort, page = 1, limit = 12,
-        } = query;
-
-        console.log(`ProductService [RAG]: Vector search for "${search}"`);
-
-        // Build Pinecone metadata filter
-        const pineconeFilter = { isActive: true };
-        if (color) pineconeFilter.color = { $eq: color };
-        if (brand) pineconeFilter.brand = { $eq: brand };
-
-        // Query Pinecone — get top 50 similar results
-        const vectorResults = await embeddingService.searchSimilar(
-            search,
-            50,
-            Object.keys(pineconeFilter).length > 1 ? pineconeFilter : {}
-        );
-
-        if (!vectorResults || vectorResults.length === 0) {
-            console.log('ProductService [RAG]: No vector results, falling back to text search.');
-            throw new Error('No vector results');
+        if (cacheKey) {
+            const ttl = sort === 'newest' ? TTL.NEW_ARRIVALS : TTL.TRENDING_PRODUCTS;
+            await setCache(cacheKey, finalResult, ttl);
         }
 
-        console.log(`ProductService [RAG]: Pinecone returned ${vectorResults.length} matches.`);
-
-        // Extract product IDs in ranking order
-        const productIds = vectorResults.map((r) => r.productId);
-        const scoreMap = {};
-        vectorResults.forEach((r) => {
-            scoreMap[r.productId] = r.score;
-        });
-
-        // Fetch full products from MongoDB
-        const mongoFilter = {
-            _id: { $in: productIds },
-            isActive: true,
-        };
-
-        // Apply additional MongoDB filters
-        if (category) mongoFilter.category = category;
-        if (seller) mongoFilter.seller = seller;
-        if (rating) mongoFilter.rating = { $gte: parseFloat(rating) };
-        if (size) mongoFilter['sizes.name'] = { $regex: size, $options: 'i' };
-        if (minPrice || maxPrice) {
-            mongoFilter.discountedPrice = {};
-            if (minPrice) mongoFilter.discountedPrice.$gte = parseFloat(minPrice);
-            if (maxPrice) mongoFilter.discountedPrice.$lte = parseFloat(maxPrice);
-        }
-
-        let products = await Product.find(mongoFilter)
-            .populate('category', 'name slug')
-            .populate('seller', 'storeName storeSlug storeLogo rating')
-            .lean();
-
-        // Re-sort by Pinecone similarity score (preserving vector ranking)
-        products = products.map((p) => ({
-            ...p,
-            _vectorScore: scoreMap[p._id.toString()] || 0,
-        }));
-
-        // Apply sort override if user selected one
-        if (sort === 'price_asc') {
-            products.sort((a, b) => (a.discountedPrice || a.price) - (b.discountedPrice || b.price));
-        } else if (sort === 'price_desc') {
-            products.sort((a, b) => (b.discountedPrice || b.price) - (a.discountedPrice || a.price));
-        } else if (sort === 'rating') {
-            products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        } else if (sort === 'newest') {
-            products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        } else {
-            // Default: sort by vector similarity (most relevant first)
-            products.sort((a, b) => (b._vectorScore || 0) - (a._vectorScore || 0));
-        }
-
-        // Paginate
-        const totalProducts = products.length;
-        const totalPages = Math.ceil(totalProducts / limit);
-        const startIdx = (page - 1) * limit;
-        const paginatedProducts = products.slice(startIdx, startIdx + parseInt(limit));
-
-        // Remove internal score field before returning
-        const cleanProducts = paginatedProducts.map(({ _vectorScore, ...rest }) => rest);
-
-        console.log(`ProductService [RAG]: Returning ${cleanProducts.length} products (page ${page}/${totalPages}).`);
-
-        return {
-            products: cleanProducts,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages,
-                totalProducts,
-            },
-        };
+        return finalResult;
     }
 
     /**
@@ -321,16 +310,20 @@ class ProductService {
     async getProductById(productId) {
         let product;
 
-        // Try by ObjectId first, fallback to slug
-        if (mongoose.Types.ObjectId.isValid(productId)) {
+        // Strict ObjectId check: must be exactly 24 hex characters.
+        // mongoose.Types.ObjectId.isValid() is too lenient (accepts any 12-char string),
+        // which causes slugs like "blue-t-shirt" to be incorrectly treated as ObjectIds.
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(productId);
+
+        if (isObjectId) {
             product = await Product.findById(productId)
                 .populate('category', 'name slug')
                 .populate('seller', 'storeName storeSlug storeLogo rating businessPhone');
         }
 
-        // If not found by ID, try by slug
+        // If not found by ID (or not an ObjectId), try by slug
         if (!product) {
-            product = await Product.findOne({ slug: productId })
+            product = await Product.findOne({ slug: productId.toLowerCase() })
                 .populate('category', 'name slug')
                 .populate('seller', 'storeName storeSlug storeLogo rating businessPhone');
         }
@@ -401,7 +394,7 @@ class ProductService {
 
         const {
             page = 1, limit = 10, search, category,
-            minPrice, maxPrice, color, sort,
+            minPrice, maxPrice, color, sort, freeDelivery
         } = query;
 
         const filter = { seller: seller._id };
@@ -414,6 +407,7 @@ class ProductService {
         // Filters
         if (category) filter.category = category;
         if (color) filter.color = { $regex: color, $options: 'i' };
+        if (freeDelivery === 'true' || freeDelivery === true) filter.freeDelivery = true;
 
         // Price range
         if (minPrice || maxPrice) {
@@ -473,8 +467,8 @@ class ProductService {
         }
 
         // Update slug if title changed
-        if (updateData.title) {
-            updateData.slug = slugify(updateData.title, { lower: true, strict: true }) + '-' + Date.now();
+        if (updateData.title && updateData.title !== product.title) {
+            updateData.slug = await generateUniqueSlug(Product, 'slug', updateData.title);
         }
 
         const updatedProduct = await Product.findByIdAndUpdate(productId, updateData, {
@@ -482,8 +476,8 @@ class ProductService {
             runValidators: true,
         });
 
-        // ── Re-embed in Pinecone (non-blocking) ──
-        this._embedProductAsync(productId);
+        // Invalidate caches
+        await invalidateProductCaches();
 
         return updatedProduct;
     }
@@ -496,14 +490,12 @@ class ProductService {
         let seller;
 
         if (isAdmin) {
-            // Admin can delete any product
             product = await Product.findById(productId);
             if (!product) {
                 throw Object.assign(new Error('Product not found'), { status: 404 });
             }
             seller = await Seller.findById(product.seller);
         } else {
-            // Seller can only delete their own products
             seller = await Seller.findOne({ user: userId });
             if (!seller) {
                 throw Object.assign(new Error('Seller not found'), { status: 404 });
@@ -536,17 +528,26 @@ class ProductService {
             await seller.save();
         }
 
-        // ── Remove from Pinecone ──
-        embeddingService.deleteProduct(productId).catch(() => { });
+        // Invalidate caches
+        await invalidateProductCaches();
 
         return { message: 'Product deleted successfully' };
     }
 
     /**
-     * Get products by category
+     * Get products by category (Supports ID or Slug)
      */
-    async getProductsByCategory(categoryId, query = {}) {
+    async getProductsByCategory(categoryIdentifier, query = {}) {
         const { page = 1, limit = 12, sort } = query;
+
+        let categoryId = categoryIdentifier;
+        if (!mongoose.Types.ObjectId.isValid(categoryIdentifier)) {
+            const category = await Category.findOne({ slug: categoryIdentifier });
+            if (!category) {
+                throw Object.assign(new Error('Category not found'), { status: 404 });
+            }
+            categoryId = category._id;
+        }
 
         // Recursive Category Filter (include children)
         const categoryIds = [categoryId];
@@ -554,7 +555,6 @@ class ProductService {
         if (subCategories.length > 0) {
             categoryIds.push(...subCategories.map(c => c._id));
 
-            // One more level for deeper nests
             const subSubCategories = await Category.find({ parentCategory: { $in: subCategories.map(c => c._id) } });
             if (subSubCategories.length > 0) {
                 categoryIds.push(...subSubCategories.map(c => c._id));
@@ -609,28 +609,6 @@ class ProductService {
             avgRating: Math.round((b.avgRating || 0) * 10) / 10,
             image: b.image,
         }));
-    }
-
-    /**
-     * ── Helper: Embed a product into Pinecone asynchronously ──
-     * Called after create/update. Non-blocking (fire-and-forget).
-     */
-    async _embedProductAsync(productId) {
-        try {
-            if (!embeddingService.isAvailable()) return;
-
-            const product = await Product.findById(productId)
-                .populate('category', 'name slug')
-                .populate('seller', 'storeName storeSlug rating')
-                .lean();
-
-            if (product) {
-                await embeddingService.upsertProduct(product);
-                console.log(`ProductService: Product ${productId} embedded in Pinecone.`);
-            }
-        } catch (err) {
-            console.error(`ProductService: Failed to embed product ${productId}:`, err.message);
-        }
     }
 }
 

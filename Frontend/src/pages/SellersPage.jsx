@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { sellerAPI } from '../api';
 import StarRating from '../components/ui/StarRating';
 import Breadcrumb from '../components/ui/Breadcrumb';
+import SEO from '../components/ui/SEO';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
@@ -20,6 +21,11 @@ export default function SellersPage() {
 
     return (
         <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
+            <SEO
+                title="Our Sellers & Vendors | Markaz Multi-Vendor Marketplace"
+                description="Discover unique stores and premium products from our trusted community of sellers across Pakistan."
+                url={`${window.location.origin}/sellers`}
+            />
             <Breadcrumb items={[{ label: 'Brands & Sellers' }]} />
 
             <div style={{ marginBottom: '40px' }}>
@@ -81,7 +87,7 @@ export default function SellersPage() {
                                 overflow: 'hidden'
                             }}>
                                 {seller.storeLogo?.url ? (
-                                    <img src={seller.storeLogo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    <img src={seller.storeLogo.url} alt={seller.storeName} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         onError={(e) => {
                                             const currentSrc = e.target.src;
                                             if (currentSrc.includes('/api/proxy/image') || currentSrc.includes('placehold.co')) return;

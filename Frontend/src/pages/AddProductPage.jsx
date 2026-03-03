@@ -23,7 +23,8 @@ export default function AddProductPage() {
         brand: '',
         discountPercent: '0',
         color: '',
-        tags: ''
+        tags: '',
+        freeDelivery: false
     });
 
     const [sizes, setSizes] = useState([{ name: '', quantity: 0 }]);
@@ -195,6 +196,13 @@ export default function AddProductPage() {
                                 <input type="text" placeholder="e.g. Midnight Blue" value={form.color}
                                     onChange={e => setForm({ ...form, color: e.target.value })} className="form-input" />
                             </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+                            <input type="checkbox" id="freeDelivery" checked={form.freeDelivery}
+                                onChange={e => setForm({ ...form, freeDelivery: e.target.checked })}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                            <label htmlFor="freeDelivery" style={{ fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Offer Free Delivery</label>
                         </div>
                     </div>
 

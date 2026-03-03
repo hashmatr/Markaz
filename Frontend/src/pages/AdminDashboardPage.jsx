@@ -208,12 +208,12 @@ export default function AdminDashboardPage() {
                                 <>
                                     {/* Stats Grid */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16, marginBottom: 28 }}>
-                                        <StatCard label="Total Revenue" value={`$${(stats?.totalRevenue || 0).toLocaleString()}`} icon={FiDollarSign} bg="#fefce8" fg="#ca8a04" sub={stats?.todayRevenue > 0 ? `+$${stats.todayRevenue} today` : undefined} />
+                                        <StatCard label="Total Revenue" value={`PKR ${(stats?.totalRevenue || 0).toLocaleString()}`} icon={FiDollarSign} bg="#fefce8" fg="#ca8a04" sub={stats?.todayRevenue > 0 ? `+PKR ${stats.todayRevenue} today` : undefined} />
                                         <StatCard label="Total Orders" value={stats?.totalOrders || 0} icon={FiShoppingBag} bg="#faf5ff" fg="#9333ea" sub={stats?.newOrdersToday > 0 ? `+${stats.newOrdersToday} today` : undefined} />
                                         <StatCard label="Total Users" value={stats?.totalUsers || 0} icon={FiUsers} bg="#eff6ff" fg="#2563eb" sub={stats?.newUsersToday > 0 ? `+${stats.newUsersToday} today` : undefined} />
                                         <StatCard label="Active Sellers" value={stats?.activeSellers || 0} icon={FiUserCheck} bg="#f0fdf4" fg="#16a34a" sub={stats?.pendingSellers > 0 ? `${stats.pendingSellers} pending` : undefined} />
                                         <StatCard label="Products" value={stats?.totalProducts || 0} icon={FiPackage} bg="#eef2ff" fg="#4f46e5" />
-                                        <StatCard label="Commission" value={`$${(stats?.totalCommission || 0).toLocaleString()}`} icon={FiCreditCard} bg="#fdf2f8" fg="#db2777" />
+                                        <StatCard label="Commission" value={`PKR ${(stats?.totalCommission || 0).toLocaleString()}`} icon={FiCreditCard} bg="#fdf2f8" fg="#db2777" />
                                         <StatCard label="Reviews" value={stats?.totalReviews || 0} icon={FiStar} bg="#fffbeb" fg="#f59e0b" sub={rs?.averageRating ? `${rs.averageRating.toFixed(1)}★ avg` : undefined} />
                                         <StatCard label="Categories" value={stats?.totalCategories || 0} icon={FiLayers} bg="#f0fdf4" fg="#059669" />
                                     </div>
@@ -293,7 +293,7 @@ export default function AdminDashboardPage() {
                                                             <img src={tp.product?.images?.[0]?.url || 'https://placehold.co/40x40/f0f0f0/999?text=P'} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
                                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                                 <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tp.product?.title || 'Product'}</p>
-                                                                <p style={{ fontSize: 11, color: '#737373' }}>{tp.totalSold} sold • ${tp.totalRevenue?.toLocaleString()}</p>
+                                                                <p style={{ fontSize: 11, color: '#737373' }}>{tp.totalSold} sold • PKR {tp.totalRevenue?.toLocaleString()}</p>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -332,7 +332,7 @@ export default function AdminDashboardPage() {
                                                             <tr key={o._id} style={{ borderBottom: '1px solid #f5f5f5' }}>
                                                                 <td style={{ padding: 10, fontWeight: 600 }}>#{o._id?.slice(-6).toUpperCase()}</td>
                                                                 <td style={{ padding: 10 }}>{o.user?.fullName || '—'}</td>
-                                                                <td style={{ padding: 10, fontWeight: 600 }}>${o.totalDiscountedPrice || o.totalPrice}</td>
+                                                                <td style={{ padding: 10, fontWeight: 600 }}>PKR {o.totalDiscountedPrice || o.totalPrice}</td>
                                                                 <td style={{ padding: 10 }}><span style={{ padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 600, backgroundColor: sc.bg, color: sc.color, textTransform: 'capitalize' }}>{o.orderStatus}</span></td>
                                                                 <td style={{ padding: 10, color: '#737373' }}>{new Date(o.createdAt).toLocaleDateString()}</td>
                                                             </tr>
@@ -366,7 +366,7 @@ export default function AdminDashboardPage() {
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
                                                             <div>
                                                                 <p style={{ fontSize: 12, color: '#a3a3a3' }}>#{order._id?.slice(-8).toUpperCase()}</p>
-                                                                <p style={{ fontWeight: 700, fontSize: 16 }}>${order.totalDiscountedPrice || order.totalPrice}</p>
+                                                                <p style={{ fontWeight: 700, fontSize: 16 }}>PKR {order.totalDiscountedPrice || order.totalPrice}</p>
                                                                 <p style={{ fontSize: 12, color: '#737373' }}>{order.user?.fullName || 'Customer'} • {new Date(order.createdAt).toLocaleDateString()}</p>
                                                             </div>
                                                             <span style={{ padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 600, backgroundColor: sc.bg, color: sc.color, textTransform: 'capitalize', height: 'fit-content' }}>{order.orderStatus}</span>
@@ -480,7 +480,7 @@ export default function AdminDashboardPage() {
                                                                 </div>
                                                             </td>
                                                             <td style={{ padding: 12, fontSize: 13 }}>{p.seller?.storeName || '\u2014'}</td>
-                                                            <td style={{ padding: 12, fontWeight: 600 }}>${p.discountedPrice || p.price}</td>
+                                                            <td style={{ padding: 12, fontWeight: 600 }}>PKR {p.discountedPrice || p.price}</td>
                                                             <td style={{ padding: 12 }}><span style={{ padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 600, backgroundColor: p.quantity > 0 ? '#f0fdf4' : '#fef2f2', color: p.quantity > 0 ? '#16a34a' : '#dc2626' }}>{p.quantity > 0 ? `${p.quantity} in stock` : 'Out of stock'}</span></td>
                                                             <td style={{ padding: 12 }}>
                                                                 <button onClick={() => handleAdminDeleteProduct(p._id, p.title)} style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#fff', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><FiTrash2 size={12} /> Delete</button>

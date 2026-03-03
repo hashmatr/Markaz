@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiArrowRight, FiArrowLeft, FiZap, FiUsers, FiBarChart2, FiHeart, FiChevronRight, FiChevronLeft, FiPause, FiPlay } from 'react-icons/fi';
+import { FiArrowRight, FiArrowLeft, FiZap, FiUsers, FiBarChart2, FiHeart, FiChevronRight, FiChevronLeft, FiPause, FiPlay, FiStar, FiShield } from 'react-icons/fi';
 import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 import ProductCard from '../components/product/ProductCard';
 import FlashSalesProducts from '../components/product/FlashSalesProducts';
@@ -10,6 +10,7 @@ import { productAPI, categoryAPI, flashSaleAPI } from '../api';
 import gsap from 'gsap';
 import { motion, AnimatePresence } from 'framer-motion';
 import ParallaxSection from '../components/animation/ParallaxSection';
+import SEO from '../components/ui/SEO';
 
 /* ════════════════════════════════════════════
    HERO SLIDES — eBay-style promotional carousel
@@ -21,108 +22,115 @@ const heroSlides = [
         subtitle: 'Special welcome offer for new members. Join Markaz and save big on your first purchase!',
         cta: 'Claim offer',
         ctaLink: '/shop',
-        bg: '#0047ab',
+        bg: 'linear-gradient(135deg, #0047ab 0%, #002d6b 100%)',
         textColor: '#fff',
-        cards: [
-            { label: 'Shop All', img: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=300&fit=crop' },
-            { label: 'New Arrivals', img: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=300&h=300&fit=crop' },
-            { label: 'Best Sellers', img: 'https://images.unsplash.com/photo-1511556820780-d912e42b4980?w=300&h=300&fit=crop' },
-        ],
+        mainImg: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80',
     },
     {
         id: 1,
         title: 'Top tech for your ride',
         subtitle: 'Explore in-car entertainment, GPS, security devices, and more.',
         cta: 'Shop now',
-        ctaLink: '/shop?search=electronics',
-        bg: '#f5f5f5',
+        ctaLink: '/category/electronics',
+        bg: 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)',
         textColor: '#000',
-        cards: [
-            { label: 'Entertainment', img: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=300&h=300&fit=crop' },
-            { label: 'GPS', img: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300&h=300&fit=crop' },
-            { label: 'Security devices', img: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=300&h=300&fit=crop' },
-        ],
+        mainImg: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800&q=80',
     },
     {
         id: 2,
         title: 'Endless accessories. Epic prices.',
         subtitle: 'Browse millions of upgrades for your style, home, and tech.',
         cta: 'Shop now',
-        ctaLink: '/shop?search=accessories',
-        bg: '#1a1a1a',
+        ctaLink: '/category/accessories',
+        bg: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)',
         textColor: '#fff',
-        cards: [
-            { label: 'Headphones', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop' },
-            { label: 'Watches', img: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&h=300&fit=crop' },
-            { label: 'Bags', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=300&fit=crop' },
-        ],
+        mainImg: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
     },
     {
         id: 3,
         title: 'Your home, your style',
         subtitle: 'Discover furniture, decor, kitchen essentials, and more.',
         cta: 'Shop now',
-        ctaLink: '/shop?search=home',
-        bg: '#f0ebe3',
+        ctaLink: '/category/home-and-living',
+        bg: 'linear-gradient(135deg, #f0ebe3 0%, #d7cec1 100%)',
         textColor: '#000',
-        cards: [
-            { label: 'Furniture', img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&h=300&fit=crop' },
-            { label: 'Decor', img: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=300&h=300&fit=crop' },
-            { label: 'Kitchen', img: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=300&fit=crop' },
-        ],
+        mainImg: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&q=80',
     },
     {
         id: 4,
         title: 'Fashion for everyone',
         subtitle: 'Trending styles from top brands — clothing, shoes, and more.',
         cta: 'Shop now',
-        ctaLink: '/shop?search=fashion',
-        bg: '#fdf2f8',
+        ctaLink: '/category/fashion',
+        bg: 'linear-gradient(135deg, #fdf2f8 0%, #fbcfe8 100%)',
         textColor: '#000',
-        cards: [
-            { label: 'Clothing', img: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=300&fit=crop' },
-            { label: 'Shoes', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop' },
-            { label: 'Jewelry', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=300&h=300&fit=crop' },
-        ],
+        mainImg: 'https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=800&q=80',
     },
 ];
 
-const trendingCategories = [
-    { name: 'Electronics', img: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop', search: 'electronics' },
-    { name: 'Motors', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=200&fit=crop', search: 'motors' },
-    { name: 'Luxury', img: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=200&h=200&fit=crop', search: 'luxury' },
-    { name: 'Collectibles & Art', img: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200&h=200&fit=crop', search: 'collectibles' },
-    { name: 'Home & Garden', img: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=200&h=200&fit=crop', search: 'home garden' },
-    { name: 'Fashion', img: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=200&h=200&fit=crop', search: 'fashion' },
-    { name: 'Health & Beauty', img: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop', search: 'health beauty' },
-    { name: 'Sports', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&h=200&fit=crop', search: 'sports' },
-    { name: 'Toys & Games', img: 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=200&h=200&fit=crop', search: 'toys' },
-    { name: 'Books', img: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=200&h=200&fit=crop', search: 'books' },
-    { name: 'Pet Supplies', img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=200&h=200&fit=crop', search: 'pets' },
-    { name: 'Musical Instruments', img: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=200&h=200&fit=crop', search: 'instruments' },
+/* ════════════════════════════════════════════
+   CATEGORY IMAGE FALLBACKS — mapped by name/keyword
+   ════════════════════════════════════════════ */
+const categoryImageMap = {
+    'electronics': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop',
+    'fashion': 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=200&h=200&fit=crop',
+    'beauty': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop',
+    'home': 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=200&h=200&fit=crop',
+    'sports': 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&h=200&fit=crop',
+    'toys': 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=200&h=200&fit=crop',
+    'books': 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=200&h=200&fit=crop',
+    'furniture': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=200&h=200&fit=crop',
+    'groceries': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop',
+    'fragrances': 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=200&h=200&fit=crop',
+    'watches': 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=200&h=200&fit=crop',
+    'men': 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=200&h=200&fit=crop',
+    'women': 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=200&h=200&fit=crop',
+    'kids': 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=200&h=200&fit=crop',
+    'footwear': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&h=200&fit=crop',
+    'accessories': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop',
+    'laptops': 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&fit=crop',
+    'smartphones': 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=200&h=200&fit=crop',
+    'mobiles': 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=200&h=200&fit=crop',
+    'tablets': 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200&h=200&fit=crop',
+    'headphones': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop',
+    'gaming': 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=200&h=200&fit=crop',
+    'jewellery': 'https://images.unsplash.com/photo-1515562141589-67f0d0da306f?w=200&h=200&fit=crop',
+    'jewelery': 'https://images.unsplash.com/photo-1515562141589-67f0d0da306f?w=200&h=200&fit=crop',
+    'vehicle': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=200&fit=crop',
+    'motorcycle': 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=200&h=200&fit=crop',
+    'sunglasses': 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200&h=200&fit=crop',
+    'skin': 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=200&h=200&fit=crop',
+    'clothes': 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&h=200&fit=crop',
+    'anime': 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&h=200&fit=crop',
+    'digital': 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&h=200&fit=crop',
+    'kitchen': 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=200&fit=crop',
+    'decoration': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=200&h=200&fit=crop',
+    'mobile': 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=200&h=200&fit=crop',
+};
+
+const getCategoryImage = (cat) => {
+    // Use category's own image if available
+    if (cat.image?.url) return cat.image.url;
+    // Try matching by slug keywords
+    const slug = (cat.slug || '').toLowerCase();
+    const name = (cat.name || '').toLowerCase();
+    for (const [key, url] of Object.entries(categoryImageMap)) {
+        if (slug.includes(key) || name.includes(key)) return url;
+    }
+    // Default fallback
+    return `https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=200&h=200&fit=crop`;
+};
+
+// Browse section — curated larger cards
+const browseSectionConfig = [
+    { slug: 'electronics', span: 2 },
+    { slug: 'fashion', span: 1 },
+    { slug: 'home-and-living', span: 1 },
+    { slug: 'sports', span: 2 },
+    { slug: 'beauty', span: 1 },
+    { slug: 'footwear', span: 1 },
 ];
 
-const techCategories = [
-    { name: 'Laptops', img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&fit=crop', search: 'laptops' },
-    { name: 'Computer Parts', img: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=200&h=200&fit=crop', search: 'computer parts' },
-    { name: 'Smartphones', img: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=200&h=200&fit=crop', search: 'smartphones' },
-    { name: 'Networking', img: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=200&h=200&fit=crop', search: 'networking' },
-    { name: 'Tablets', img: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200&h=200&fit=crop', search: 'tablets' },
-    { name: 'Storage', img: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=200&h=200&fit=crop', search: 'storage' },
-    { name: 'Cameras & Lenses', img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&h=200&fit=crop', search: 'cameras' },
-    { name: 'Smart Home', img: 'https://images.unsplash.com/photo-1591393223703-56fe1347ac62?w=200&h=200&fit=crop', search: 'smart home' },
-    { name: 'Audio', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop', search: 'audio' },
-    { name: 'Video Games', img: 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=200&h=200&fit=crop', search: 'video games' },
-    { name: 'Wearable Tech', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop', search: 'wearables' },
-    { name: 'Monitors', img: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200&h=200&fit=crop', search: 'monitors' },
-];
-
-const browseCategories = [
-    { name: 'Electronics', desc: 'Gadgets & devices', img: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=600&h=400&fit=crop', search: 'electronics', span: 2 },
-    { name: 'Fashion', desc: 'Clothing & accessories', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=400&fit=crop', search: 'fashion', span: 1 },
-    { name: 'Home & Garden', desc: 'Furniture & decor', img: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop', search: 'home garden', span: 1 },
-    { name: 'Sports', desc: 'Equipment & gear', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=600&h=400&fit=crop', search: 'sports', span: 2 },
-];
 
 const reviews = [
     { name: 'Ahmed R.', rating: 5, text: '"Markaz has become my go-to marketplace. I\'ve bought electronics, home items, and fashion — all at great prices with fast delivery!"', verified: true },
@@ -131,9 +139,54 @@ const reviews = [
     { name: 'Ayesha T.', rating: 4, text: '"Excellent customer service and very high quality products. The delivery was surprising fast and the packaging was premium. Highly recommended!"', verified: true },
 ];
 
+const FloatingBadge = ({ children, icon: Icon, delay = 0, position = {} }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{
+            opacity: 1,
+            y: [0, -10, 0],
+        }}
+        transition={{
+            duration: 4,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "easeInOut",
+            delay: delay
+        }}
+        style={{
+            position: 'absolute',
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            backdropFilter: 'blur(12px)',
+            padding: '10px 16px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+            zIndex: 10,
+            whiteSpace: 'nowrap',
+            fontSize: '13px',
+            fontWeight: 700,
+            color: '#000',
+            ...position
+        }}
+    >
+        {Icon && <Icon size={16} color="#000" />}
+        {children}
+    </motion.div>
+);
+
 export default function HomePage() {
     const { user } = useAuth();
     const navigate = useNavigate();
+
+    // Mobile detection for responsive layout
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+    useEffect(() => {
+        const h = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', h);
+        return () => window.removeEventListener('resize', h);
+    }, []);
 
     // Refs for animations
     const heroRef = useRef(null);
@@ -147,6 +200,7 @@ export default function HomePage() {
     const [trendingProducts, setTrendingProducts] = useState([]);
     const [dealsProducts, setDealsProducts] = useState([]);
     const [flashSales, setFlashSales] = useState([]);
+    const [dbCategories, setDbCategories] = useState([]);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isPlaying, setIsPlaying] = useState(true);
     const slideTimerRef = useRef(null);
@@ -190,10 +244,38 @@ export default function HomePage() {
         };
         fetchProducts();
 
+        // Fetch categories from DB
+        categoryAPI.getAll()
+            .then(res => setDbCategories(res.data.data.categories || []))
+            .catch(err => console.error("Error fetching categories:", err));
+
         flashSaleAPI.getActive()
             .then(res => setFlashSales(res.data.data.flashSales || []))
             .catch(err => console.error("Error fetching flash sales:", err));
     }, []);
+
+    // Derive display categories from DB data
+    // "Trending" = first 12 root-level categories
+    const trendingCategories = dbCategories
+        .filter(c => !c.parentCategory)
+        .slice(0, 12)
+        .map(c => ({ ...c, img: getCategoryImage(c) }));
+
+    // "Tech" = categories with tech-related slugs
+    const techSlugs = ['electronics', 'laptops', 'smartphones', 'mobiles', 'tablets', 'headphones', 'gaming', 'digital-cameras', 'smart-watches', 'smart-glasses', 'video-monitors', 'video-game-consoles'];
+    const techCategories = dbCategories
+        .filter(c => techSlugs.includes(c.slug))
+        .slice(0, 12)
+        .map(c => ({ ...c, img: getCategoryImage(c) }));
+
+    // "Browse" = curated grid categories
+    const browseCategories = browseSectionConfig
+        .map(cfg => {
+            const cat = dbCategories.find(c => c.slug === cfg.slug);
+            if (!cat) return null;
+            return { ...cat, img: getCategoryImage(cat).replace('200', '600'), span: cfg.span, desc: cat.description || `Shop ${cat.name}` };
+        })
+        .filter(Boolean);
 
     // Carousel logic
     const nextSlide = useCallback(() => {
@@ -219,96 +301,185 @@ export default function HomePage() {
 
     const currentHero = heroSlides[currentSlide];
 
+    const orgSchema = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Markaz",
+        "url": window.location.origin,
+        "logo": `${window.location.origin}/logo.png`,
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+92-XXX-XXXXXXX",
+            "contactType": "customer service"
+        }
+    };
+
     return (
         <div style={{ background: '#fff' }}>
+            <SEO
+                title="Markaz | Best Online Shopping in Pakistan - Multi-Vendor Marketplace"
+                description="Shop the latest fashion, electronics, and home essentials at Markaz. Pakistan's top multi-vendor marketplace with fast delivery and secure payments."
+                schemaData={orgSchema}
+            />
+            <section ref={heroRef} className="hero-carousel" style={{
+                background: currentHero.bg,
+                transition: 'background 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                {/* Animated Dynamic Background Blobs */}
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+                    <motion.div
+                        animate={{
+                            x: [0, 50, 0],
+                            y: [0, 30, 0],
+                            rotate: [0, 90, 0],
+                            scale: [1, 1.2, 1],
+                        }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                        style={{
+                            position: 'absolute', top: '-10%', right: '-10%',
+                            width: '600px', height: '600px', borderRadius: '50%',
+                            background: `radial-gradient(circle, ${currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)'} 0%, transparent 70%)`,
+                            filter: 'blur(100px)',
+                        }}
+                    />
+                    <motion.div
+                        animate={{
+                            x: [0, -40, 0],
+                            y: [0, -50, 0],
+                            scale: [1, 1.3, 1],
+                        }}
+                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                        style={{
+                            position: 'absolute', bottom: '-20%', left: '-10%',
+                            width: '500px', height: '500px', borderRadius: '50%',
+                            background: `radial-gradient(circle, ${currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.03)'} 0%, transparent 70%)`,
+                            filter: 'blur(80px)',
+                        }}
+                    />
+                </div>
 
-            {/* ═══════════════════ HERO CAROUSEL ═══════════════════ */}
-            <section ref={heroRef} className="hero-carousel" style={{ backgroundColor: currentHero.bg, transition: 'background-color 0.8s cubic-bezier(0.22, 1, 0.36, 1)', position: 'relative', overflow: 'hidden' }}>
-                <div className="container-main" style={{ padding: '0 20px' }}>
+                <div className="container-main" style={{ padding: isMobile ? '0 16px' : '0 20px', position: 'relative', zIndex: 1 }}>
                     <div style={{
                         display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-                        minHeight: '440px', padding: '60px 0', gap: '32px',
+                        minHeight: isMobile ? '360px' : '500px',
+                        padding: isMobile ? '30px 0 20px' : '80px 0 60px',
+                        gap: isMobile ? '20px' : '40px',
                     }}>
                         {/* Text side */}
-                        <div style={{ flex: '1 1 300px', minWidth: '280px', zIndex: 2 }}>
+                        <div style={{ flex: isMobile ? '1 1 100%' : '1 1 500px', minWidth: isMobile ? '0' : '300px', zIndex: 2 }}>
+                            <motion.span
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                key={`badge-${currentSlide}`}
+                                style={{
+                                    display: 'inline-block', padding: '6px 16px', borderRadius: '9999px',
+                                    backgroundColor: currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)',
+                                    backdropFilter: 'blur(10px)',
+                                    fontSize: '12px', fontWeight: 700, letterSpacing: '2px', color: currentHero.textColor,
+                                    marginBottom: '20px', textTransform: 'uppercase',
+                                    border: `1px solid ${currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}`
+                                }}
+                            >
+                                Exclusive Collection
+                            </motion.span>
                             <h1 ref={titleRef} style={{
-                                fontFamily: "'Satoshi', sans-serif",
-                                fontSize: 'clamp(32px, 5vw, 56px)',
-                                fontWeight: 800,
-                                lineHeight: 1.1,
-                                marginBottom: '20px',
+                                fontFamily: "'Integral CF', sans-serif",
+                                fontSize: 'clamp(36px, 6vw, 76px)',
+                                fontWeight: 900,
+                                lineHeight: 1,
+                                marginBottom: '24px',
                                 color: currentHero.textColor,
+                                letterSpacing: '-1px',
+                                textShadow: currentHero.textColor === '#fff' ? '0 10px 30px rgba(0,0,0,0.3)' : 'none'
                             }}>
                                 {currentHero.title}
                             </h1>
                             <p ref={subtitleRef} style={{
-                                color: currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.75)' : '#4a4a4a',
-                                fontSize: '18px', lineHeight: 1.6, marginBottom: '32px', maxWidth: '450px',
+                                color: currentHero.textColor === '#fff' ? 'rgba(255,255,255,0.85)' : '#4a4a4a',
+                                fontSize: isMobile ? '15px' : '20px', lineHeight: 1.5, marginBottom: isMobile ? '24px' : '40px', maxWidth: '540px',
+                                fontWeight: 500
                             }}>
                                 {currentHero.subtitle}
                             </p>
                             <Link ref={ctaRef} to={currentHero.ctaLink} style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '8px',
-                                padding: '16px 40px', borderRadius: '9999px',
+                                display: 'inline-flex', alignItems: 'center', gap: isMobile ? '10px' : '14px',
+                                padding: isMobile ? '14px 36px' : '20px 56px', borderRadius: '9999px',
                                 backgroundColor: currentHero.textColor === '#fff' ? '#fff' : '#000',
                                 color: currentHero.textColor === '#fff' ? '#000' : '#fff',
-                                fontSize: '15px', fontWeight: 700, transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                                textDecoration: 'none'
+                                fontSize: '16px', fontWeight: 800, transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                boxShadow: currentHero.textColor === '#fff' ? '0 20px 40px rgba(0,0,0,0.25)' : '0 15px 30px rgba(0,0,0,0.15)',
+                                textDecoration: 'none',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px'
                             }}
-                                className="hover:scale-105 active:scale-95">
-                                {currentHero.cta} <FiArrowRight />
+                                className="hover:scale-105 active:scale-95 group">
+                                {currentHero.cta} <FiArrowRight size={20} style={{ transition: 'transform 0.3s ease' }} className="group-hover:translate-x-1" />
                             </Link>
                         </div>
 
-                        {/* Product cards side */}
+                        {/* Image side - Ultra Premium Visual */}
                         <div style={{
-                            flex: '1 1 400px', display: 'flex', gap: '32px',
-                            justifyContent: 'center', flexWrap: 'wrap',
+                            flex: isMobile ? '1 1 100%' : '1 1 500px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            position: 'relative', minHeight: isMobile ? '280px' : '500px',
                         }}>
-                            <AnimatePresence mode="popLayout">
-                                {currentHero.cards.map((card, idx) => (
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={currentSlide}
+                                    initial={{ opacity: 0, scale: 0.8, rotate: 5, x: 100 }}
+                                    animate={{ opacity: 1, scale: 1, rotate: 0, x: 0 }}
+                                    exit={{ opacity: 0, scale: 1.1, x: -100 }}
+                                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                                    style={{ width: '100%', height: '100%', position: 'relative' }}
+                                >
+                                    {/* Main Hero Image with Floating Hover */}
                                     <motion.div
-                                        key={`${currentSlide}-${idx}`}
-                                        initial={{ opacity: 0, scale: 0.8, y: 40 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                                        transition={{
-                                            duration: 0.8,
-                                            delay: idx * 0.1,
-                                            ease: [0.22, 1, 0.36, 1]
-                                        }}
+                                        animate={{ y: [0, -15, 0] }}
+                                        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                                         style={{
-                                            width: '160px', backgroundColor: 'rgba(255,255,255,0.15)',
-                                            backdropFilter: 'blur(10px)',
-                                            borderRadius: '24px', padding: '16px',
-                                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                            border: '1px solid rgba(255,255,255,0.2)',
-                                            cursor: 'pointer'
+                                            width: '100%', maxWidth: isMobile ? '280px' : '460px',
+                                            height: 'auto', aspectRatio: '1/1', margin: '0 auto',
+                                            borderRadius: isMobile ? '32px' : '60px', overflow: 'hidden',
+                                            boxShadow: isMobile ? '0 20px 40px rgba(0,0,0,0.3)' : '0 40px 80px rgba(0,0,0,0.4)',
+                                            border: isMobile ? '6px solid rgba(255,255,255,0.15)' : '12px solid rgba(255,255,255,0.15)',
+                                            backdropFilter: 'blur(20px)',
+                                            position: 'relative',
+                                            zIndex: 5
                                         }}
-                                        whileHover={{ y: -10, backgroundColor: 'rgba(255,255,255,0.25)' }}
                                     >
-                                        <div style={{
-                                            width: '120px', height: '120px', borderRadius: '18px',
-                                            overflow: 'hidden', marginBottom: '12px',
-                                            boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
-                                        }}>
-                                            <motion.img
-                                                src={card.img}
-                                                alt={card.label}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                whileHover={{ scale: 1.15 }}
-                                                transition={{ duration: 0.6 }}
-                                            />
-                                        </div>
-                                        <p style={{
-                                            fontSize: '13px', fontWeight: 700,
-                                            color: currentHero.textColor, textAlign: 'center'
-                                        }}>
-                                            {card.label}
-                                        </p>
+                                        <img
+                                            src={currentHero.mainImg}
+                                            alt={currentHero.title}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
                                     </motion.div>
-                                ))}
+
+                                    {/* Floating Premium Badges — hide on mobile */}
+                                    {!isMobile && (
+                                        <>
+                                            <FloatingBadge icon={FiStar} delay={0.5} position={{ top: '15%', left: '-5%' }}>
+                                                4.9 Rated
+                                            </FloatingBadge>
+                                            <FloatingBadge icon={FiZap} delay={1.2} position={{ bottom: '20%', right: '0%' }}>
+                                                Trending Now
+                                            </FloatingBadge>
+                                            <FloatingBadge icon={FiShield} delay={0.8} position={{ top: '60%', left: '0%' }}>
+                                                Official Brand
+                                            </FloatingBadge>
+                                        </>
+                                    )}
+
+                                    {/* Visual Backdrop decoration */}
+                                    <div style={{
+                                        position: 'absolute', top: '50%', left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '120%', height: '120%', zIndex: -1,
+                                        background: `radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%)`,
+                                        opacity: 0.5
+                                    }} />
+                                </motion.div>
                             </AnimatePresence>
                         </div>
                     </div>
@@ -390,7 +561,7 @@ export default function HomePage() {
                         paddingBottom: '8px', scrollbarWidth: 'none',
                     }} className="scrollbar-hide">
                         {trendingCategories.map((cat) => (
-                            <Link key={cat.name} to={`/shop?search=${cat.search}`}
+                            <Link key={cat._id || cat.name} to={`/category/${cat.slug}`}
                                 style={{ textAlign: 'center', flex: '0 0 auto', cursor: 'pointer', textDecoration: 'none' }}
                                 className="trending-cat-hover">
                                 <div style={{
@@ -412,51 +583,53 @@ export default function HomePage() {
             </section >
 
             {/* ═══════════════════ TRENDING PRODUCTS (Scrollable) ═══════════════════ */}
-            {trendingProducts.length > 0 && (
-                <section style={{ paddingBottom: '48px' }}>
-                    <div className="container-main">
-                        <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            marginBottom: '24px',
-                        }}>
-                            <h2 style={{ fontFamily: "'Satoshi', sans-serif", fontSize: '22px', fontWeight: 700 }}>
-                                Trending Products
-                            </h2>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button onClick={() => scrollTrending(-1)} className="carousel-btn"
-                                    style={{
-                                        width: '36px', height: '36px', borderRadius: '50%',
-                                        border: '1px solid #d4d4d4', background: '#fff',
-                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            {
+                trendingProducts.length > 0 && (
+                    <section style={{ paddingBottom: '48px' }}>
+                        <div className="container-main">
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                marginBottom: '24px',
+                            }}>
+                                <h2 style={{ fontFamily: "'Satoshi', sans-serif", fontSize: '22px', fontWeight: 700 }}>
+                                    Trending Products
+                                </h2>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button onClick={() => scrollTrending(-1)} className="carousel-btn"
+                                        style={{
+                                            width: '36px', height: '36px', borderRadius: '50%',
+                                            border: '1px solid #d4d4d4', background: '#fff',
+                                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                        <FiChevronLeft size={18} />
+                                    </button>
+                                    <button onClick={() => scrollTrending(1)} className="carousel-btn"
+                                        style={{
+                                            width: '36px', height: '36px', borderRadius: '50%',
+                                            border: '1px solid #d4d4d4', background: '#fff',
+                                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                        <FiChevronRight size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div ref={trendingScrollRef} className="scrollbar-hide"
+                                style={{
+                                    display: 'flex', gap: '16px', overflowX: 'auto',
+                                    scrollSnapType: 'x mandatory', paddingBottom: '8px',
+                                }}>
+                                {trendingProducts.map((product) => (
+                                    <div key={product._id} style={{
+                                        flex: '0 0 220px', scrollSnapAlign: 'start',
                                     }}>
-                                    <FiChevronLeft size={18} />
-                                </button>
-                                <button onClick={() => scrollTrending(1)} className="carousel-btn"
-                                    style={{
-                                        width: '36px', height: '36px', borderRadius: '50%',
-                                        border: '1px solid #d4d4d4', background: '#fff',
-                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    }}>
-                                    <FiChevronRight size={18} />
-                                </button>
+                                        <ProductCard product={product} />
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        <div ref={trendingScrollRef} className="scrollbar-hide"
-                            style={{
-                                display: 'flex', gap: '16px', overflowX: 'auto',
-                                scrollSnapType: 'x mandatory', paddingBottom: '8px',
-                            }}>
-                            {trendingProducts.map((product) => (
-                                <div key={product._id} style={{
-                                    flex: '0 0 220px', scrollSnapAlign: 'start',
-                                }}>
-                                    <ProductCard product={product} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
+                    </section>
+                )
+            }
 
             {/* ═══════════════════ TECH CATEGORIES — "The future in your hands" ═══════════════════ */}
             <section style={{ padding: '48px 0', borderTop: '1px solid #f0f0f0', borderBottom: '1px solid #f0f0f0' }}>
@@ -472,7 +645,7 @@ export default function HomePage() {
                         paddingBottom: '8px',
                     }} className="scrollbar-hide">
                         {techCategories.map((cat) => (
-                            <Link key={cat.name} to={`/shop?search=${cat.search}`}
+                            <Link key={cat._id || cat.name} to={`/category/${cat.slug}`}
                                 style={{ textAlign: 'center', flex: '0 0 auto', cursor: 'pointer', textDecoration: 'none' }}
                                 className="trending-cat-hover">
                                 <div style={{
@@ -492,32 +665,6 @@ export default function HomePage() {
                     </div>
                 </div>
             </section>
-
-            {/* ═══════════════════ CINEMATIC PARALLAX SECTION ═══════════════════ */}
-            <ParallaxSection
-                bgImage="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=900&fit=crop"
-                height="50vh"
-            >
-                <h2 style={{
-                    fontFamily: "'Integral CF', sans-serif",
-                    fontSize: 'clamp(32px, 6vw, 64px)',
-                    fontWeight: 900,
-                    lineHeight: 1,
-                    marginBottom: '16px',
-                    textTransform: 'uppercase'
-                }}>
-                    Millions of Products
-                </h2>
-                <p style={{
-                    fontSize: 'clamp(16px, 2vw, 20px)',
-                    fontWeight: 500,
-                    opacity: 0.9,
-                    maxWidth: '600px',
-                    margin: '0 auto'
-                }}>
-                    Everything you need, delivered with premium speed and care across the nation.
-                </p>
-            </ParallaxSection>
 
             {/* ═══════════════════ NEW ARRIVALS ═══════════════════ */}
             <section className="section-pad">
@@ -554,6 +701,7 @@ export default function HomePage() {
                                 }
                             }
                         }}
+                        className="product-grid-responsive"
                         style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
@@ -612,6 +760,7 @@ export default function HomePage() {
                                 }
                             }
                         }}
+                        className="product-grid-responsive"
                         style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
@@ -647,13 +796,13 @@ export default function HomePage() {
                         }}>
                             BROWSE BY CATEGORY
                         </h2>
-                        <div style={{
+                        <div className="browse-grid-responsive" style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                             gap: '16px',
                         }}>
-                            {browseCategories.map(({ name, desc, img, search, span }) => (
-                                <Link key={name} to={`/shop?search=${search}`}
+                            {browseCategories.map(({ name, desc, img, slug, span }) => (
+                                <Link key={slug} to={`/category/${slug}`}
                                     className="browse-card"
                                     style={{
                                         position: 'relative', height: '240px', borderRadius: '20px',
@@ -715,7 +864,7 @@ export default function HomePage() {
                             </button>
                         </div>
                     </div>
-                    <div style={{
+                    <div className="review-grid-responsive" style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
                         gap: '20px',
@@ -755,11 +904,12 @@ export default function HomePage() {
             </section>
 
             {/* ═══════════════════ BECOME A SELLER ═══════════════════ */}
-            <section className="section-pad">
+            <section className="section-pad" style={{ paddingBottom: isMobile ? '80px' : undefined }}>
                 <div className="container-main">
                     <div style={{
                         background: 'linear-gradient(135deg, #000 0%, #1a1a2e 50%, #16213e 100%)',
-                        borderRadius: '32px', padding: 'clamp(32px, 5vw, 64px)',
+                        borderRadius: isMobile ? '20px' : '32px',
+                        padding: isMobile ? '28px 20px' : 'clamp(32px, 5vw, 64px)',
                         position: 'relative', overflow: 'hidden',
                     }}>
                         <div style={{
@@ -768,9 +918,9 @@ export default function HomePage() {
                         }} />
                         <div style={{
                             position: 'relative', zIndex: 1, display: 'flex',
-                            flexWrap: 'wrap', alignItems: 'center', gap: 40,
+                            flexWrap: 'wrap', alignItems: 'center', gap: isMobile ? 24 : 40,
                         }}>
-                            <div style={{ flex: '1 1 400px', minWidth: 280 }}>
+                            <div style={{ flex: '1 1 300px', minWidth: isMobile ? 0 : 280 }}>
                                 <span style={{
                                     fontSize: 12, fontWeight: 600,
                                     color: 'rgba(255,255,255,0.5)',
@@ -805,8 +955,8 @@ export default function HomePage() {
                                 </Link>
                             </div>
                             <div style={{
-                                flex: '1 1 300px', minWidth: 260,
-                                display: 'flex', flexDirection: 'column', gap: 16,
+                                flex: '1 1 280px', minWidth: isMobile ? 0 : 260,
+                                display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 16,
                             }}>
                                 {[
                                     { icon: <FiZap size={24} color="#fff" />, title: 'Sell Anything', desc: 'From electronics to fashion — list any product and start earning immediately.' },
@@ -814,8 +964,10 @@ export default function HomePage() {
                                     { icon: <FiBarChart2 size={24} color="#fff" />, title: 'Powerful Analytics', desc: 'Track sales, manage inventory, and optimize your business with real-time insights.' },
                                 ].map(({ icon, title, desc }) => (
                                     <div key={title} style={{
-                                        display: 'flex', gap: 16, padding: '20px 24px',
-                                        borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)',
+                                        display: 'flex', gap: isMobile ? 12 : 16,
+                                        padding: isMobile ? '14px 16px' : '20px 24px',
+                                        borderRadius: isMobile ? 12 : 16,
+                                        backgroundColor: 'rgba(255,255,255,0.06)',
                                         backdropFilter: 'blur(10px)',
                                         border: '1px solid rgba(255,255,255,0.08)',
                                     }}>

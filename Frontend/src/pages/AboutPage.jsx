@@ -3,10 +3,17 @@ import { FiTruck, FiShield, FiHeadphones, FiRefreshCw, FiUsers, FiGlobe, FiPacka
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/ui/Breadcrumb';
 
+import SEO from '../components/ui/SEO';
+
 export default function AboutPage() {
     const { user } = useAuth();
     return (
         <div style={{ paddingBottom: 80 }}>
+            <SEO
+                title="About Markaz | Pakistan's Leading Multi-Vendor Marketplace"
+                description="Learn about Markaz, Pakistan s premier online marketplace. Connecting quality sellers with millions of shoppers across the country."
+                url={`${window.location.origin}/about`}
+            />
             {/* Hero */}
             <section style={{
                 background: 'linear-gradient(135deg, #000 0%, #1a1a2e 50%, #16213e 100%)',

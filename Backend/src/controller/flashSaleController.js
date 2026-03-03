@@ -16,13 +16,9 @@ class FlashSaleController {
             return res.status(200).json({ success: true, data: cached, fromCache: true });
         }
 
-        const now = new Date();
         const flashSales = await FlashSale.find({
             isActive: true,
-            $or: [
-                { startTime: { $lte: now }, endTime: { $gte: now } },
-                { isPermanent: true }
-            ],
+            // Removed strict time check to support "never ends" requirement
         })
             .populate({
                 path: 'products.product',

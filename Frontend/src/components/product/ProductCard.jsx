@@ -53,7 +53,7 @@ export default function ProductCard({ product }) {
             className="h-full"
         >
             <Link
-                to={`/product/${_id}`}
+                to={`/product/${product.slug || _id}`}
                 className="group block h-full bg-white rounded-2xl p-3 border border-transparent hover:border-gray-100 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-300"
                 onMouseEnter={() => setHovered(true)}
                 onMouseLeave={() => setHovered(false)}
@@ -116,6 +116,13 @@ export default function ProductCard({ product }) {
                             </span>
                         </div>
                     )}
+                    {product.freeDelivery && (
+                        <div className="absolute bottom-3 right-3 z-10">
+                            <span className="bg-green-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+                                FREE DELIVERY
+                            </span>
+                        </div>
+                    )}
                 </div>
                 <div className="pt-4">
                     <h3 className="font-bold text-sm sm:text-base line-clamp-2 mb-1" style={{ fontFamily: "'Satoshi', sans-serif" }}>
@@ -130,10 +137,10 @@ export default function ProductCard({ product }) {
                         <StarRating rating={rating} size={14} showText count={totalReviews} />
                     </div>
                     <div className="flex items-center gap-2.5 mt-1">
-                        <span className="font-bold text-lg sm:text-xl">${discountedPrice || price}</span>
+                        <span className="font-bold text-lg sm:text-xl">PKR {discountedPrice || price}</span>
                         {discountPercent > 0 && price !== discountedPrice && (
                             <>
-                                <span className="line-through text-sm" style={{ color: '#a3a3a3' }}>${price}</span>
+                                <span className="line-through text-sm" style={{ color: '#a3a3a3' }}>PKR {price}</span>
                                 <span className="badge-danger text-xs px-2 py-0.5 rounded-full font-medium">
                                     -{discountPercent}%
                                 </span>

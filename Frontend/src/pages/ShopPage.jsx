@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiFilter, FiChevronDown, FiChevronUp, FiX } from 'react-icons/fi';
 import ProductCard from '../components/product/ProductCard';
 import Breadcrumb from '../components/ui/Breadcrumb';
-import { productAPI, categoryAPI } from '../api';
+import { productAPI, categoryAPI, sellerAPI } from '../api';
+import SEO from '../components/ui/SEO';
 import { motion } from 'framer-motion';
 
 const colors = [
@@ -12,32 +13,7 @@ const colors = [
     { name: 'Red', hex: '#ff3333' }, { name: 'Blue', hex: '#3b82f6' }, { name: 'Green', hex: '#01ab31' },
 ];
 
-const departments = [
-    {
-        name: 'Electronics',
-        items: ['Smartphones', 'Laptops', 'Tablets', 'Headphones', 'Cameras', 'Smart Watches']
-    },
-    {
-        name: 'Fashion',
-        items: ["Men's Clothing", "Women's Clothing", 'Shoes', 'Accessories', 'Jewelry', 'Watches']
-    },
-    {
-        name: 'Home & Garden',
-        items: ['Furniture', 'Kitchen', 'Decor', 'Bedding', 'Garden Tools', 'Lighting']
-    },
-    {
-        name: 'Sports & Outdoors',
-        items: ['Exercise Equipment', 'Outdoor Gear', 'Team Sports', 'Cycling', 'Fitness', 'Camping']
-    },
-    {
-        name: 'Motors',
-        items: ['Car Parts', 'Car Accessories', 'Motorcycle Parts', 'Tools']
-    },
-    {
-        name: 'More',
-        items: ['Health & Beauty', 'Toys & Games', 'Books', 'Collectibles', 'Pet Supplies', 'Musical Instruments']
-    }
-];
+// Removed hardcoded departments to use dynamic categories from database
 
 const conditions = ['New', 'Certified Refurbished', 'Used', 'Open Box'];
 const topBrands = ['Apple', 'Samsung', 'Sony', 'Nike', 'Adidas', 'Zara', 'Toyota', 'Honda', 'Dell', 'HP'];
@@ -59,9 +35,11 @@ export default function ShopPage() {
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalProducts: 0 });
     const [categories, setCategories] = useState([]);
-    const [priceRange, setPriceRange] = useState([0, 5000]);
-    const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: false, specs: true, condition: true, brands: true });
+    const [sellers, setSellers] = useState([]);
+    const [priceRange, setPriceRange] = useState([0, 200000]);
+    const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: false, specs: true, condition: true, brands: true, sellers: false, delivery: false });
     const [expandedDepts, setExpandedDepts] = useState({});
+    const { categorySlug } = useParams();
 
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
     useEffect(() => { const h = () => setIsDesktop(window.innerWidth >= 1024); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
@@ -76,20 +54,25 @@ export default function ShopPage() {
     const currentColor = searchParams.get('color') || '';
     const currentSize = searchParams.get('size') || '';
     const currentBrand = searchParams.get('brand') || '';
+    const currentSeller = searchParams.get('seller') || '';
 
+    const currentFreeDelivery = searchParams.get('freeDelivery') === 'true';
     const currentFlashSale = searchParams.get('flashSale') || '';
 
     // Sync slider from URL on load
     useEffect(() => {
-        if (currentMinPrice || currentMaxPrice) setPriceRange([parseInt(currentMinPrice) || 0, parseInt(currentMaxPrice) || 5000]);
+        if (currentMinPrice || currentMaxPrice) setPriceRange([parseInt(currentMinPrice) || 0, parseInt(currentMaxPrice) || 200000]);
     }, []);
 
     useEffect(() => { categoryAPI.getAll().then(r => setCategories(r.data.data.categories || [])).catch(() => { }); }, []);
+    useEffect(() => { sellerAPI.getAll({ status: 'active', limit: 100 }).then(r => setSellers(r.data.data.sellers || [])).catch(() => { }); }, []);
 
     // Fetch products whenever URL params change
     useEffect(() => {
+        let cancelled = false;
+
         const fetchProducts = async () => {
-            // If we have visual search results in state, use those instead of fetching
+            // ... (keep visual search logic)
             if (location.state?.visualSearchResults) {
                 setProducts(location.state.visualSearchResults);
                 setPagination({ currentPage: 1, totalPages: 1, totalProducts: location.state.visualSearchResults.length });
@@ -101,21 +84,92 @@ export default function ShopPage() {
             try {
                 const params = { sort: currentSort, page: currentPage, limit: 30 };
                 if (currentSearch) params.search = currentSearch;
-                if (currentCategory) params.category = currentCategory;
+
+                // Priority: categorySlug from route > currentCategory from query
+                const categoryIdentifier = categorySlug || currentCategory;
+                if (categoryIdentifier) params.category = categoryIdentifier;
+
                 if (currentMinPrice) params.minPrice = currentMinPrice;
                 if (currentMaxPrice) params.maxPrice = currentMaxPrice;
                 if (currentColor) params.color = currentColor;
                 if (currentSize) params.size = currentSize;
                 if (currentBrand) params.brand = currentBrand;
+                if (currentSeller) params.seller = currentSeller;
                 if (currentFlashSale) params.flashSale = currentFlashSale;
+                if (currentFreeDelivery) params.freeDelivery = true;
+                if (searchParams.get('condition')) params.condition = searchParams.get('condition');
+
                 const res = await productAPI.getAll(params);
-                setProducts(res.data.data.products || []);
+
+                if (cancelled) return; // Discard result if a newer request fired
+
+                // Deduplicate by _id (safety guard against backend returning duplicates)
+                const rawProducts = res.data.data.products || [];
+                const seen = new Map();
+                const uniqueProducts = rawProducts.filter(p => {
+                    const id = p._id?.toString();
+                    if (!id || seen.has(id)) return false;
+                    seen.set(id, true);
+                    return true;
+                });
+
+                setProducts(uniqueProducts);
                 setPagination(res.data.data.pagination);
-            } catch { setProducts([]); }
-            finally { setLoading(false); }
+            } catch { if (!cancelled) { setProducts([]); } }
+            finally { if (!cancelled) setLoading(false); }
         };
         fetchProducts();
-    }, [currentSort, currentSearch, currentPage, currentCategory, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentFlashSale, location.state]);
+
+        return () => { cancelled = true; };
+    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, location.state]);
+
+    // SEO Redirect: If accessed by ID query param and we have the slug
+    useEffect(() => {
+        if (currentCategory && !categorySlug && categories.length > 0) {
+            const matchedCat = categories.find(c => c._id === currentCategory);
+            if (matchedCat && matchedCat.slug) {
+                const p = new URLSearchParams(searchParams);
+                p.delete('category');
+                const searchStr = p.toString();
+                navigate(`/category/${matchedCat.slug}${searchStr ? '?' + searchStr : ''}`, { replace: true });
+            }
+        }
+    }, [currentCategory, categorySlug, categories, navigate, searchParams]);
+
+    // Category/Search meta metadata helper
+    const currentCategoryObj = categorySlug ? categories.find(c => c.slug === categorySlug) : null;
+    const categoryName = currentCategoryObj?.name || (products.length > 0 && products[0].category?.slug === categorySlug ? products[0].category.name : '');
+    // Check if filters are active (excluding category and page)
+    const p = new URLSearchParams(searchParams);
+    p.delete('category');
+    p.delete('page');
+    const isFiltered = p.toString().length > 0;
+
+    // Breadcrumb Schema
+    const breadcrumbSchema = categoryName ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": `${window.location.origin}`
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Shop",
+                "item": `${window.location.origin}/shop`
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": categoryName,
+                "item": `${window.location.origin}/category/${categorySlug}`
+            }
+        ]
+    } : null;
 
     // Helper to update a single filter param and reset page
     const setFilter = (key, value) => {
@@ -139,15 +193,19 @@ export default function ShopPage() {
     const toggleExpand = (k) => setExpandedFilters(prev => ({ ...prev, [k]: !prev[k] }));
 
     const handleCategoryClick = (cat) => {
-        const p = new URLSearchParams(searchParams);
-        currentCategory === cat._id ? p.delete('category') : p.set('category', cat._id);
-        p.set('page', '1');
-        setSearchParams(p);
+        if (cat.slug) {
+            navigate(`/category/${cat.slug}`);
+        } else {
+            const p = new URLSearchParams(searchParams);
+            currentCategory === cat._id ? p.delete('category') : p.set('category', cat._id);
+            p.set('page', '1');
+            setSearchParams(p);
+        }
         if (!isDesktop) setFiltersOpen(false);
     };
 
-    const handleColorClick = (hex) => {
-        setFilter('color', currentColor === hex ? '' : hex);
+    const handleColorClick = (colorName) => {
+        setFilter('color', currentColor === colorName ? '' : colorName);
         if (!isDesktop) setFiltersOpen(false);
     };
 
@@ -156,12 +214,18 @@ export default function ShopPage() {
         if (!isDesktop) setFiltersOpen(false);
     };
 
-    const applyPriceFilter = () => {
+    const applyPriceFilter = (e) => {
+        if (e) e.preventDefault();
+        const scrollY = window.scrollY;
         const p = new URLSearchParams(searchParams);
         p.set('minPrice', priceRange[0].toString());
         p.set('maxPrice', priceRange[1].toString());
         p.set('page', '1');
         setSearchParams(p);
+        // Restore scroll position after URL update
+        requestAnimationFrame(() => {
+            window.scrollTo({ top: scrollY, behavior: 'instant' });
+        });
         if (!isDesktop) setFiltersOpen(false);
     };
 
@@ -172,11 +236,11 @@ export default function ShopPage() {
     };
 
     // Count active filters
-    const activeFilterCount = [currentCategory, currentColor, currentSize, currentMinPrice, currentMaxPrice, currentBrand].filter(Boolean).length;
+    const activeFilterCount = [currentCategory, currentColor, currentSize, currentMinPrice, currentMaxPrice, currentBrand, currentSeller].filter(Boolean).length;
 
     const FilterSection = ({ title, filterKey, children }) => (
         <div style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 20, marginBottom: 20 }}>
-            <button onClick={() => toggleExpand(filterKey)}
+            <button type="button" onClick={() => toggleExpand(filterKey)}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', fontWeight: 600, fontSize: 14, marginBottom: expandedFilters[filterKey] ? 12 : 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                 {title}
                 {expandedFilters[filterKey] ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
@@ -187,8 +251,18 @@ export default function ShopPage() {
 
     const showFilters = isDesktop || filtersOpen;
 
+    const seoTitle = categoryName ? `Buy ${categoryName} Online in Pakistan | Best Prices` : (currentSearch ? `Search: ${currentSearch} | Markaz` : 'Shop | Markaz');
+    const seoDescription = currentCategoryObj?.description || (categoryName ? `Shop the latest ${categoryName} trends on Markaz. Best prices and quality in Pakistan.` : 'Browse our wide range of products across all categories.');
+
     return (
-        <div className="container-main" style={{ paddingTop: 24, paddingBottom: 48 }}>
+        <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '60px' }}>
+            <SEO
+                title={seoTitle}
+                description={seoDescription}
+                url={categorySlug ? `${window.location.origin}/category/${categorySlug}` : `${window.location.origin}/shop${location.search}`}
+                noIndex={isFiltered}
+                schemaData={breadcrumbSchema}
+            />
             <Breadcrumb items={[{ label: currentSearch || currentBrand || 'Shop' }]} />
 
             <div style={{ display: 'flex', gap: 32 }}>
@@ -218,35 +292,41 @@ export default function ShopPage() {
 
                             {/* Categories / Departments */}
                             <FilterSection title="Departments" filterKey="categories">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {departments.map(dept => (
-                                        <div key={dept.name} style={{ marginBottom: 4 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {/* Handle hierarchical categories */}
+                                    {categories.filter(c => !c.parentCategory).map(parent => (
+                                        <div key={parent._id} style={{ marginBottom: 4 }}>
                                             <button
-                                                onClick={() => setExpandedDepts(prev => ({ ...prev, [dept.name]: !prev[dept.name] }))}
+                                                onClick={() => setExpandedDepts(prev => ({ ...prev, [parent._id]: !prev[parent._id] }))}
                                                 style={{
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, fontSize: 14,
-                                                    fontWeight: expandedDepts[dept.name] ? 700 : 500, color: '#000',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, fontSize: 13,
+                                                    fontWeight: (categorySlug === parent.slug || currentCategory === parent._id) ? 700 : 500,
+                                                    color: (categorySlug === parent.slug || currentCategory === parent._id) ? '#000' : '#525252',
                                                     border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', width: '100%',
-                                                    backgroundColor: 'transparent'
+                                                    backgroundColor: (categorySlug === parent.slug || currentCategory === parent._id) ? '#f5f5f5' : 'transparent'
                                                 }}>
-                                                {dept.name}
-                                                <FiChevronDown size={14} style={{ transform: expandedDepts[dept.name] ? 'rotate(180deg)' : 'rotate(0)' }} />
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={(e) => { e.stopPropagation(); handleCategoryClick(parent); }}>
+                                                    {parent.name}
+                                                </div>
+                                                <div onClick={() => setExpandedDepts(prev => ({ ...prev, [parent._id]: !prev[parent._id] }))}>
+                                                    <FiChevronDown size={14} style={{ transform: expandedDepts[parent._id] ? 'rotate(180deg)' : 'rotate(0)' }} />
+                                                </div>
                                             </button>
 
-                                            {expandedDepts[dept.name] && (
+                                            {expandedDepts[parent._id] && (
                                                 <div style={{ paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
-                                                    {dept.items.map(item => (
+                                                    {categories.filter(c => c.parentCategory === parent._id).map(child => (
                                                         <button
-                                                            key={item}
-                                                            onClick={() => { setFilter('search', currentSearch === item.toLowerCase() ? '' : item.toLowerCase()); if (!isDesktop) setFiltersOpen(false); }}
+                                                            key={child._id}
+                                                            onClick={() => handleCategoryClick(child)}
                                                             style={{
-                                                                padding: '6px 12px', borderRadius: 6, fontSize: 13, textAlign: 'left', border: 'none', cursor: 'pointer',
-                                                                backgroundColor: currentSearch === item.toLowerCase() ? '#000' : 'transparent',
-                                                                color: currentSearch === item.toLowerCase() ? '#fff' : '#737373',
+                                                                padding: '8px 12px', borderRadius: 6, fontSize: 13, textAlign: 'left', border: 'none', cursor: 'pointer',
+                                                                backgroundColor: (categorySlug === child.slug || currentCategory === child._id) ? '#000' : 'transparent',
+                                                                color: (categorySlug === child.slug || currentCategory === child._id) ? '#fff' : '#737373',
                                                                 transition: 'all 0.15s'
                                                             }}
                                                         >
-                                                            {item}
+                                                            {child.name}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -254,21 +334,8 @@ export default function ShopPage() {
                                         </div>
                                     ))}
 
-                                    <div style={{ borderTop: '1px solid #f0f0f0', marginTop: 12, paddingTop: 12 }}>
-                                        <h4 style={{ fontSize: 12, fontWeight: 700, color: '#a3a3a3', marginBottom: 8, paddingLeft: 12 }}>ALL CATEGORIES</h4>
-                                        {categories.map(cat => (
-                                            <button key={cat._id} onClick={() => handleCategoryClick(cat)}
-                                                style={{
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, fontSize: 13,
-                                                    backgroundColor: currentCategory === cat._id ? '#000' : 'transparent',
-                                                    color: currentCategory === cat._id ? '#fff' : '#525252',
-                                                    border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', width: '100%',
-                                                }}>
-                                                {cat.name}
-                                                <FiChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
-                                            </button>
-                                        ))}
-                                    </div>
+                                    {/* Fallback for categories without hierarchy logic if needed */}
+                                    {categories.length === 0 && <div style={{ padding: '0 12px', fontSize: 13, color: '#a3a3a3' }}>Loading categories...</div>}
                                 </div>
                             </FilterSection>
 
@@ -289,13 +356,13 @@ export default function ShopPage() {
                                                 style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e5e5', fontSize: 13, outline: 'none' }} />
                                         </div>
                                     </div>
-                                    <input type="range" min="0" max="10000" value={priceRange[1]}
+                                    <input type="range" min="0" max="200000" step="1000" value={priceRange[1]}
                                         onChange={e => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                                         style={{ width: '100%', accentColor: '#000' }} />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#737373', marginTop: 4 }}>
-                                        <span>${priceRange[0]}</span><span>${priceRange[1]}</span>
+                                        <span>PKR {priceRange[0].toLocaleString()}</span><span>PKR {priceRange[1].toLocaleString()}</span>
                                     </div>
-                                    <button onClick={applyPriceFilter}
+                                    <button type="button" onClick={applyPriceFilter}
                                         style={{
                                             width: '100%', marginTop: 12, padding: '10px', borderRadius: 9999, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                                             backgroundColor: '#000', color: '#fff', border: 'none', transition: 'opacity 0.15s',
@@ -309,12 +376,12 @@ export default function ShopPage() {
                             <FilterSection title="Colors" filterKey="colors">
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                     {colors.map(c => (
-                                        <button key={c.hex} onClick={() => handleColorClick(c.hex)} title={c.name}
+                                        <button key={c.name} onClick={() => handleColorClick(c.name)} title={c.name}
                                             style={{
                                                 width: 32, height: 32, borderRadius: '50%', backgroundColor: c.hex,
-                                                border: currentColor === c.hex ? '3px solid #000' : '2px solid #e5e5e5',
+                                                border: currentColor === c.name ? '3px solid #000' : '2px solid #e5e5e5',
                                                 cursor: 'pointer', transition: 'all 0.15s',
-                                                boxShadow: currentColor === c.hex ? '0 0 0 2px #fff, 0 0 0 4px #000' : 'none',
+                                                boxShadow: currentColor === c.name ? '0 0 0 2px #fff, 0 0 0 4px #000' : 'none',
                                             }} />
                                     ))}
                                 </div>
@@ -331,11 +398,11 @@ export default function ShopPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {conditions.map(cond => (
                                         <button key={cond}
-                                            onClick={() => setFilter('search', currentSearch === cond.toLowerCase() ? '' : cond.toLowerCase())}
+                                            onClick={() => setFilter('condition', searchParams.get('condition') === cond.toLowerCase() ? '' : cond.toLowerCase())}
                                             style={{
                                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', fontSize: 14,
-                                                color: currentSearch === cond.toLowerCase() ? '#fff' : '#525252',
-                                                backgroundColor: currentSearch === cond.toLowerCase() ? '#000' : 'transparent',
+                                                color: searchParams.get('condition') === cond.toLowerCase() ? '#fff' : '#525252',
+                                                backgroundColor: searchParams.get('condition') === cond.toLowerCase() ? '#000' : 'transparent',
                                                 borderRadius: 8, border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'all 0.15s',
                                             }}>
                                             {cond}<FiChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
@@ -362,6 +429,34 @@ export default function ShopPage() {
                                 </div>
                             </FilterSection>
 
+                            {/* Seller / Store */}
+                            <FilterSection title="Seller / Store" filterKey="sellers">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
+                                    {sellers.map(s => (
+                                        <button key={s._id}
+                                            onClick={() => { setFilter('seller', currentSeller === s.storeSlug ? '' : s.storeSlug); if (!isDesktop) setFiltersOpen(false); }}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', fontSize: 14,
+                                                color: currentSeller === s.storeSlug ? '#fff' : '#525252',
+                                                backgroundColor: currentSeller === s.storeSlug ? '#000' : 'transparent',
+                                                borderRadius: 8, border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'all 0.15s',
+                                            }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <span style={{
+                                                    width: 24, height: 24, borderRadius: 6, backgroundColor: currentSeller === s.storeSlug ? 'rgba(255,255,255,0.2)' : '#f0f0f0',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, overflow: 'hidden',
+                                                }}>
+                                                    {s.storeLogo?.url ? <img src={s.storeLogo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.storeName?.charAt(0)}
+                                                </span>
+                                                {s.storeName}
+                                            </span>
+                                            <span style={{ fontSize: 11, opacity: 0.6 }}>{s.totalProducts || 0}</span>
+                                        </button>
+                                    ))}
+                                    {sellers.length === 0 && <div style={{ padding: '0 12px', fontSize: 13, color: '#a3a3a3' }}>Loading sellers...</div>}
+                                </div>
+                            </FilterSection>
+
                             {/* Specs / Sizes */}
                             <FilterSection title="Specs & Sizes" filterKey="specs">
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -379,9 +474,18 @@ export default function ShopPage() {
                                 </div>
                             </FilterSection>
 
+                            {/* Delivery Section */}
+                            <FilterSection title="Delivery" filterKey="delivery">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer', borderRadius: 8, backgroundColor: currentFreeDelivery ? '#f0fdf4' : 'transparent', border: currentFreeDelivery ? '1px solid #bbf7d0' : '1px solid transparent' }}
+                                    onClick={() => setFilter('freeDelivery', currentFreeDelivery ? '' : 'true')}>
+                                    <input type="checkbox" checked={currentFreeDelivery} readOnly style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                                    <span style={{ fontSize: 14, fontWeight: currentFreeDelivery ? 700 : 500, color: currentFreeDelivery ? '#166534' : '#525252' }}>Free Delivery</span>
+                                </div>
+                            </FilterSection>
+
                             {/* Reset + Apply */}
                             <div style={{ display: 'flex', gap: 8 }}>
-                                <button onClick={resetAllFilters}
+                                <button type="button" onClick={resetAllFilters}
                                     style={{ flex: 1, padding: 12, borderRadius: 9999, background: '#f5f5f5', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                                     Reset All
                                 </button>
@@ -412,6 +516,12 @@ export default function ShopPage() {
                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 9999, backgroundColor: '#f0f0f0', fontSize: 11, fontWeight: 500 }}>
                                             Brand: {currentBrand}
                                             <button onClick={() => setFilter('brand', '')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}><FiX size={12} /></button>
+                                        </span>
+                                    )}
+                                    {currentSeller && (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 9999, backgroundColor: '#f0f0f0', fontSize: 11, fontWeight: 500 }}>
+                                            Seller: {sellers.find(s => s.storeSlug === currentSeller)?.storeName || currentSeller}
+                                            <button onClick={() => setFilter('seller', '')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}><FiX size={12} /></button>
                                         </span>
                                     )}
                                     {(currentMinPrice || currentMaxPrice) && (
@@ -462,6 +572,8 @@ export default function ShopPage() {
                         </div>
                     )}
 
+
+
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, gap: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <h1 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 700 }}>
@@ -498,7 +610,7 @@ export default function ShopPage() {
                     )}
 
                     {loading ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
+                        <div className="product-grid-responsive" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20, minHeight: 400 }}>
                             {Array.from({ length: 9 }, (_, i) => (
                                 <div key={i}>
                                     <div style={{ backgroundColor: '#f0f0f0', borderRadius: 16, aspectRatio: '1', marginBottom: 12, animation: 'pulse 1.5s infinite' }} />
@@ -508,12 +620,12 @@ export default function ShopPage() {
                             ))}
                         </div>
                     ) : products.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '64px 0' }}>
+                        <div style={{ textAlign: 'center', padding: '64px 0', minHeight: 400 }}>
                             <p style={{ fontSize: 48, marginBottom: 16 }}>🔍</p>
                             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>No products found</h3>
                             <p style={{ color: '#737373', fontSize: 14, marginBottom: 16 }}>Try adjusting your filters or search terms.</p>
                             {activeFilterCount > 0 && (
-                                <button onClick={resetAllFilters}
+                                <button type="button" onClick={resetAllFilters}
                                     style={{ padding: '10px 24px', borderRadius: 9999, backgroundColor: '#000', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                                     Clear All Filters
                                 </button>
@@ -532,6 +644,7 @@ export default function ShopPage() {
                                     }
                                 }
                             }}
+                            className="product-grid-responsive"
                             style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}
                         >
                             {products.map(product => (

@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderAPI, paymentAPI } from '../api';
 import toast from 'react-hot-toast';
+import SEO from '../components/ui/SEO';
 
 export default function CheckoutPage() {
     const { cart, clearCart } = useCart();
@@ -169,6 +170,7 @@ export default function CheckoutPage() {
 
     return (
         <div className="container-main" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
+            <SEO title="Checkout | Secure Payment - Markaz" noIndex />
             <Breadcrumb items={[{ label: 'Cart', to: '/cart' }, { label: 'Checkout' }]} />
             <h1 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, marginBottom: '32px' }}>CHECKOUT</h1>
 
@@ -289,27 +291,27 @@ export default function CheckoutPage() {
                                             {!item.selectedOptions && item.color && <p style={{ fontSize: '11px', color: '#737373' }}>• {item.color}</p>}
                                         </div>
                                     </div>
-                                    <span style={{ fontSize: '13px', fontWeight: 700 }}>${(item.discountedPrice || item.price) * item.quantity}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: 700 }}>PKR {(item.discountedPrice || item.price) * item.quantity}</span>
                                 </div>
                             ))}
                         </div>
                         <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0', marginBottom: '16px' }} />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', marginBottom: '16px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Subtotal</span><span>${subtotal}</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Discount</span><span style={{ color: '#ff3333' }}>-${discount}</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Subtotal</span><span>PKR {subtotal}</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Discount</span><span style={{ color: '#ff3333' }}>-PKR {discount}</span></div>
                             {isFirstOrder && (
                                 <div style={{
                                     display: 'flex', justifyContent: 'space-between', padding: '8px 10px',
                                     backgroundColor: 'rgba(1, 171, 49, 0.1)', borderRadius: '8px', margin: '4px 0'
                                 }}>
                                     <span style={{ color: '#01ab31', fontWeight: 600 }}>1st Order Bonus (20%)</span>
-                                    <span style={{ color: '#01ab31', fontWeight: 700 }}>-${firstOrderDiscountAmount.toFixed(2)}</span>
+                                    <span style={{ color: '#01ab31', fontWeight: 700 }}>-PKR {firstOrderDiscountAmount.toFixed(2)}</span>
                                 </div>
                             )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Delivery</span><span>${deliveryFee}</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#737373' }}>Delivery</span><span>PKR {deliveryFee}</span></div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '18px', borderTop: '1px solid #f0f0f0', paddingTop: '16px', marginBottom: '24px' }}>
-                            <span>Total</span><span>${total}</span>
+                            <span>Total</span><span>PKR {total}</span>
                         </div>
                         <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                             {loading

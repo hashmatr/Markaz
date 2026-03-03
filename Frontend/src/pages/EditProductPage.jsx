@@ -19,7 +19,7 @@ export default function EditProductPage() {
 
     const [form, setForm] = useState({
         title: '', description: '', price: '', quantity: '',
-        category: '', brand: '', discountPercent: '0', color: '', tags: ''
+        category: '', brand: '', discountPercent: '0', color: '', tags: '', freeDelivery: false
     });
 
     const [sizes, setSizes] = useState([{ name: '', quantity: 0 }]);
@@ -42,6 +42,7 @@ export default function EditProductPage() {
                 discountPercent: p.discountPercent?.toString() || '0',
                 color: p.color || '',
                 tags: (p.tags || []).join(', '),
+                freeDelivery: p.freeDelivery || false,
             });
             setSizes(p.sizes?.length > 0 ? p.sizes : [{ name: '', quantity: 0 }]);
             setSpecs(p.specifications?.length > 0 ? p.specifications : [{ key: '', value: '' }]);
@@ -211,6 +212,13 @@ export default function EditProductPage() {
                                 <label style={{ marginBottom: '8px', display: 'block', fontWeight: 600, fontSize: '14px' }}>Product Color</label>
                                 <input type="text" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} className="form-input" />
                             </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+                            <input type="checkbox" id="freeDelivery" checked={form.freeDelivery}
+                                onChange={e => setForm({ ...form, freeDelivery: e.target.checked })}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                            <label htmlFor="freeDelivery" style={{ fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Offer Free Delivery</label>
                         </div>
                     </div>
 

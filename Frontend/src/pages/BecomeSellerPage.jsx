@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FiHome, FiPhone, FiDollarSign } from 'react-icons/fi';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import { useAuth } from '../context/AuthContext';
 import { sellerAPI } from '../api';
 import toast from 'react-hot-toast';
+import SEO from '../components/ui/SEO';
 
 export default function BecomeSellerPage() {
-    const { user, updateUser } = useAuth();
+    const { user, updateUser, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const hasRedirected = useRef(false);
     const [form, setForm] = useState({
         storeName: '', storeDescription: '', businessPhone: '', businessEmail: user?.email || '',
         bankName: '', accountNumber: '', accountTitle: '',
@@ -29,13 +31,30 @@ export default function BecomeSellerPage() {
         finally { setLoading(false); }
     };
 
-    if (!user) { navigate('/login'); return null; }
-    if (user.role === 'SELLER') { navigate('/seller/dashboard'); return null; }
+    useEffect(() => {
+        if (authLoading || hasRedirected.current) return;
+
+        if (!user) {
+            hasRedirected.current = true;
+            toast.error('Please login first to become a seller');
+            navigate('/login');
+        } else if (user.role === 'SELLER') {
+            hasRedirected.current = true;
+            navigate('/seller/dashboard');
+        }
+    }, [user, navigate, authLoading]);
+
+    if (authLoading || !user || user.role === 'SELLER') return null;
 
     const inputStyle = { width: '100%', backgroundColor: '#f0f0f0', borderRadius: '9999px', padding: '14px 20px', fontSize: '14px', outline: 'none', border: '2px solid transparent' };
 
     return (
         <div style={{ maxWidth: '700px', margin: '0 auto', padding: '24px 20px 48px' }}>
+            <SEO
+                title="Become a Seller | Markaz Pakistan"
+                description="Start your online business with Markaz. Register as a seller and reach millions of customers across Pakistan."
+                url={`${window.location.origin}/become-seller`}
+            />
             <Breadcrumb items={[{ label: 'Become a Seller' }]} />
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                 <h1 style={{ fontFamily: "'Integral CF', sans-serif", fontSize: '32px', fontWeight: 700, marginBottom: '12px' }}>BECOME A SELLER</h1>

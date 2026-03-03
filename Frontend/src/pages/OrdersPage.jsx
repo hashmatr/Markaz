@@ -68,7 +68,7 @@ export default function OrdersPage() {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '12px' }}>
                                     <div>
                                         <p style={{ fontSize: '12px', color: '#a3a3a3', marginBottom: '4px' }}>Order #{order._id?.slice(-8).toUpperCase()}</p>
-                                        <p style={{ fontWeight: 700, fontSize: '18px' }}>${order.totalDiscountedPrice || order.totalPrice}</p>
+                                        <p style={{ fontWeight: 700, fontSize: '18px' }}>PKR {order.totalDiscountedPrice || order.totalPrice}</p>
                                         <p style={{ fontSize: '13px', color: '#737373', marginTop: '4px' }}>{order.orderItems?.length} item(s) • {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>

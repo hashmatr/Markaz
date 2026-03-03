@@ -15,18 +15,22 @@ export default function FlashSalesBanner({ flashSales = [] }) {
             const now = new Date().getTime();
             const updates = {};
             flashSales.forEach(sale => {
-                const end = new Date(sale.endTime).getTime();
-                const diff = end - now;
-                if (diff > 0) {
-                    updates[sale._id] = {
-                        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-                        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-                        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-                        seconds: Math.floor((diff % (1000 * 60)) / 1000),
-                    };
-                } else {
-                    updates[sale._id] = null; // expired
+                let end = new Date(sale.endTime).getTime();
+                let diff = end - now;
+
+                // "Never ends" logic: if expired, loop by adding 24 hours from 'now'
+                // This makes the timer always show a countdown
+                if (diff <= 0) {
+                    const twentyFourHours = 24 * 60 * 60 * 1000;
+                    diff = twentyFourHours + (diff % twentyFourHours);
                 }
+
+                updates[sale._id] = {
+                    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                    minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+                    seconds: Math.floor((diff % (1000 * 60)) / 1000),
+                };
             });
             setTimeLeft(updates);
         };
@@ -36,14 +40,8 @@ export default function FlashSalesBanner({ flashSales = [] }) {
         return () => clearInterval(intervalRef.current);
     }, [flashSales]);
 
-    // Use flashSales if they are inherently active (start <= now <= end)
-    // even if the countdown timer state hasn't updated yet.
-    const activeSales = flashSales.filter(sale => {
-        const now = new Date();
-        const start = new Date(sale.startTime);
-        const end = new Date(sale.endTime);
-        return sale.isActive && start <= now && end >= now;
-    });
+    // Ensure we always have something to show if flashSales is populated
+    const activeSales = flashSales.filter(sale => sale.isActive);
 
     if (activeSales.length === 0) return null;
 

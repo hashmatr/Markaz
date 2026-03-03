@@ -125,6 +125,10 @@ const productSchema = new mongoose.Schema(
             default: 0,
         },
         tags: [String],
+        freeDelivery: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true }
 );
@@ -139,6 +143,7 @@ productSchema.pre('save', function () {
 });
 
 // Indexes for search and filtering
+productSchema.index({ slug: 1 }, { unique: true, sparse: true });
 productSchema.index({ title: 'text', description: 'text', tags: 'text' });
 productSchema.index({ category: 1, seller: 1 });
 productSchema.index({ price: 1 });

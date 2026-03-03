@@ -6,7 +6,8 @@ import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { FiPackage, FiDollarSign, FiShoppingBag, FiStar, FiPlus, FiTrendingUp, FiFilter, FiChevronDown, FiChevronUp, FiX, FiClock, FiEdit, FiTrash2, FiActivity, FiPieChart, FiTarget, FiUsers, FiZap, FiBell } from 'react-icons/fi';
+import { FiPackage, FiDollarSign, FiShoppingBag, FiStar, FiPlus, FiTrendingUp, FiFilter, FiChevronDown, FiChevronUp, FiX, FiClock, FiEdit, FiTrash2, FiActivity, FiPieChart, FiTarget, FiUsers, FiZap, FiBell, FiFileText } from 'react-icons/fi';
+import OrderReceipt from '../components/seller/OrderReceipt';
 import { FaStar } from 'react-icons/fa';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
@@ -64,7 +65,7 @@ export default function SellerDashboardPage() {
     const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalProducts: 0 });
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [priceRange, setPriceRange] = useState([0, 500]);
-    const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: true, sort: true });
+    const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: true, sort: true, delivery: true });
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
     // New State for Flash Sale nomination
@@ -72,6 +73,7 @@ export default function SellerDashboardPage() {
     const [flashSaleModal, setFlashSaleModal] = useState({ open: false, product: null, flashSaleId: '', flashPrice: '', maxQuantity: 50 });
     const [notifications, setNotifications] = useState([]);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+    const [receiptOrder, setReceiptOrder] = useState(null);
 
 
     const currentSort = searchParams.get('sort') || 'newest';
@@ -81,6 +83,7 @@ export default function SellerDashboardPage() {
     const currentMinPrice = searchParams.get('minPrice') || '';
     const currentMaxPrice = searchParams.get('maxPrice') || '';
     const currentColor = searchParams.get('color') || '';
+    const currentFreeDelivery = searchParams.get('freeDelivery') === 'true';
 
     useEffect(() => { const h = () => setIsDesktop(window.innerWidth >= 1024); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
 
@@ -114,7 +117,17 @@ export default function SellerDashboardPage() {
     const fetchProducts = async () => {
         setProductsLoading(true);
         try {
-            const res = await productAPI.getMyProducts({ sort: currentSort, page: currentPage, limit: 20, search: currentSearch, category: currentCategory, minPrice: currentMinPrice, maxPrice: currentMaxPrice, color: currentColor });
+            const res = await productAPI.getMyProducts({
+                sort: currentSort,
+                page: currentPage,
+                limit: 20,
+                search: currentSearch,
+                category: currentCategory,
+                minPrice: currentMinPrice,
+                maxPrice: currentMaxPrice,
+                color: currentColor,
+                freeDelivery: currentFreeDelivery
+            });
             setProducts(res.data.data.products || []);
             setPagination(res.data.data.pagination);
         } catch { setProducts([]); }
@@ -261,7 +274,7 @@ export default function SellerDashboardPage() {
                         <>
                             {/* Stat cards */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16, marginBottom: 28 }}>
-                                <StatCard label="Total Earnings" value={<AnimatedNumber value={dashboard.totalEarnings || 0} prefix="$" />} icon={FiDollarSign} bg="#fefce8" fg="#ca8a04" sub={dashboard.pendingPayout > 0 ? `$${dashboard.pendingPayout} pending` : undefined} />
+                                <StatCard label="Total Earnings" value={<AnimatedNumber value={dashboard.totalEarnings || 0} prefix="PKR " />} icon={FiDollarSign} bg="#fefce8" fg="#ca8a04" sub={dashboard.pendingPayout > 0 ? `PKR ${dashboard.pendingPayout} pending` : undefined} />
                                 <StatCard label="Total Orders" value={<AnimatedNumber value={dashboard.totalOrders || 0} />} icon={FiShoppingBag} bg="#faf5ff" fg="#9333ea" sub={dashboard.newOrdersToday > 0 ? `+${dashboard.newOrdersToday} today` : undefined} />
                                 <StatCard label="Products" value={<AnimatedNumber value={dashboard.totalProducts || 0} />} icon={FiPackage} bg="#eff6ff" fg="#2563eb" />
                                 <StatCard label="Store Rating" value={<><AnimatedNumber value={dashboard.rating || 0} decimals={1} />/5</>} icon={FiStar} bg="#fffbeb" fg="#f59e0b" sub={dashboard.totalReviews > 0 ? `${dashboard.totalReviews} reviews` : undefined} />
@@ -271,7 +284,7 @@ export default function SellerDashboardPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '2fr 1fr' : '1fr', gap: 16, marginBottom: 16 }}>
                                 <ChartCard title="Earnings Trend (6 Months)">
                                     <div style={{ height: 260 }}>
-                                        {earningsChartData?.labels?.length > 0 ? <Line data={earningsChartData} options={chartOpts('$')} /> : <p style={{ color: '#a3a3a3', textAlign: 'center', paddingTop: 80, fontSize: 14 }}>No earnings data yet. Revenue appears when orders are delivered.</p>}
+                                        {earningsChartData?.labels?.length > 0 ? <Line data={earningsChartData} options={chartOpts('PKR ')} /> : <p style={{ color: '#a3a3a3', textAlign: 'center', paddingTop: 80, fontSize: 14 }}>No earnings data yet. Revenue appears when orders are delivered.</p>}
                                     </div>
                                 </ChartCard>
                                 <ChartCard title="Orders (Last 7 Days)">
@@ -323,7 +336,7 @@ export default function SellerDashboardPage() {
                                                     <img src={tp.product?.images?.[0]?.url || 'https://placehold.co/40x40/f0f0f0/999?text=P'} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <p style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tp.product?.title || 'Product'}</p>
-                                                        <p style={{ fontSize: 11, color: '#737373' }}>{tp.totalSold} sold • ${tp.totalRevenue?.toLocaleString()}</p>
+                                                        <p style={{ fontSize: 11, color: '#737373' }}>{tp.totalSold} sold • PKR {tp.totalRevenue?.toLocaleString()}</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -374,7 +387,7 @@ export default function SellerDashboardPage() {
                                 <div style={{ background: 'linear-gradient(135deg, #000 0%, #1a1a2e 100%)', borderRadius: 20, padding: 24, color: '#fff' }}>
                                     <FiActivity size={22} style={{ marginBottom: 12, opacity: 0.7 }} />
                                     <p style={{ fontSize: 28, fontWeight: 800 }}>
-                                        <AnimatedNumber value={dashboard?.totalEarnings || 0} prefix="$" />
+                                        <AnimatedNumber value={dashboard?.totalEarnings || 0} prefix="PKR " />
                                     </p>
                                     <p style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>Total Revenue</p>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
@@ -404,7 +417,7 @@ export default function SellerDashboardPage() {
                                 </div>
                                 <div style={{ border: '1px solid #e5e5e5', borderRadius: 20, padding: 24 }}>
                                     <FiPieChart size={22} style={{ marginBottom: 12, color: '#f59e0b' }} />
-                                    <p style={{ fontSize: 28, fontWeight: 800 }}>${((dashboard?.totalEarnings || 0) / Math.max(dashboard?.totalOrders, 1)).toFixed(0)}</p>
+                                    <p style={{ fontSize: 28, fontWeight: 800 }}>PKR {((dashboard?.totalEarnings || 0) / Math.max(dashboard?.totalOrders, 1)).toFixed(0)}</p>
                                     <p style={{ fontSize: 12, color: '#737373', marginTop: 4 }}>Avg. Order Value</p>
                                     <p style={{ fontSize: 11, color: '#737373', marginTop: 8 }}>Per transaction average</p>
                                 </div>
@@ -440,7 +453,7 @@ export default function SellerDashboardPage() {
                                                         padding: 14,
                                                         cornerRadius: 12,
                                                         displayColors: false,
-                                                        callbacks: { label: c => `Revenue: $${c.parsed.y}` },
+                                                        callbacks: { label: c => `Revenue: PKR ${c.parsed.y}` },
                                                     },
                                                 },
                                             }} />
@@ -595,7 +608,7 @@ export default function SellerDashboardPage() {
                             <FilterSection title="Price" filterKey="price">
                                 <div style={{ padding: '0 8px' }}>
                                     <input type="range" min="0" max="500" value={priceRange[1]} onChange={e => setPriceRange([priceRange[0], parseInt(e.target.value)])} style={{ width: '100%', accentColor: '#000' }} />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#737373', marginTop: 8 }}><span>${priceRange[0]}</span><span>${priceRange[1]}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#737373', marginTop: 8 }}><span>PKR {priceRange[0]}</span><span>PKR {priceRange[1]}</span></div>
                                     <button className="btn-primary" style={{ width: '100%', marginTop: 16, padding: 10, fontSize: 13 }} onClick={() => { const p = new URLSearchParams(searchParams); p.set('minPrice', priceRange[0].toString()); p.set('maxPrice', priceRange[1].toString()); p.set('page', '1'); setSearchParams(p); }}>Apply Price</button>
                                 </div>
                             </FilterSection>
@@ -605,6 +618,20 @@ export default function SellerDashboardPage() {
                                         <button key={c} onClick={() => { const p = new URLSearchParams(searchParams); const n = currentColor === c ? '' : c; n ? p.set('color', n) : p.delete('color'); p.set('page', '1'); setSearchParams(p); }}
                                             style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: c, border: currentColor === c ? '3px solid #000' : '1px solid #e5e5e5', cursor: 'pointer' }} />
                                     ))}
+                                </div>
+                            </FilterSection>
+                            <FilterSection title="Delivery" filterKey="delivery">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 8px' }}>
+                                    <input type="checkbox" id="sellerFreeDelivery" checked={currentFreeDelivery}
+                                        onChange={e => {
+                                            const p = new URLSearchParams(searchParams);
+                                            if (e.target.checked) p.set('freeDelivery', 'true');
+                                            else p.delete('freeDelivery');
+                                            p.set('page', '1');
+                                            setSearchParams(p);
+                                        }}
+                                        style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                                    <label htmlFor="sellerFreeDelivery" style={{ fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Free Delivery Only</label>
                                 </div>
                             </FilterSection>
                             <FilterSection title="Sort By" filterKey="sort">
@@ -684,10 +711,27 @@ export default function SellerDashboardPage() {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
                                     <div>
                                         <p style={{ fontSize: 12, color: '#a3a3a3' }}>Order #{order._id?.slice(-8).toUpperCase()}</p>
-                                        <p style={{ fontWeight: 700, fontSize: 16 }}>${order.totalDiscountedPrice || order.totalPrice}</p>
+                                        <p style={{ fontWeight: 700, fontSize: 16 }}>PKR {(order.totalDiscountedPrice || order.totalPrice)?.toLocaleString()}</p>
                                         <p style={{ fontSize: 13, color: '#737373' }}>{order.orderItems?.length} items • {new Date(order.createdAt).toLocaleDateString()}</p>
+                                        <p style={{ fontSize: 12, color: '#525252', marginTop: 2 }}>{order.user?.fullName || 'Customer'} • {order.user?.email || ''}</p>
                                     </div>
-                                    <span style={{ padding: '6px 14px', borderRadius: 9999, fontSize: 13, fontWeight: 600, backgroundColor: sc.bg, color: sc.color, textTransform: 'capitalize', alignSelf: 'flex-start' }}>{order.orderStatus}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                                        <span style={{ padding: '6px 14px', borderRadius: 9999, fontSize: 13, fontWeight: 600, backgroundColor: sc.bg, color: sc.color, textTransform: 'capitalize' }}>{order.orderStatus}</span>
+                                        <button
+                                            onClick={() => setReceiptOrder(order)}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', gap: 6,
+                                                padding: '7px 14px', borderRadius: 10,
+                                                border: '1px solid #e5e5e5', background: '#fff',
+                                                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                                transition: 'all 0.2s', color: '#525252',
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#000'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#000'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.color = '#525252'; e.currentTarget.style.borderColor = '#e5e5e5'; }}
+                                        >
+                                            <FiFileText size={14} /> Receipt
+                                        </button>
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 4, height: 4 }}>
                                     {['pending', 'confirmed', 'processing', 'shipped', 'delivered'].map((step, idx) => {
@@ -762,7 +806,7 @@ export default function SellerDashboardPage() {
                                         <img src={p.images?.[0]?.url || 'https://placehold.co/100'} style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover' }} alt="" />
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <p style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</p>
-                                            <p style={{ fontSize: 12, color: '#737373' }}>Price: ${p.price}</p>
+                                            <p style={{ fontSize: 12, color: '#737373' }}>Price: PKR {p.price}</p>
                                             <button
                                                 disabled={inThisFlash}
                                                 onClick={() => setFlashSaleModal({ open: true, product: p, flashSaleId: nominationModal.selectedFlashSale._id, flashPrice: (p.price * 0.7).toFixed(2), maxQuantity: 20 })}
@@ -821,9 +865,9 @@ export default function SellerDashboardPage() {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                                 <div>
-                                    <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Flash Price ($)</label>
+                                    <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Flash Price (PKR)</label>
                                     <input type="number" value={flashSaleModal.flashPrice} onChange={e => setFlashSaleModal({ ...flashSaleModal, flashPrice: e.target.value })} required min="1" step="0.01" style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #e5e5e5', outline: 'none' }} />
-                                    <p style={{ fontSize: 11, marginTop: 4, color: '#737373' }}>Original: ${flashSaleModal.product?.price}</p>
+                                    <p style={{ fontSize: 11, marginTop: 4, color: '#737373' }}>Original: PKR {flashSaleModal.product?.price}</p>
                                 </div>
                                 <div>
                                     <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Max Quantity</label>
@@ -834,6 +878,18 @@ export default function SellerDashboardPage() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* ═══════════ ORDER RECEIPT MODAL ═══════════ */}
+            {receiptOrder && (
+                <OrderReceipt
+                    order={receiptOrder}
+                    storeName={dashboard?.storeName || 'My Store'}
+                    storeEmail={dashboard?.businessEmail || ''}
+                    storePhone={dashboard?.businessPhone || ''}
+                    storeAddress={dashboard?.pickupAddress ? [dashboard.pickupAddress.street, dashboard.pickupAddress.city, dashboard.pickupAddress.state, dashboard.pickupAddress.zipCode, dashboard.pickupAddress.country].filter(Boolean).join(', ') : ''}
+                    onClose={() => setReceiptOrder(null)}
+                />
             )}
         </div>
     );
