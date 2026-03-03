@@ -47,8 +47,16 @@ function ChartCard({ title, children }) {
     );
 }
 
+const FilterSection = ({ title, filterKey, children, expandedFilters, toggleFilter }) => (
+    <div style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 16, marginBottom: 16 }}>
+        <button type="button" onClick={() => toggleFilter(filterKey)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', fontWeight: 600, fontSize: 14, marginBottom: expandedFilters[filterKey] ? 12 : 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+            {title}{expandedFilters[filterKey] ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+        </button>
+        {expandedFilters[filterKey] && children}
+    </div>
+);
+
 export default function SellerDashboardPage() {
-    console.log("Seller Dashboard V1.2.1 [NOMINATION FIX]");
     const [nominationModal, setNominationModal] = useState({ open: false, selectedFlashSale: null });
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -190,14 +198,6 @@ export default function SellerDashboardPage() {
         } catch (err) { console.error(err); }
     };
 
-    const FilterSection = ({ title, filterKey, children }) => (
-        <div style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 16, marginBottom: 16 }}>
-            <button onClick={() => toggleFilter(filterKey)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', fontWeight: 600, fontSize: 14, marginBottom: expandedFilters[filterKey] ? 12 : 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                {title}{expandedFilters[filterKey] ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
-            </button>
-            {expandedFilters[filterKey] && children}
-        </div>
-    );
 
     // Chart data builders
     const earningsChartData = charts?.monthlyEarnings ? {
@@ -597,30 +597,30 @@ export default function SellerDashboardPage() {
                                 <h3 style={{ fontWeight: 700, fontSize: 18 }}>Filters</h3>
                                 {!isDesktop ? <button onClick={() => setFiltersOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiX size={22} /></button> : <FiFilter size={20} style={{ color: '#a3a3a3' }} />}
                             </div>
-                            <FilterSection title="Categories" filterKey="categories">
+                            <FilterSection title="Categories" filterKey="categories" expandedFilters={expandedFilters} toggleFilter={toggleFilter}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     {categories.map(cat => (
-                                        <button key={cat._id} onClick={() => { const p = new URLSearchParams(searchParams); currentCategory === cat._id ? p.delete('category') : p.set('category', cat._id); p.set('page', '1'); setSearchParams(p); }}
+                                        <button type="button" key={cat._id} onClick={() => { const p = new URLSearchParams(searchParams); currentCategory === cat._id ? p.delete('category') : p.set('category', cat._id); p.set('page', '1'); setSearchParams(p); }}
                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, fontSize: 14, backgroundColor: currentCategory === cat._id ? '#000' : 'transparent', color: currentCategory === cat._id ? '#fff' : '#525252', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' }}>{cat.name}</button>
                                     ))}
                                 </div>
                             </FilterSection>
-                            <FilterSection title="Price" filterKey="price">
+                            <FilterSection title="Price" filterKey="price" expandedFilters={expandedFilters} toggleFilter={toggleFilter}>
                                 <div style={{ padding: '0 8px' }}>
                                     <input type="range" min="0" max="500" value={priceRange[1]} onChange={e => setPriceRange([priceRange[0], parseInt(e.target.value)])} style={{ width: '100%', accentColor: '#000' }} />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#737373', marginTop: 8 }}><span>PKR {priceRange[0]}</span><span>PKR {priceRange[1]}</span></div>
-                                    <button className="btn-primary" style={{ width: '100%', marginTop: 16, padding: 10, fontSize: 13 }} onClick={() => { const p = new URLSearchParams(searchParams); p.set('minPrice', priceRange[0].toString()); p.set('maxPrice', priceRange[1].toString()); p.set('page', '1'); setSearchParams(p); }}>Apply Price</button>
+                                    <button type="button" className="btn-primary" style={{ width: '100%', marginTop: 16, padding: 10, fontSize: 13 }} onClick={() => { const p = new URLSearchParams(searchParams); p.set('minPrice', priceRange[0].toString()); p.set('maxPrice', priceRange[1].toString()); p.set('page', '1'); setSearchParams(p); }}>Apply Price</button>
                                 </div>
                             </FilterSection>
-                            <FilterSection title="Colors" filterKey="colors">
+                            <FilterSection title="Colors" filterKey="colors" expandedFilters={expandedFilters} toggleFilter={toggleFilter}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                     {colorSwatches.map(c => (
-                                        <button key={c} onClick={() => { const p = new URLSearchParams(searchParams); const n = currentColor === c ? '' : c; n ? p.set('color', n) : p.delete('color'); p.set('page', '1'); setSearchParams(p); }}
+                                        <button type="button" key={c} onClick={() => { const p = new URLSearchParams(searchParams); const n = currentColor === c ? '' : c; n ? p.set('color', n) : p.delete('color'); p.set('page', '1'); setSearchParams(p); }}
                                             style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: c, border: currentColor === c ? '3px solid #000' : '1px solid #e5e5e5', cursor: 'pointer' }} />
                                     ))}
                                 </div>
                             </FilterSection>
-                            <FilterSection title="Delivery" filterKey="delivery">
+                            <FilterSection title="Delivery" filterKey="delivery" expandedFilters={expandedFilters} toggleFilter={toggleFilter}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 8px' }}>
                                     <input type="checkbox" id="sellerFreeDelivery" checked={currentFreeDelivery}
                                         onChange={e => {
@@ -634,15 +634,15 @@ export default function SellerDashboardPage() {
                                     <label htmlFor="sellerFreeDelivery" style={{ fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Free Delivery Only</label>
                                 </div>
                             </FilterSection>
-                            <FilterSection title="Sort By" filterKey="sort">
+                            <FilterSection title="Sort By" filterKey="sort" expandedFilters={expandedFilters} toggleFilter={toggleFilter}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {sortOptions.map(opt => (
-                                        <button key={opt.value} onClick={() => handleSortChange(opt.value)}
+                                        <button type="button" key={opt.value} onClick={() => handleSortChange(opt.value)}
                                             style={{ padding: '8px 12px', borderRadius: 8, fontSize: 14, textAlign: 'left', border: 'none', cursor: 'pointer', backgroundColor: currentSort === opt.value ? '#f5f5f5' : 'transparent', color: currentSort === opt.value ? '#000' : '#737373', fontWeight: currentSort === opt.value ? 600 : 400 }}>{opt.label}</button>
                                     ))}
                                 </div>
                             </FilterSection>
-                            <button style={{ width: '100%', marginTop: 8, padding: 12, borderRadius: 12, background: '#f5f5f5', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600 }} onClick={() => { setSearchParams({}); setPriceRange([0, 500]); if (!isDesktop) setFiltersOpen(false); }}>Reset All</button>
+                            <button type="button" style={{ width: '100%', marginTop: 8, padding: 12, borderRadius: 12, background: '#f5f5f5', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600 }} onClick={() => { setSearchParams({}); setPriceRange([0, 500]); if (!isDesktop) setFiltersOpen(false); }}>Reset All</button>
                         </aside>
                     )}
                     <div style={{ flex: 1 }}>

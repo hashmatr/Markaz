@@ -3,12 +3,12 @@ const { body } = require('express-validator');
 const validateCreateOrder = [
     // Allow either shippingAddressId (ObjectId) OR shippingAddress (Object)
     body('shippingAddressId')
-        .optional()
+        .optional({ checkFalsy: true })
         .isMongoId()
         .withMessage('Invalid address ID'),
 
     body('shippingAddress')
-        .if(body('shippingAddressId').not().exists())
+        .if((v, { req }) => !req.body.shippingAddressId)
         .notEmpty()
         .withMessage('Shipping address or address ID is required'),
 

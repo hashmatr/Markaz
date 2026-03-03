@@ -10,11 +10,13 @@ const router = express.Router();
 // ─── Customer Routes ─────────────────────────
 router.post('/', authenticate, validateCreateOrder, validate, orderController.createOrder);
 router.get('/', authenticate, orderController.getMyOrders);
+
+// ─── Seller & Admin specific routes MUST come BEFORE generic /:id route
+router.get('/seller/orders', authenticate, authorize('SELLER'), orderController.getSellerOrders);
+router.get('/admin/all', authenticate, authorize('ADMIN'), orderController.getAllOrders);
+
 router.get('/:id', authenticate, orderController.getOrderById);
 router.put('/:id/cancel', authenticate, orderController.cancelOrder);
-
-// ─── Seller Routes ───────────────────────────
-router.get('/seller/orders', authenticate, authorize('SELLER'), orderController.getSellerOrders);
 router.put(
     '/:orderId/items/:itemId/status',
     authenticate,

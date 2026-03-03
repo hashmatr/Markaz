@@ -416,9 +416,14 @@ class ProductService {
 
         // Price range
         if (minPrice || maxPrice) {
-            filter.discountedPrice = {};
-            if (minPrice) filter.discountedPrice.$gte = parseFloat(minPrice);
-            if (maxPrice) filter.discountedPrice.$lte = parseFloat(maxPrice);
+            const min = parseFloat(minPrice);
+            const max = parseFloat(maxPrice);
+
+            if (!isNaN(min) || !isNaN(max)) {
+                filter.discountedPrice = {};
+                if (!isNaN(min)) filter.discountedPrice.$gte = min;
+                if (!isNaN(max)) filter.discountedPrice.$lte = max;
+            }
         }
 
         // Sort options

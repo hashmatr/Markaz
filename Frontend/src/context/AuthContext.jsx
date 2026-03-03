@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../api';
 
 const AuthContext = createContext(null);
@@ -27,6 +27,8 @@ export function AuthProvider({ children }) {
                 })
                 .finally(() => setLoading(false));
         } else {
+            setUser(null);
+            localStorage.removeItem('user');
             setLoading(false);
         }
     }, []);

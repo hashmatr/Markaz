@@ -14,8 +14,9 @@ export default function OrderSuccessPage() {
     const orderId = stateOrderId || urlOrderId;
 
     const [showConfetti, setShowConfetti] = useState(true);
-    const [verifyingPayment, setVerifyingPayment] = useState(false);
+    const [verifyingPayment, setVerifyingPayment] = useState(!!sessionId);
     const [paymentVerified, setPaymentVerified] = useState(false);
+    const [error, setError] = useState(null);
 
     const { updateUser } = useAuth();
 
@@ -42,6 +43,7 @@ export default function OrderSuccessPage() {
                 })
                 .catch(err => {
                     console.error('Payment verification failed:', err);
+                    setError(err.response?.data?.message || 'Payment verification issue.');
                     toast.error('Payment verification issue. Please contact support if needed.');
                 })
                 .finally(() => setVerifyingPayment(false));
@@ -72,15 +74,17 @@ export default function OrderSuccessPage() {
                     marginBottom: '16px',
                     color: '#000',
                 }}>
-                    ORDER PLACED SUCCESSFULLY!
+                    {error ? 'PAYMENT ISSUE' : 'ORDER PLACED SUCCESSFULLY!'}
                 </h1>
 
                 <p style={{
                     color: '#737373', fontSize: '16px', lineHeight: 1.7,
                     marginBottom: '32px', maxWidth: '480px', margin: '0 auto 32px',
                 }}>
-                    Thank you for your purchase! Your order has been placed and is being processed.
-                    You will receive a confirmation soon.
+                    {error
+                        ? error
+                        : 'Thank you for your purchase! Your order has been placed and is being processed. You will receive a confirmation soon.'
+                    }
                 </p>
 
                 {/* Payment verification status */}
@@ -106,7 +110,7 @@ export default function OrderSuccessPage() {
                     </div>
                 )}
 
-                {orderId && (
+                {orderId && typeof orderId === 'string' && (
                     <div style={{
                         backgroundColor: '#f9f9f9', borderRadius: '16px', padding: '20px',
                         marginBottom: '32px', border: '1px solid #e5e5e5',

@@ -48,11 +48,18 @@ class PaymentController {
             return res.status(400).json({ success: false, message: 'This order is already paid' });
         }
 
-        // Build line items for Stripe
+        // Determine URLs
+        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+
+        // Conversion rate PKR to USD (Adjust as needed, e.g., 280)
+        const PKR_TO_USD = 280;
+
+        // Build line items for Stripe - Convert PKR to USD cents
         const lineItems = order.orderItems.map(item => {
             const productTitle = item.product?.title || 'Product';
             const productImage = item.product?.images?.[0]?.url;
-            const unitPrice = Math.round((item.discountedPrice || item.price) * 100); // in cents
+            const pkrPrice = (item.discountedPrice || item.price);
+            const usdCents = Math.round((pkrPrice / PKR_TO_USD) * 100);
 
             const lineItem = {
                 price_data: {
@@ -60,7 +67,7 @@ class PaymentController {
                     product_data: {
                         name: productTitle,
                     },
-                    unit_amount: unitPrice,
+                    unit_amount: Math.max(usdCents, 50), // Stripe minimum is 50 cents
                 },
                 quantity: item.quantity,
             };
@@ -72,32 +79,17 @@ class PaymentController {
             return lineItem;
         });
 
-        // Add shipping cost as a line item if present
+        // Add shipping cost
         if (order.shippingCost > 0) {
             lineItems.push({
                 price_data: {
                     currency: 'usd',
                     product_data: { name: 'Shipping & Handling' },
-                    unit_amount: Math.round(order.shippingCost * 100),
+                    unit_amount: Math.max(Math.round((order.shippingCost / PKR_TO_USD) * 100), 1),
                 },
                 quantity: 1,
             });
         }
-
-        // Apply first order discount if present
-        const discounts = [];
-        if (order.firstOrderDiscount > 0) {
-            const coupon = await getStripe().coupons.create({
-                amount_off: Math.round(order.firstOrderDiscount * 100),
-                currency: 'usd',
-                name: 'First Order Bonus (20%)',
-                duration: 'once',
-            });
-            discounts.push({ coupon: coupon.id });
-        }
-
-        // Determine URLs
-        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
         const sessionConfig = {
             payment_method_types: ['card'],
@@ -112,8 +104,18 @@ class PaymentController {
             customer_email: req.user.email,
         };
 
-        if (discounts.length > 0) {
-            sessionConfig.discounts = discounts;
+        // Handle first order discount in PKR -> USD
+        if (order.firstOrderDiscount > 0) {
+            const usdDiscountCents = Math.round((order.firstOrderDiscount / PKR_TO_USD) * 100);
+            if (usdDiscountCents > 0) {
+                const coupon = await getStripe().coupons.create({
+                    amount_off: usdDiscountCents,
+                    currency: 'usd',
+                    name: 'First Order Bonus',
+                    duration: 'once',
+                });
+                sessionConfig.discounts = [{ coupon: coupon.id }];
+            }
         }
 
         const session = await getStripe().checkout.sessions.create(sessionConfig);

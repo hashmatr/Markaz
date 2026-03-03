@@ -31,6 +31,7 @@ class OrderController {
      * GET /api/orders - Get user's orders
      */
     getMyOrders = asyncHandler(async (req, res) => {
+        console.log(`[OrderController] getMyOrders for user: ${req.user._id}, query:`, req.query);
         const result = await orderService.getUserOrders(req.user._id, req.query);
 
         return res.status(200).json({
@@ -43,6 +44,7 @@ class OrderController {
      * GET /api/orders/seller - Get seller's orders
      */
     getSellerOrders = asyncHandler(async (req, res) => {
+        console.log(`[OrderController] getSellerOrders for user: ${req.user._id}, query:`, req.query);
         const result = await orderService.getSellerOrders(req.user._id, req.query);
 
         return res.status(200).json({

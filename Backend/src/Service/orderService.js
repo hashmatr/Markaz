@@ -19,13 +19,22 @@ class OrderService {
         // 1. Handle Shipping Address
         if (!shippingAddressId && shippingAddress) {
             try {
-                const newAddress = await Address.create(shippingAddress);
-                shippingAddressId = newAddress._id;
-
-                // Save address to user's profile for future use
-                await User.findByIdAndUpdate(userId, {
-                    $addToSet: { addresses: shippingAddressId }
+                // Check if an identical address already exists for this user to avoid redundancy
+                const existingAddr = await Address.findOne({
+                    ...shippingAddress
                 });
+
+                if (existingAddr) {
+                    shippingAddressId = existingAddr._id;
+                } else {
+                    const newAddress = await Address.create(shippingAddress);
+                    shippingAddressId = newAddress._id;
+
+                    // Save address to user's profile for future use
+                    await User.findByIdAndUpdate(userId, {
+                        $addToSet: { addresses: shippingAddressId }
+                    });
+                }
             } catch (err) {
                 console.error('OrderService: Address creation failed:', err.message);
                 throw Object.assign(new Error('Invalid shipping address: ' + err.message), { status: 400 });
@@ -255,13 +264,15 @@ class OrderService {
 
         if (status) filter.orderStatus = status;
 
-        const skip = (page - 1) * limit;
+        const pageNum = Math.max(1, parseInt(query.page) || 1);
+        const limitNum = Math.max(1, parseInt(query.limit) || 10);
+        const skip = (pageNum - 1) * limitNum;
         const orders = await Order.find(filter)
             .populate('orderItems.product', 'title images slug price')
             .populate('orderItems.seller', 'storeName')
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(parseInt(limit));
+            .limit(limitNum);
 
         const total = await Order.countDocuments(filter);
 
@@ -289,14 +300,16 @@ class OrderService {
 
         if (status) filter['orderItems.itemStatus'] = status;
 
-        const skip = (page - 1) * limit;
+        const pageNum = Math.max(1, parseInt(query.page) || 1);
+        const limitNum = Math.max(1, parseInt(query.limit) || 10);
+        const skip = (pageNum - 1) * limitNum;
         const orders = await Order.find(filter)
             .populate('user', 'fullName email phone')
             .populate('orderItems.product', 'title images price')
             .populate('shippingAddress')
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(parseInt(limit));
+            .limit(limitNum);
 
         const total = await Order.countDocuments(filter);
 

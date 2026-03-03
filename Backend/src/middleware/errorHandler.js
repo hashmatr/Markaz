@@ -24,7 +24,10 @@ const errorHandler = (err, req, res, next) => {
     message = messages.join(', ') || 'Validation Error';
   } else if (err.name === 'CastError') {
     status = 400;
-    message = `Invalid format for field: ${err.path}`;
+    message = `Resource not found with id ${err.value}`;
+    console.error(`[CastError] ${message} - Path: ${err.path}, Value: ${err.value}`);
+  } else if (err.status === 400) {
+    console.error(`[BadRequest] Status 400 error: ${err.message}`);
   } else if (err.name === 'JsonWebTokenError') {
     status = 401;
     message = 'Invalid token';

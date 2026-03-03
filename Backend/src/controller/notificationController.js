@@ -7,14 +7,13 @@ class NotificationController {
      * Get all notifications for the current user
      */
     getNotifications = asyncHandler(async (req, res) => {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
-        const skip = (page - 1) * limit;
-
+        const pageNum = Math.max(1, parseInt(req.query.page) || 1);
+        const limitNum = Math.max(1, parseInt(req.query.limit) || 20);
+        const skip = (pageNum - 1) * limitNum;
         const notifications = await Notification.find({ recipient: req.user._id })
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(limit);
+            .limit(limitNum);
 
         const total = await Notification.countDocuments({ recipient: req.user._id });
         const unreadCount = await Notification.countDocuments({ recipient: req.user._id, isRead: false });

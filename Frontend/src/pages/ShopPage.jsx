@@ -26,6 +26,17 @@ const sortOptions = [
     { value: 'rating', label: 'Top Rated' },
 ];
 
+const FilterSection = ({ title, filterKey, expanded, onToggle, children }) => (
+    <div style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 20, marginBottom: 20 }}>
+        <button type="button" onClick={() => onToggle(filterKey)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', fontWeight: 600, fontSize: 14, marginBottom: expanded ? 12 : 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+            {title}
+            {expanded ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+        </button>
+        {expanded && children}
+    </div>
+);
+
 export default function ShopPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const location = useLocation();
@@ -39,6 +50,7 @@ export default function ShopPage() {
     const [priceRange, setPriceRange] = useState([0, 200000]);
     const [expandedFilters, setExpandedFilters] = useState({ categories: true, price: true, colors: false, specs: true, condition: true, brands: true, sellers: false, delivery: false });
     const [expandedDepts, setExpandedDepts] = useState({});
+    const [isBackgroundLoading, setIsBackgroundLoading] = useState(false);
     const { categorySlug } = useParams();
 
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -80,7 +92,9 @@ export default function ShopPage() {
                 return;
             }
 
-            setLoading(true);
+            if (products.length > 0) setIsBackgroundLoading(true);
+            else setLoading(true);
+
             try {
                 const params = { sort: currentSort, page: currentPage, limit: 30 };
                 if (currentSearch) params.search = currentSearch;
@@ -116,12 +130,17 @@ export default function ShopPage() {
                 setProducts(uniqueProducts);
                 setPagination(res.data.data.pagination);
             } catch { if (!cancelled) { setProducts([]); } }
-            finally { if (!cancelled) setLoading(false); }
+            finally {
+                if (!cancelled) {
+                    setLoading(false);
+                    setIsBackgroundLoading(false);
+                }
+            }
         };
         fetchProducts();
 
         return () => { cancelled = true; };
-    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, location.state]);
+    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, currentFreeDelivery, searchParams.get('condition'), location.state]);
 
     // SEO Redirect: If accessed by ID query param and we have the slug
     useEffect(() => {
@@ -177,29 +196,38 @@ export default function ShopPage() {
         if (value) p.set(key, value);
         else p.delete(key);
         p.set('page', '1');
-        setSearchParams(p);
+        setSearchParams(p, { replace: true, preventScrollReset: true });
     };
 
     const toggleFilter = (key) => {
         const p = new URLSearchParams(searchParams);
         const current = p.get(key);
         if (current) p.delete(key);
+        else p.set(key, 'true');
         p.set('page', '1');
-        setSearchParams(p);
+        setSearchParams(p, { replace: true, preventScrollReset: true });
     };
 
     const handleSortChange = (v) => setFilter('sort', v);
-    const handlePageChange = (pg) => { const p = new URLSearchParams(searchParams); p.set('page', pg.toString()); setSearchParams(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    const handlePageChange = (pg) => {
+        const p = new URLSearchParams(searchParams);
+        p.set('page', pg.toString());
+        setSearchParams(p, { replace: true, preventScrollReset: true });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
     const toggleExpand = (k) => setExpandedFilters(prev => ({ ...prev, [k]: !prev[k] }));
 
     const handleCategoryClick = (cat) => {
+        const p = new URLSearchParams(searchParams);
+        p.set('page', '1');
         if (cat.slug) {
-            navigate(`/category/${cat.slug}`);
+            // Keep existing search params except maybe the old 'category' ID if it was there
+            p.delete('category');
+            const searchStr = p.toString();
+            navigate(`/category/${cat.slug}${searchStr ? '?' + searchStr : ''}`, { replace: true, preventScrollReset: true });
         } else {
-            const p = new URLSearchParams(searchParams);
             currentCategory === cat._id ? p.delete('category') : p.set('category', cat._id);
-            p.set('page', '1');
-            setSearchParams(p);
+            setSearchParams(p, { replace: true, preventScrollReset: true });
         }
         if (!isDesktop) setFiltersOpen(false);
     };
@@ -216,38 +244,22 @@ export default function ShopPage() {
 
     const applyPriceFilter = (e) => {
         if (e) e.preventDefault();
-        const scrollY = window.scrollY;
         const p = new URLSearchParams(searchParams);
         p.set('minPrice', priceRange[0].toString());
         p.set('maxPrice', priceRange[1].toString());
         p.set('page', '1');
-        setSearchParams(p);
-        // Restore scroll position after URL update
-        requestAnimationFrame(() => {
-            window.scrollTo({ top: scrollY, behavior: 'instant' });
-        });
+        setSearchParams(p, { replace: true, preventScrollReset: true });
         if (!isDesktop) setFiltersOpen(false);
     };
 
     const resetAllFilters = () => {
-        setSearchParams({});
-        setPriceRange([0, 500]);
+        setSearchParams({}, { replace: true, preventScrollReset: true });
+        setPriceRange([0, 200000]);
         if (!isDesktop) setFiltersOpen(false);
     };
 
     // Count active filters
     const activeFilterCount = [currentCategory, currentColor, currentSize, currentMinPrice, currentMaxPrice, currentBrand, currentSeller].filter(Boolean).length;
-
-    const FilterSection = ({ title, filterKey, children }) => (
-        <div style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 20, marginBottom: 20 }}>
-            <button type="button" onClick={() => toggleExpand(filterKey)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', fontWeight: 600, fontSize: 14, marginBottom: expandedFilters[filterKey] ? 12 : 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                {title}
-                {expandedFilters[filterKey] ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
-            </button>
-            {expandedFilters[filterKey] && children}
-        </div>
-    );
 
     const showFilters = isDesktop || filtersOpen;
 
@@ -291,7 +303,7 @@ export default function ShopPage() {
                             </div>
 
                             {/* Categories / Departments */}
-                            <FilterSection title="Departments" filterKey="categories">
+                            <FilterSection title="Departments" filterKey="categories" expanded={expandedFilters.categories} onToggle={toggleExpand}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {/* Handle hierarchical categories */}
                                     {categories.filter(c => !c.parentCategory).map(parent => (
@@ -340,7 +352,7 @@ export default function ShopPage() {
                             </FilterSection>
 
                             {/* Price Range */}
-                            <FilterSection title="Price" filterKey="price">
+                            <FilterSection title="Price" filterKey="price" expanded={expandedFilters.price} onToggle={toggleExpand}>
                                 <div style={{ padding: '0 8px' }}>
                                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                                         <div style={{ flex: 1 }}>
@@ -352,7 +364,7 @@ export default function ShopPage() {
                                         <div style={{ flex: 1 }}>
                                             <label style={{ fontSize: 11, color: '#a3a3a3', marginBottom: 4, display: 'block' }}>Max</label>
                                             <input type="number" min={priceRange[0]} value={priceRange[1]}
-                                                onChange={e => setPriceRange([priceRange[0], parseInt(e.target.value) || 500])}
+                                                onChange={e => setPriceRange([priceRange[0], parseInt(e.target.value) || 200000])}
                                                 style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e5e5', fontSize: 13, outline: 'none' }} />
                                         </div>
                                     </div>
@@ -373,7 +385,7 @@ export default function ShopPage() {
                             </FilterSection>
 
                             {/* Colors */}
-                            <FilterSection title="Colors" filterKey="colors">
+                            <FilterSection title="Colors" filterKey="colors" expanded={expandedFilters.colors} onToggle={toggleExpand}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                     {colors.map(c => (
                                         <button key={c.name} onClick={() => handleColorClick(c.name)} title={c.name}
@@ -394,7 +406,7 @@ export default function ShopPage() {
                             </FilterSection>
 
                             {/* Condition */}
-                            <FilterSection title="Condition" filterKey="condition">
+                            <FilterSection title="Condition" filterKey="condition" expanded={expandedFilters.condition} onToggle={toggleExpand}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {conditions.map(cond => (
                                         <button key={cond}
@@ -412,7 +424,7 @@ export default function ShopPage() {
                             </FilterSection>
 
                             {/* Brands */}
-                            <FilterSection title="Top Brands" filterKey="brands">
+                            <FilterSection title="Top Brands" filterKey="brands" expanded={expandedFilters.brands} onToggle={toggleExpand}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {topBrands.map(brand => (
                                         <button key={brand}
@@ -430,7 +442,7 @@ export default function ShopPage() {
                             </FilterSection>
 
                             {/* Seller / Store */}
-                            <FilterSection title="Seller / Store" filterKey="sellers">
+                            <FilterSection title="Seller / Store" filterKey="sellers" expanded={expandedFilters.sellers} onToggle={toggleExpand}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
                                     {sellers.map(s => (
                                         <button key={s._id}
@@ -458,7 +470,7 @@ export default function ShopPage() {
                             </FilterSection>
 
                             {/* Specs / Sizes */}
-                            <FilterSection title="Specs & Sizes" filterKey="specs">
+                            <FilterSection title="Specs & Sizes" filterKey="specs" expanded={expandedFilters.specs} onToggle={toggleExpand}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                     {commonSizes.map(s => (
                                         <button key={s} onClick={() => handleSizeClick(s)}
@@ -475,12 +487,16 @@ export default function ShopPage() {
                             </FilterSection>
 
                             {/* Delivery Section */}
-                            <FilterSection title="Delivery" filterKey="delivery">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer', borderRadius: 8, backgroundColor: currentFreeDelivery ? '#f0fdf4' : 'transparent', border: currentFreeDelivery ? '1px solid #bbf7d0' : '1px solid transparent' }}
-                                    onClick={() => setFilter('freeDelivery', currentFreeDelivery ? '' : 'true')}>
-                                    <input type="checkbox" checked={currentFreeDelivery} readOnly style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                            <FilterSection title="Delivery" filterKey="delivery" expanded={expandedFilters.delivery} onToggle={toggleExpand}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderRadius: 10, backgroundColor: currentFreeDelivery ? '#f0fdf4' : '#f9f9f9', border: currentFreeDelivery ? '1px solid #bbf7d0' : '1px solid #eee', transition: 'all 0.2s' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={currentFreeDelivery}
+                                        onChange={(e) => setFilter('freeDelivery', e.target.checked ? 'true' : '')}
+                                        style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#000' }}
+                                    />
                                     <span style={{ fontSize: 14, fontWeight: currentFreeDelivery ? 700 : 500, color: currentFreeDelivery ? '#166534' : '#525252' }}>Free Delivery</span>
-                                </div>
+                                </label>
                             </FilterSection>
 
                             {/* Reset + Apply */}
@@ -524,10 +540,10 @@ export default function ShopPage() {
                                             <button onClick={() => setFilter('seller', '')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}><FiX size={12} /></button>
                                         </span>
                                     )}
-                                    {(currentMinPrice || currentMaxPrice) && (
+                                    {((currentMinPrice && currentMinPrice !== '0') || (currentMaxPrice && currentMaxPrice !== '200000')) && (
                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 9999, backgroundColor: '#f0f0f0', fontSize: 11, fontWeight: 500 }}>
-                                            ${currentMinPrice || 0}-${currentMaxPrice || '∞'}
-                                            <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('minPrice'); p.delete('maxPrice'); p.set('page', '1'); setSearchParams(p); setPriceRange([0, 500]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}><FiX size={12} /></button>
+                                            PKR {currentMinPrice || 0}-{currentMaxPrice || '200k'}
+                                            <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('minPrice'); p.delete('maxPrice'); p.set('page', '1'); setSearchParams(p, { replace: true, preventScrollReset: true }); setPriceRange([0, 200000]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}><FiX size={12} /></button>
                                         </span>
                                     )}
                                 </div>
@@ -609,58 +625,67 @@ export default function ShopPage() {
                         </div>
                     )}
 
-                    {loading ? (
-                        <div className="product-grid-responsive" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20, minHeight: 400 }}>
-                            {Array.from({ length: 9 }, (_, i) => (
-                                <div key={i}>
-                                    <div style={{ backgroundColor: '#f0f0f0', borderRadius: 16, aspectRatio: '1', marginBottom: 12, animation: 'pulse 1.5s infinite' }} />
-                                    <div style={{ backgroundColor: '#f0f0f0', height: 14, borderRadius: 4, marginBottom: 8, width: '75%' }} />
-                                    <div style={{ backgroundColor: '#f0f0f0', height: 12, borderRadius: 4, width: '50%' }} />
-                                </div>
-                            ))}
-                        </div>
-                    ) : products.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '64px 0', minHeight: 400 }}>
-                            <p style={{ fontSize: 48, marginBottom: 16 }}>🔍</p>
-                            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>No products found</h3>
-                            <p style={{ color: '#737373', fontSize: 14, marginBottom: 16 }}>Try adjusting your filters or search terms.</p>
-                            {activeFilterCount > 0 && (
-                                <button type="button" onClick={resetAllFilters}
-                                    style={{ padding: '10px 24px', borderRadius: 9999, backgroundColor: '#000', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                                    Clear All Filters
-                                </button>
-                            )}
-                        </div>
-                    ) : (
-                        <motion.div
-                            initial="hidden"
-                            animate="show"
-                            variants={{
-                                hidden: { opacity: 0 },
-                                show: {
-                                    opacity: 1,
-                                    transition: {
-                                        staggerChildren: 0.1
+                    <div style={{ position: 'relative' }}>
+                        {isBackgroundLoading && (
+                            <div style={{
+                                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                                backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 10,
+                                borderRadius: 16, pointerEvents: 'none', transition: 'opacity 0.2s'
+                            }} />
+                        )}
+                        {loading ? (
+                            <div className="product-grid-responsive" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20, minHeight: 400 }}>
+                                {Array.from({ length: 9 }, (_, i) => (
+                                    <div key={i}>
+                                        <div style={{ backgroundColor: '#f0f0f0', borderRadius: 16, aspectRatio: '1', marginBottom: 12, animation: 'pulse 1.5s infinite' }} />
+                                        <div style={{ backgroundColor: '#f0f0f0', height: 14, borderRadius: 4, marginBottom: 8, width: '75%' }} />
+                                        <div style={{ backgroundColor: '#f0f0f0', height: 12, borderRadius: 4, width: '50%' }} />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : products.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '64px 0', minHeight: 400 }}>
+                                <p style={{ fontSize: 48, marginBottom: 16 }}>🔍</p>
+                                <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>No products found</h3>
+                                <p style={{ color: '#737373', fontSize: 14, marginBottom: 16 }}>Try adjusting your filters or search terms.</p>
+                                {activeFilterCount > 0 && (
+                                    <button type="button" onClick={resetAllFilters}
+                                        style={{ padding: '10px 24px', borderRadius: 9999, backgroundColor: '#000', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                                        Clear All Filters
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <motion.div
+                                initial="hidden"
+                                animate="show"
+                                variants={{
+                                    hidden: { opacity: 0 },
+                                    show: {
+                                        opacity: 1,
+                                        transition: {
+                                            staggerChildren: 0.1
+                                        }
                                     }
-                                }
-                            }}
-                            className="product-grid-responsive"
-                            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}
-                        >
-                            {products.map(product => (
-                                <motion.div
-                                    key={product._id}
-                                    layout
-                                    variants={{
-                                        hidden: { opacity: 0, y: 20 },
-                                        show: { opacity: 1, y: 0 }
-                                    }}
-                                >
-                                    <ProductCard product={product} />
-                                </motion.div>
-                            ))}
-                        </motion.div>
-                    )}
+                                }}
+                                className="product-grid-responsive"
+                                style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}
+                            >
+                                {products.map(product => (
+                                    <motion.div
+                                        key={product._id}
+                                        layout
+                                        variants={{
+                                            hidden: { opacity: 0, y: 20 },
+                                            show: { opacity: 1, y: 0 }
+                                        }}
+                                    >
+                                        <ProductCard product={product} />
+                                    </motion.div>
+                                ))}
+                            </motion.div>
+                        )}
+                    </div>
 
                     {pagination.totalPages > 1 && (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 40, borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>

@@ -18,6 +18,7 @@ export default function CheckoutPage() {
         fullName: user?.fullName || '', phone: user?.phone || '', street: '', city: '', state: '', zipCode: '', country: 'Pakistan',
         paymentMethod: 'COD',
     });
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
     const [warnings, setWarnings] = useState({});
     const [isFirstOrder, setIsFirstOrder] = useState(false);
     const [checkingFirstOrder, setCheckingFirstOrder] = useState(true);
@@ -72,6 +73,10 @@ export default function CheckoutPage() {
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
+        // If they manually change any field, it's no longer the "selected" saved address
+        if (['street', 'city', 'state', 'zipCode', 'fullName', 'phone'].includes(e.target.name)) {
+            setSelectedAddressId(null);
+        }
         if (warnings[e.target.name]) {
             setWarnings({ ...warnings, [e.target.name]: null });
         }
@@ -88,6 +93,7 @@ export default function CheckoutPage() {
             zipCode: addr.zipCode || '',
             country: addr.country || 'Pakistan'
         });
+        setSelectedAddressId(addr._id);
         toast.success('Address selected!');
     };
 
@@ -120,7 +126,8 @@ export default function CheckoutPage() {
         try {
             // 1. Create the order (same for both COD and online)
             const res = await orderAPI.create({
-                shippingAddress: {
+                shippingAddressId: selectedAddressId,
+                shippingAddress: selectedAddressId ? undefined : {
                     fullName: form.fullName,
                     phone: form.phone,
                     street: form.street,
