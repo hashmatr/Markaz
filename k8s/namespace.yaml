@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: markaz
+  labels:
+    app.kubernetes.io/name: markaz
+    app.kubernetes.io/managed-by: kubectl

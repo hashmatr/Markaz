@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: markaz-ingress
+  namespace: markaz
+  labels:
+    app.kubernetes.io/name: markaz
+  annotations:
+    # Nginx Ingress Controller annotations
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # Redirect HTTP to HTTPS (enable when you have a TLS cert)
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx              # Requires nginx-ingress-controller installed
+  rules:
+    # ── Replace with your actual domain ──────────────────────────────
+    - host: markaz.yourdomain.com      # e.g. markaz.pk or markaz.example.com
+      http:
+        paths:
+          # Route all /api/* traffic directly to the backend service
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5000
+          # All other routes go to the frontend (Nginx handles SPA routing)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+  # ── TLS (HTTPS) ────────────────────────────────────────────────────
+  # Uncomment and configure after setting up cert-manager:
+  # tls:
+  #   - hosts:
+  #       - markaz.yourdomain.com
+  #     secretName: markaz-tls-secret

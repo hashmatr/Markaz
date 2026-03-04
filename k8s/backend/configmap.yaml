@@ -1,0 +1,22 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Backend ConfigMap — non-sensitive configuration
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: markaz
+  labels:
+    app: backend
+    app.kubernetes.io/name: markaz-backend
+data:
+  NODE_ENV: "production"
+  PORT: "5000"
+  CLIENT_URL: "http://localhost"         # External URL of the frontend
+  ADMIN_URL: "http://localhost:3001"
+  DEFAULT_COMMISSION_RATE: "10"
+  EMAIL_SERVICE: "gmail"
+  PINECONE_TEXT_INDEX: "products-text-index"
+  PINECONE_IMAGE_INDEX: "products-image-index"
+  JWT_ACCESS_EXPIRES_IN: "15m"
+  JWT_REFRESH_EXPIRES_IN: "7d"

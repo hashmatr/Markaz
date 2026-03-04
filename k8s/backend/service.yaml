@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend                        # ← This name is used by Nginx: proxy_pass http://backend:5000
+  namespace: markaz
+  labels:
+    app: backend
+    app.kubernetes.io/name: markaz-backend
+spec:
+  type: ClusterIP                      # Internal only — frontend Nginx is the public entry point
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      protocol: TCP

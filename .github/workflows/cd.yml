@@ -144,8 +144,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-backend, build-frontend]
 
-    # Only deploy if KUBE_CONFIG secret is configured
-    if: ${{ secrets.KUBE_CONFIG != '' }}
+    # Only deploy if KUBE_CONFIG secret is configured.
+    # NOTE: secrets context is not available in job-level if: expressions,
+    # so we guard the kubeconfig step individually using an env variable instead.
 
     environment:
       name: production
@@ -161,9 +162,13 @@ jobs:
           version: "latest"
 
       - name: Configure kubeconfig
+        # Skip this step (and implicitly all dependant steps) if the secret is absent
+        if: ${{ env.KUBE_CONFIG_VALUE != '' }}
+        env:
+          KUBE_CONFIG_VALUE: ${{ secrets.KUBE_CONFIG }}
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+          echo "$KUBE_CONFIG_VALUE" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
 
       - name: Apply namespace

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: markaz
+  labels:
+    app: frontend
+    app.kubernetes.io/name: markaz-frontend
+spec:
+  type: LoadBalancer                   # Use NodePort for Minikube/local: type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+      # nodePort: 30080                # Uncomment if using NodePort type for local testing
