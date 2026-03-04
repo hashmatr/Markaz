@@ -8,9 +8,6 @@ const API = axios.create({
         ? `${import.meta.env.VITE_BACKEND_URL}/api`
         : '/api',
     withCredentials: true,
-    headers: {
-        'Content-Type': 'application/json',
-    },
 });
 
 // Request interceptor - attach access token
