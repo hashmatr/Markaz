@@ -68,8 +68,8 @@ export const productAPI = {
     getById: (id) => API.get(`/products/${id}`),
     getBySlug: (slug) => API.get(`/products/slug/${slug}`),
     getByCategory: (catId, params) => API.get(`/products/category/${catId}`, { params }),
-    create: (data) => API.post('/products', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
-    update: (id, data) => API.put(`/products/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    create: (data) => API.post('/products', data),
+    update: (id, data) => API.put(`/products/${id}`, data),
     delete: (id) => API.delete(`/products/${id}`),
     getMyProducts: (params) => API.get('/products/seller/my-products', { params }),
     getBrands: () => API.get('/products/brands'),
@@ -131,8 +131,8 @@ export const adminAPI = {
     getUsers: (params) => API.get('/admin/users', { params }),
     updateUserStatus: (id, data) => API.put(`/admin/users/${id}/status`, data),
     deleteUser: (id) => API.delete(`/admin/users/${id}`),
-    createCategory: (data) => API.post('/admin/categories', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
-    updateCategory: (id, data) => API.put(`/admin/categories/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    createCategory: (data) => API.post('/admin/categories', data),
+    updateCategory: (id, data) => API.put(`/admin/categories/${id}`, data),
     deleteCategory: (id) => API.delete(`/admin/categories/${id}`),
     getAllSellers: (params) => API.get('/admin/sellers', { params }),
     updateSellerStatus: (id, data) => API.put(`/admin/sellers/${id}/status`, data),
@@ -168,8 +168,7 @@ export const paymentAPI = {
 // Visual Search API (CLIP-based)
 export const visualSearchAPI = {
     searchByImage: (formData) => API.post('/visual-search', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 60000, // 60s timeout for CLIP processing
+        timeout: 90000, // Increased to 90s for potentially slow CLIP processing
     }),
     getStatus: () => API.get('/visual-search/status'),
     syncEmbeddings: () => API.post('/visual-search/sync'),
