@@ -7,6 +7,30 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   globalIgnores(['dist']),
+  // ── Service Worker (sw.js) — uses browser + serviceworker globals ──
+  {
+    files: ['public/sw.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.serviceworker,
+      },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      'no-restricted-globals': 'off',
+    },
+  },
+  // ── Vite config — Node context ──
+  {
+    files: ['vite.config.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  // ── Main app files ──
   {
     files: ['**/*.{js,jsx}'],
     plugins: {
@@ -33,17 +57,20 @@ export default defineConfig([
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true },
+        { allowConstantExport: true, allowExportNames: ['useAuth', 'useCart'] },
       ],
       'no-unused-vars': [
         'error',
         {
           varsIgnorePattern: '^[A-Z_]',
           argsIgnorePattern: '^[A-Z_]',
+          caughtErrorsIgnorePattern: '^_',
         },
       ],
+      'no-empty': ['error', { allowEmptyCatch: true }],
       'react/no-unescaped-entities': 'off',
-      'react/prop-types': 'off', // We're not using prop-types
+      'react/prop-types': 'off',
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 ])
