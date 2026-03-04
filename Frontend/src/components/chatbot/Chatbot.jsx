@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FiSend, FiX, FiTrash2, FiChevronDown, FiStar, FiShoppingBag, FiUser, FiTrendingUp } from 'react-icons/fi';
 import { chatbotAPI, stylistAPI } from '../../api';
@@ -66,40 +66,42 @@ export default function Chatbot() {
         if (activeTab === 'forYou' && user && recommendations.length === 0 && !recsLoading) {
             loadRecommendations();
         }
-    }, [activeTab]);
+    }, [activeTab, user, recommendations.length, recsLoading, loadRecommendations]);
 
     // Load profile when profile tab opens
     useEffect(() => {
         if (activeTab === 'profile' && user && !userProfile && !profileLoading) {
             loadProfile();
         }
-    }, [activeTab]);
+    }, [activeTab, user, userProfile, profileLoading, loadProfile]);
 
-    const loadRecommendations = async () => {
+    const loadRecommendations = useCallback(async () => {
         if (!user) return;
         setRecsLoading(true);
         try {
             const res = await stylistAPI.getRecommendations({ limit: 12 });
             setRecommendations(res.data.data.products || []);
-        } catch {
+        } catch (err) {
+            console.error("Failed to load recommendations:", err);
             setRecommendations([]);
         } finally {
             setRecsLoading(false);
         }
-    };
+    }, [user]);
 
-    const loadProfile = async () => {
+    const loadProfile = useCallback(async () => {
         if (!user) return;
         setProfileLoading(true);
         try {
             const res = await stylistAPI.getProfile();
             setUserProfile(res.data.data);
-        } catch {
+        } catch (err) {
+            console.error("Failed to load profile:", err);
             setUserProfile(null);
         } finally {
             setProfileLoading(false);
         }
-    };
+    }, [user]);
 
     // Scroll detection
     const handleScroll = () => {
@@ -161,7 +163,7 @@ export default function Chatbot() {
     };
 
     const handleClear = async () => {
-        try { await chatbotAPI.clear({ sessionId }); } catch { }
+        try { await chatbotAPI.clear({ sessionId }); } catch (err) { console.error("Failed to clear chat:", err); }
         const newSession = `stylist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         setSessionId(newSession);
         setMessages([
@@ -180,7 +182,7 @@ export default function Chatbot() {
         formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
             return `<a href="${url}" style="color:#6366f1;text-decoration:underline;font-weight:600">${label}</a>`;
         });
-        formatted = formatted.replace(/^[•\-]\s/gm, '&bull; ');
+        formatted = formatted.replace(/^[•-]\s/gm, '&bull; ');
         formatted = formatted.replace(/\n/g, '<br/>');
         return formatted;
     };

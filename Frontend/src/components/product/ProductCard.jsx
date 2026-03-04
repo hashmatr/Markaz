@@ -12,7 +12,7 @@ function optimizeImg(url, width = 400) {
     return url.replace(/\/upload\//, `/upload/f_auto,q_auto,w_${width}/`);
 }
 
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 
 export default function ProductCard({ product }) {
     const {
@@ -41,7 +41,7 @@ export default function ProductCard({ product }) {
     const wrapClass = `product-img-wrap ${hasSecondImage ? 'has-alt' : 'single-img'}`;
 
     return (
-        <motion.div
+        <Motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
@@ -60,7 +60,7 @@ export default function ProductCard({ product }) {
             >
                 <div className={wrapClass + (hovered ? ' is-hovered' : '')} style={{ borderRadius: '14px', overflow: 'hidden' }}>
                     {/* Primary image */}
-                    <motion.img
+                    <Motion.img
                         src={imgSrc}
                         alt={title}
                         loading="lazy"
@@ -149,6 +149,6 @@ export default function ProductCard({ product }) {
                     </div>
                 </div>
             </Link>
-        </motion.div>
+        </Motion.div>
     );
 }

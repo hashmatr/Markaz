@@ -51,7 +51,7 @@ export default function EditProductPage() {
             toast.error('Failed to load product');
             navigate('/seller/dashboard');
         }).finally(() => setFetching(false));
-    }, [id]);
+    }, [id, navigate]);
 
     // Sizes handlers
     const addSize = () => setSizes([...sizes, { name: '', quantity: 0 }]);

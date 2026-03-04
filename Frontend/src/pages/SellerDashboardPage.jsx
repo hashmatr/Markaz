@@ -120,9 +120,9 @@ export default function SellerDashboardPage() {
         if (activeTab === 'products' || (typeof nominationModal !== 'undefined' && nominationModal?.open)) {
             fetchProducts();
         }
-    }, [activeTab, nominationModal?.open, currentSort, currentSearch, currentPage, currentCategory, currentMinPrice, currentMaxPrice, currentColor]);
+    }, [activeTab, nominationModal, fetchProducts]);
 
-    const fetchProducts = async () => {
+    const fetchProducts = useCallback(async () => {
         setProductsLoading(true);
         try {
             const res = await productAPI.getMyProducts({
@@ -140,7 +140,7 @@ export default function SellerDashboardPage() {
             setPagination(res.data.data.pagination);
         } catch { setProducts([]); }
         finally { setProductsLoading(false); }
-    };
+    }, [currentSort, currentPage, currentSearch, currentCategory, currentMinPrice, currentMaxPrice, currentColor, currentFreeDelivery]);
 
     const fetchActiveFlashSales = async () => {
         try {

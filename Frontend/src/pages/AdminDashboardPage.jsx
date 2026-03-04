@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiUsers, FiDollarSign, FiShoppingBag, FiPackage, FiGrid, FiShoppingCart, FiUserCheck, FiCreditCard, FiTruck, FiCheckCircle, FiClock, FiXCircle, FiStar, FiTrendingUp, FiActivity, FiLayers, FiTrash2 } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
@@ -20,11 +20,11 @@ const chartColors = { primary: '#000', primaryLight: 'rgba(0,0,0,0.08)', blue: '
 const doughnutPalette = ['#000', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1'];
 
 // ─── Stat Card ───────────────────────────────
-function StatCard({ label, value, icon: Icon, bg, fg, sub }) {
+function StatCard({ label, value, icon: CardIcon, bg, fg, sub }) {
     return (
         <div style={{ border: '1px solid #e5e5e5', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ width: 44, height: 44, backgroundColor: bg, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: fg }}><Icon size={20} /></div>
+                <div style={{ width: 44, height: 44, backgroundColor: bg, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: fg }}><CardIcon size={20} /></div>
                 {sub && <span style={{ fontSize: 11, fontWeight: 600, color: sub.startsWith('+') ? '#10b981' : sub.startsWith('-') ? '#ef4444' : '#737373', backgroundColor: sub.startsWith('+') ? '#f0fdf4' : sub.startsWith('-') ? '#fef2f2' : '#f5f5f5', padding: '3px 8px', borderRadius: 9999 }}>{sub}</span>}
             </div>
             <div><p style={{ fontSize: 26, fontWeight: 700 }}>{value}</p><p style={{ fontSize: 13, color: '#737373' }}>{label}</p></div>
@@ -179,9 +179,9 @@ export default function AdminDashboardPage() {
                 {isDesktop && (
                     <aside style={{ width: 200, flexShrink: 0 }}>
                         <div style={{ border: '1px solid #e5e5e5', borderRadius: 20, padding: 12, position: 'sticky', top: 96 }}>
-                            {sideItems.map(({ key, icon: Icon, label }) => (
+                            {sideItems.map(({ key, icon: ItemIcon, label }) => (
                                 <button key={key} onClick={() => setActiveSection(key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 500, cursor: 'pointer', border: 'none', marginBottom: 4, backgroundColor: activeSection === key ? '#000' : 'transparent', color: activeSection === key ? '#fff' : '#525252', transition: 'all 0.15s' }}>
-                                    <Icon size={18} /> {label}
+                                    <ItemIcon size={18} /> {label}
                                 </button>
                             ))}
                         </div>

@@ -74,7 +74,7 @@ export default function ShopPage() {
     // Sync slider from URL on load
     useEffect(() => {
         if (currentMinPrice || currentMaxPrice) setPriceRange([parseInt(currentMinPrice) || 0, parseInt(currentMaxPrice) || 200000]);
-    }, []);
+    }, [currentMinPrice, currentMaxPrice]);
 
     useEffect(() => { categoryAPI.getAll().then(r => setCategories(r.data.data.categories || [])).catch(() => { }); }, []);
     useEffect(() => { sellerAPI.getAll({ status: 'active', limit: 100 }).then(r => setSellers(r.data.data.sellers || [])).catch(() => { }); }, []);
@@ -82,7 +82,7 @@ export default function ShopPage() {
     // Fetch products whenever URL params change
     useEffect(() => {
         let cancelled = false;
-
+        const conditionParam = searchParams.get('condition');
         const fetchProducts = async () => {
             // ... (keep visual search logic)
             if (location.state?.visualSearchResults) {
@@ -111,7 +111,7 @@ export default function ShopPage() {
                 if (currentSeller) params.seller = currentSeller;
                 if (currentFlashSale) params.flashSale = currentFlashSale;
                 if (currentFreeDelivery) params.freeDelivery = true;
-                if (searchParams.get('condition')) params.condition = searchParams.get('condition');
+                if (conditionParam) params.condition = conditionParam;
 
                 const res = await productAPI.getAll(params);
 
@@ -127,8 +127,10 @@ export default function ShopPage() {
                     return true;
                 });
 
-                setProducts(uniqueProducts);
-                setPagination(res.data.data.pagination);
+                if (!cancelled) {
+                    setProducts(uniqueProducts);
+                    setPagination(res.data.data.pagination);
+                }
             } catch { if (!cancelled) { setProducts([]); } }
             finally {
                 if (!cancelled) {
@@ -140,7 +142,7 @@ export default function ShopPage() {
         fetchProducts();
 
         return () => { cancelled = true; };
-    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, currentFreeDelivery, searchParams.get('condition'), location.state]);
+    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, currentFreeDelivery, searchParams, location.state, products.length]);
 
     // SEO Redirect: If accessed by ID query param and we have the slug
     useEffect(() => {
@@ -195,15 +197,6 @@ export default function ShopPage() {
         const p = new URLSearchParams(searchParams);
         if (value) p.set(key, value);
         else p.delete(key);
-        p.set('page', '1');
-        setSearchParams(p, { replace: true, preventScrollReset: true });
-    };
-
-    const toggleFilter = (key) => {
-        const p = new URLSearchParams(searchParams);
-        const current = p.get(key);
-        if (current) p.delete(key);
-        else p.set(key, 'true');
         p.set('page', '1');
         setSearchParams(p, { replace: true, preventScrollReset: true });
     };

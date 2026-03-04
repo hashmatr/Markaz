@@ -72,7 +72,7 @@ export default function ContactPage() {
                         { icon: FiPhone, title: 'Call Us', desc: '+92 311 5732241', sub: 'Mon-Sat, 9 AM - 6 PM PKT', href: 'tel:+923115732241' },
                         { icon: FiMapPin, title: 'Visit Us', desc: 'Lahore, Pakistan', sub: 'Mon-Fri, 10 AM - 5 PM', href: '#' },
                         { icon: FiClock, title: 'Working Hours', desc: '9:00 AM - 9:00 PM', sub: 'Pakistan Standard Time', href: '#' },
-                    ].map(({ icon: Icon, title, desc, sub, href }) => (
+                    ].map(({ icon: InfoIcon, title, desc, sub, href }) => (
                         <a key={title} href={href}
                             style={{
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
@@ -87,7 +87,7 @@ export default function ContactPage() {
                                 width: 52, height: 52, borderRadius: '50%', backgroundColor: '#000',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
                             }}>
-                                <Icon size={22} color="#fff" />
+                                <InfoIcon size={22} color="#fff" />
                             </div>
                             <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{title}</h3>
                             <p style={{ fontWeight: 500, fontSize: 14, marginBottom: 4 }}>{desc}</p>

@@ -26,7 +26,7 @@ export default function ProfilePage() {
             toast.success('Profile updated!');
             setEditing(false);
         }
-        catch (err) { toast.error(err.response?.data?.message || 'Update failed'); }
+        catch { toast.error('Update failed'); }
         finally { setLoading(false); }
     };
 
@@ -35,7 +35,7 @@ export default function ProfilePage() {
         if (passForm.newPassword !== passForm.confirmPassword) { toast.error('Passwords do not match'); return; }
         setLoading(true);
         try { await authAPI.changePassword(passForm); toast.success('Password changed!'); setChangingPass(false); setPassForm({ currentPassword: '', newPassword: '', confirmPassword: '' }); }
-        catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+        catch { toast.error('Failed'); }
         finally { setLoading(false); }
     };
 
@@ -131,14 +131,17 @@ export default function ProfilePage() {
                         toast.success('Logged out successfully');
                         navigate('/');
                     }, 600);
-                } catch (err) {
+                } catch {
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('user');
+                    updateUser(null);
                     toast.dismiss(loadingToast);
-                    toast.error('Logout failed');
+                    navigate('/');
                 }
             }}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff3333', fontWeight: 500, fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer' }}>
                 <FiLogOut size={16} /> Sign Out
             </button>
-        </div>
+        </div >
     );
 }

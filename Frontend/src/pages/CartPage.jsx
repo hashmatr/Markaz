@@ -33,7 +33,7 @@ export default function CartPage() {
     const total = subtotal - discount + deliveryFee;
 
     const handleQtyChange = async (itemId, qty) => {
-        try { await updateItem(itemId, qty); } catch (err) { toast.error('Failed to update quantity'); }
+        try { await updateItem(itemId, qty); } catch { toast.error('Failed to update quantity'); }
     };
     const handleRemove = async (itemId) => {
         try { await removeItem(itemId); toast.success('Item removed'); } catch { toast.error('Failed to remove'); }

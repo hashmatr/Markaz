@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiMapPin, FiPhone, FiUser, FiCreditCard, FiLock } from 'react-icons/fi';
 import Breadcrumb from '../components/ui/Breadcrumb';
@@ -21,9 +21,8 @@ export default function CheckoutPage() {
     const [selectedAddressId, setSelectedAddressId] = useState(null);
     const [warnings, setWarnings] = useState({});
     const [isFirstOrder, setIsFirstOrder] = useState(false);
-    const [checkingFirstOrder, setCheckingFirstOrder] = useState(true);
 
-    const items = cart?.items || [];
+    const items = useMemo(() => cart?.items || [], [cart?.items]);
     const subtotal = items.reduce((s, i) => s + (i.price * i.quantity), 0);
     const discount = items.reduce((s, i) => s + ((i.price - (i.discountedPrice || i.price)) * i.quantity), 0);
     const afterItemDiscount = subtotal - discount;
@@ -55,8 +54,7 @@ export default function CheckoutPage() {
                     const totalOrders = res.data?.data?.pagination?.totalOrders || 0;
                     setIsFirstOrder(totalOrders === 0);
                 })
-                .catch(() => setIsFirstOrder(false))
-                .finally(() => setCheckingFirstOrder(false));
+                .catch(() => setIsFirstOrder(false));
         }
     }, [items, navigate, loading, user, authLoading]);
 

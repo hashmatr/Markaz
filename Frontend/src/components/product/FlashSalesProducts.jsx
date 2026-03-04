@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { FiChevronLeft, FiChevronRight, FiZap } from 'react-icons/fi';
 import ProductCard from './ProductCard';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 
 export default function FlashSalesProducts({ flashSales = [] }) {
     const scrollRef = useRef(null);
@@ -64,7 +64,7 @@ export default function FlashSalesProducts({ flashSales = [] }) {
                     </div>
                 </div>
 
-                <motion.div
+                <Motion.div
                     ref={scrollRef}
                     className="scrollbar-hide"
                     initial="hidden"
@@ -84,7 +84,7 @@ export default function FlashSalesProducts({ flashSales = [] }) {
                         scrollSnapType: 'x mandatory', paddingBottom: '12px',
                     }}>
                     {allFlashProducts.map((product, idx) => (
-                        <motion.div
+                        <Motion.div
                             key={`${product._id}-${idx}`}
                             variants={{
                                 hidden: { opacity: 0, scale: 0.95 },
@@ -95,9 +95,9 @@ export default function FlashSalesProducts({ flashSales = [] }) {
                                 position: 'relative'
                             }}>
                             <ProductCard product={product} />
-                        </motion.div>
+                        </Motion.div>
                     ))}
-                </motion.div>
+                </Motion.div>
             </div>
         </section>
     );

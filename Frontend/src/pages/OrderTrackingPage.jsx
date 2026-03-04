@@ -44,7 +44,7 @@ export default function OrderTrackingPage() {
     const { id } = useParams();
     const { user } = useAuth();
     const [order, setOrder] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !!(id && localStorage.getItem('accessToken')));
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -53,8 +53,6 @@ export default function OrderTrackingPage() {
                 .then(r => setOrder(r.data.data.order))
                 .catch(err => setError(err.response?.data?.message || 'Failed to load order'))
                 .finally(() => setLoading(false));
-        } else {
-            setLoading(false);
         }
     }, [user, id]);
 

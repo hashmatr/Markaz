@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FiArrowRight, FiArrowLeft, FiZap, FiUsers, FiBarChart2, FiHeart, FiChevronRight, FiChevronLeft, FiPause, FiPlay, FiStar, FiShield } from 'react-icons/fi';
 import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 import ProductCard from '../components/product/ProductCard';
@@ -178,7 +178,6 @@ const FloatingBadge = ({ children, icon: Icon, delay = 0, position = {} }) => (
 
 export default function HomePage() {
     const { user } = useAuth();
-    const navigate = useNavigate();
 
     // Mobile detection for responsive layout
     const [isMobile, setIsMobile] = useState(window.innerWidth < 640);

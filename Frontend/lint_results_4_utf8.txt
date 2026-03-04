@@ -1,0 +1,13 @@
+﻿
+> frontend@0.0.0 lint
+> eslint .
+
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\ProductDetailPage.jsx
+  38:11  warning  The 'validTabs' array makes the dependencies of useEffect Hook (at line 54) change on every render. To fix this, wrap the initialization of 'validTabs' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\SellerDashboardPage.jsx
+  125:27  error  'useCallback' is not defined  no-undef
+
+ظ£û 2 problems (1 error, 1 warning)
+

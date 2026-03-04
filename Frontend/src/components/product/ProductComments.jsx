@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { commentAPI } from '../../api';
 import toast from 'react-hot-toast';
 
-export default function ProductComments({ productId, sellerId, highlightCommentId }) {
+export default function ProductComments({ productId, highlightCommentId }) {
     const { user } = useAuth();
     const [comments, setComments] = useState([]);
     const [newMessage, setNewMessage] = useState('');
@@ -21,16 +21,16 @@ export default function ProductComments({ productId, sellerId, highlightCommentI
 
     useEffect(() => {
         fetchComments();
-    }, [productId, page]);
+    }, [productId, page, fetchComments]);
 
-    const fetchComments = async () => {
+    const fetchComments = useCallback(async () => {
         try {
             const res = await commentAPI.getProductComments(productId, { page, limit: 10 });
             setComments(res.data.data.comments || []);
             setTotalPages(res.data.data.pagination?.totalPages || 1);
         } catch { setComments([]); }
         finally { setLoading(false); }
-    };
+    }, [productId, page]);
 
     // Scroll to highlighted comment after comments are loaded
     useEffect(() => {
@@ -47,7 +47,7 @@ export default function ProductComments({ productId, sellerId, highlightCommentI
                 }
             }, 300);
         }
-    }, [loading, comments, highlightCommentId]);
+    }, [loading, comments, highlightCommentId, fetchComments]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -193,7 +193,6 @@ export default function ProductComments({ productId, sellerId, highlightCommentI
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {comments.map(comment => {
                         const isHighlighted = highlightedId === comment._id;
-                        const isReplyHighlighted = comment.replies?.some(r => r._id === highlightedId);
                         return (
                             <div key={comment._id} id={`comment-${comment._id}`} style={{
                                 border: isHighlighted ? '2px solid #3b82f6' : '1px solid #f0f0f0',

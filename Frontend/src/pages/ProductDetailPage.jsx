@@ -6,7 +6,7 @@ import StarRating from '../components/ui/StarRating';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import ProductCard from '../components/product/ProductCard';
 import SEO from '../components/ui/SEO';
-import { productAPI, reviewAPI, cartAPI, stylistAPI } from '../api';
+import { productAPI, reviewAPI, stylistAPI } from '../api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import ProductComments from '../components/product/ProductComments';
@@ -51,14 +51,13 @@ export default function ProductDetailPage() {
         if (normalizedTab && validTabs.includes(normalizedTab)) {
             setActiveTab(normalizedTab);
         }
-    }, [normalizedTab]);
+    }, [normalizedTab, validTabs]);
 
     useEffect(() => {
         setSelectedImage(0);
         setSelectedColor(0);
         setQuantity(1);
         setShowAllReviews(false);
-        setLoading(true);
         setLoading(true);
         // window.scrollTo(0, 0); // Removed as ScrollToTop component exists
 
@@ -86,7 +85,7 @@ export default function ProductDetailPage() {
                     if (user?._id) {
                         stylistAPI.recordView({ productId: fetchedProduct._id }).catch(() => { });
                     }
-                } catch (e) {
+                } catch {
                     // Non-critical: don't let stylist tracking break product display
                 }
 
@@ -122,7 +121,7 @@ export default function ProductDetailPage() {
                 }
             })
             .catch(() => { });
-    }, [id]);
+    }, [id, navigate, user?._id]);
 
     const handleAddToCart = async () => {
         if (!user) {
@@ -702,7 +701,7 @@ export default function ProductDetailPage() {
                 {/* Q&A Tab (Buyer-Seller Chat) */}
                 {activeTab === 'qa' && product && (
                     <div style={{ paddingTop: '32px' }}>
-                        <ProductComments productId={product._id} sellerId={product?.seller?._id} highlightCommentId={highlightCommentId} />
+                        <ProductComments productId={product._id} highlightCommentId={highlightCommentId} />
                     </div>
                 )}
 
@@ -713,8 +712,6 @@ export default function ProductDetailPage() {
                             Frequently Asked Questions
                         </h3>
                         {(() => {
-                            const specs = product.specifications || [];
-                            const getSpec = (key) => specs.find(s => s.key?.toLowerCase().includes(key))?.value;
                             const faqs = [
                                 { q: "Is this product genuine?", a: "Yes, all products on Markaz are 100% authentic and sourced directly from verified sellers." },
                                 { q: "What is the return policy?", a: "We offer a 7-day easy return policy for this product if it's damaged or not as described." },

@@ -17,12 +17,12 @@ const statusConfig = {
 export default function OrdersPage() {
     const { user } = useAuth();
     const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !!localStorage.getItem('accessToken'));
 
     useEffect(() => {
         if (user) {
             orderAPI.getMyOrders().then(r => setOrders(r.data.data.orders || [])).catch(() => { }).finally(() => setLoading(false));
-        } else setLoading(false);
+        }
     }, [user]);
 
     if (!user) {

@@ -13,7 +13,6 @@ export default function OrderSuccessPage() {
     const sessionId = searchParams.get('session_id') || null;
     const orderId = stateOrderId || urlOrderId;
 
-    const [showConfetti, setShowConfetti] = useState(true);
     const [verifyingPayment, setVerifyingPayment] = useState(!!sessionId);
     const [paymentVerified, setPaymentVerified] = useState(false);
     const [error, setError] = useState(null);
@@ -28,14 +27,13 @@ export default function OrderSuccessPage() {
             updateUser(res.data.data.user);
         }).catch(err => console.error('Failed to refresh profile:', err));
 
-        const timer = setTimeout(() => setShowConfetti(false), 3000);
+        const timer = setTimeout(() => { /* showConfetti could be toggled here if we had a component */ }, 3000);
         return () => clearTimeout(timer);
-    }, []); // Empty dependency array to run only once on mount
+    }, [updateUser]); // Removed [] and added updateUser
 
     // Verify Stripe payment if session_id is present
     useEffect(() => {
         if (sessionId && orderId && !paymentVerified) {
-            setVerifyingPayment(true);
             paymentAPI.verifySession({ sessionId, orderId })
                 .then(() => {
                     setPaymentVerified(true);
@@ -146,9 +144,9 @@ export default function OrderSuccessPage() {
                     marginTop: '48px', padding: '24px', backgroundColor: '#eff6ff',
                     borderRadius: '16px', border: '1px solid #dbeafe',
                 }}>
-                    <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '8px', color: '#1e40af' }}>What's Next?</h3>
+                    <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '8px', color: '#1e40af' }}>What&apos;s Next?</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: '#3b82f6', textAlign: 'left' }}>
-                        <p>You'll receive an order confirmation notification</p>
+                        <p>You&apos;ll receive an order confirmation notification</p>
                         <p>The seller will confirm and process your order</p>
                         <p>Your order will be shipped within 1-2 business days</p>
                         <p>Estimated delivery: 5-7 business days</p>

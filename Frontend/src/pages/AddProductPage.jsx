@@ -33,7 +33,7 @@ export default function AddProductPage() {
     useEffect(() => {
         categoryAPI.getAll().then(res => {
             setCategories(res.data.data.categories);
-        }).catch(err => {
+        }).catch(() => {
             toast.error('Failed to load categories');
         });
     }, []);

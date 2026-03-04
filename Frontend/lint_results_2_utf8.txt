@@ -1,0 +1,81 @@
+﻿
+> frontend@0.0.0 lint
+> eslint .
+
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\components\layout\Footer.jsx
+  86:37  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\components\product\ProductComments.jsx
+    7:54  error  'sellerId' is defined but never used. Allowed unused args must match /^[A-Z_]/u                     no-unused-vars
+  196:31  error  'isReplyHighlighted' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\AboutPage.jsx
+  38:33  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\AddProductPage.jsx
+  36:18  error  'err' is defined but never used. Allowed unused args must match /^[A-Z_]/u  no-unused-vars
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\AdminDashboardPage.jsx
+  312:124  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  312:189  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\CartPage.jsx
+   36:55  error  'err' is defined but never used                                  no-unused-vars
+   62:95  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  148:44  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\CheckoutPage.jsx
+  273:69  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\ContactPage.jsx
+   62:68   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  117:114  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\ForgotPasswordPage.jsx
+  175:33  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\HomePage.jsx
+    2:16  error  'useNavigate' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  942:84  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                     react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\LoginPage.jsx
+  80:24  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\OrderSuccessPage.jsx
+   16:12   error    'showConfetti' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                   no-unused-vars
+   33:8    warning  React Hook useEffect has a missing dependency: 'updateUser'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  148:114  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                react/no-unescaped-entities
+  150:31   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\ProductDetailPage.jsx
+    9:33   error    'cartAPI' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                 no-unused-vars
+   54:8    warning  React Hook useEffect has a missing dependency: 'validTabs'. Either include it or remove the dependency array                   react-hooks/exhaustive-deps
+   89:26   error    'e' is defined but never used                                                                                                  no-unused-vars
+  125:8    warning  React Hook useEffect has missing dependencies: 'navigate' and 'user?._id'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  213:86   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                react/no-unescaped-entities
+  213:107  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                react/no-unescaped-entities
+  576:134  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                react/no-unescaped-entities
+  576:151  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                react/no-unescaped-entities
+  717:35   error    'getSpec' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                        no-unused-vars
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\ProfilePage.jsx
+  121:137  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\SellerDashboardPage.jsx
+  123:8  warning  React Hook useEffect has a missing dependency: 'nominationModal'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\SellersPage.jsx
+  46:55  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\ShopPage.jsx
+   77:8    warning  React Hook useEffect has missing dependencies: 'currentMaxPrice' and 'currentMinPrice'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  143:8    warning  React Hook useEffect has missing dependencies: 'products.length' and 'searchParams'. Either include them or remove the dependency array     react-hooks/exhaustive-deps
+  143:210  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked    react-hooks/exhaustive-deps
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\StorePage.jsx
+  63:84   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  63:105  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+ظ£û 38 problems (31 errors, 7 warnings)
+

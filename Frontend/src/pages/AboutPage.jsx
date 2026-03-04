@@ -65,13 +65,13 @@ export default function AboutPage() {
                         { num: '50K+', label: 'Products Listed', icon: FiPackage },
                         { num: '10K+', label: 'Happy Customers', icon: FiGlobe },
                         { num: '99%', label: 'Satisfaction Rate', icon: FiAward },
-                    ].map(({ num, label, icon: Icon }) => (
+                    ].map(({ num, label, icon: SectionIcon }) => (
                         <div key={label} style={{ textAlign: 'center', padding: '16px 0' }}>
                             <div style={{
                                 width: 48, height: 48, borderRadius: 12, backgroundColor: '#f5f5f5',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px',
                             }}>
-                                <Icon size={22} />
+                                <SectionIcon size={22} />
                             </div>
                             <div style={{ fontFamily: "'Integral CF', sans-serif", fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{num}</div>
                             <div style={{ fontSize: 13, color: '#737373' }}>{label}</div>
@@ -154,7 +154,7 @@ export default function AboutPage() {
                                 desc: 'We promote eco-friendly practices and support local artisans to create a sustainable shopping ecosystem.',
                                 Icon: FiFeather,
                             },
-                        ].map(({ title, desc, Icon }) => (
+                        ].map(({ title, desc, Icon: SectionIcon }) => (
                             <div key={title} style={{
                                 padding: 28, borderRadius: 20, backgroundColor: '#fff', border: '1px solid #e5e5e5',
                                 transition: 'all 0.25s',
@@ -163,7 +163,7 @@ export default function AboutPage() {
                                 onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
                             >
                                 <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                                    <Icon size={22} color="#fff" />
+                                    <SectionIcon size={22} color="#fff" />
                                 </div>
                                 <h3 style={{ fontWeight: 700, fontSize: 17, marginBottom: 10 }}>{title}</h3>
                                 <p style={{ color: '#737373', fontSize: 14, lineHeight: 1.7 }}>{desc}</p>
@@ -187,13 +187,13 @@ export default function AboutPage() {
                         { icon: FiShield, title: 'Secure Payments', desc: 'Multiple payment options including COD, online banking, and digital wallets.' },
                         { icon: FiHeadphones, title: '24/7 Support', desc: 'Our dedicated support team is always ready to help you with any queries.' },
                         { icon: FiRefreshCw, title: 'Easy Returns', desc: '30-day hassle-free return policy on all products. No questions asked.' },
-                    ].map(({ icon: Icon, title, desc }) => (
+                    ].map(({ icon: SectionIcon, title, desc }) => (
                         <div key={title} style={{ textAlign: 'center', padding: 28 }}>
                             <div style={{
                                 width: 64, height: 64, borderRadius: '50%', backgroundColor: '#000',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
                             }}>
-                                <Icon size={24} color="#fff" />
+                                <SectionIcon size={24} color="#fff" />
                             </div>
                             <h3 style={{ fontWeight: 700, fontSize: 17, marginBottom: 10 }}>{title}</h3>
                             <p style={{ color: '#737373', fontSize: 14, lineHeight: 1.7 }}>{desc}</p>

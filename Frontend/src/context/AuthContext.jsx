@@ -5,10 +5,12 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return null;
         const saved = localStorage.getItem('user');
         return saved ? JSON.parse(saved) : null;
     });
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !!localStorage.getItem('accessToken'));
 
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
@@ -26,10 +28,6 @@ export function AuthProvider({ children }) {
                     setUser(null);
                 })
                 .finally(() => setLoading(false));
-        } else {
-            setUser(null);
-            localStorage.removeItem('user');
-            setLoading(false);
         }
     }, []);
 
@@ -52,7 +50,7 @@ export function AuthProvider({ children }) {
     };
 
     const logout = async () => {
-        try { await authAPI.logout(); } catch { }
+        try { await authAPI.logout(); } catch (err) { console.error('Logout error:', err); }
         setUser(null);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
@@ -70,6 +68,7 @@ export function AuthProvider({ children }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
     const ctx = useContext(AuthContext);
     if (!ctx) throw new Error('useAuth must be used within AuthProvider');

@@ -113,7 +113,7 @@ export default function Navbar() {
                 toast.success('Logged out successfully');
                 navigate('/');
             }, 600);
-        } catch (err) {
+        } catch {
             toast.dismiss(loadingToast);
             toast.error('Logout failed. Please try again.');
         }

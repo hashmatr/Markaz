@@ -7,7 +7,6 @@ const SEO = ({
     title,
     description,
     image,
-    article,
     url,
     type = 'website',
     schemaData = null,

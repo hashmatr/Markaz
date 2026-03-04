@@ -19,7 +19,6 @@ export default function StorePage() {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        setLoading(true);
 
         sellerAPI.getBySlug(slug)
             .then(r => {
@@ -42,7 +41,7 @@ export default function StorePage() {
             })
             .catch(() => setSeller(null))
             .finally(() => setLoading(false));
-    }, [slug]);
+    }, [slug, navigate]);
 
 
 
