@@ -8,10 +8,21 @@ const pineconeService = require('../Service/pineconeService');
  * Returns visually similar products ranked by similarity.
  */
 const searchByImage = asyncHandler(async (req, res) => {
+    // Debug logging for troubleshooting 400 errors
+    console.log('Visual Search Request Received:');
+    console.log('- Has File:', !!req.file);
+    console.log('- File Info:', req.file ? { mimetype: req.file.mimetype, size: req.file.size } : 'None');
+    console.log('- Body Keys:', Object.keys(req.body || {}));
+    console.log('- Content-Type:', req.headers['content-type']);
+
     if (!req.file) {
         return res.status(400).json({
             success: false,
-            message: 'Please upload an image to search',
+            message: 'Please upload an image to search. No image was received by the server.',
+            debug: {
+                contentType: req.headers['content-type'],
+                hasBody: Object.keys(req.body || {}).length > 0
+            }
         });
     }
 

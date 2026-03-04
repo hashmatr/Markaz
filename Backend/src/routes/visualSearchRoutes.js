@@ -20,7 +20,21 @@ const upload = multer({
 });
 
 // POST /api/visual-search — Search by image (public)
-router.post('/', upload.single('image'), searchByImage);
+router.post('/', (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+            // A Multer error occurred when uploading.
+            console.error('Multer Error:', err.message);
+            return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+        } else if (err) {
+            // An unknown error occurred when uploading.
+            console.error('Unknown Upload Error:', err.message);
+            return res.status(400).json({ success: false, message: err.message });
+        }
+        // Everything went fine.
+        next();
+    });
+}, searchByImage);
 
 // POST /api/visual-search/text — Semantic text search (public)
 router.post('/text', searchByText);
