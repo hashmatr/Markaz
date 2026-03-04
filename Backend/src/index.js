@@ -166,13 +166,25 @@ app.use(errorHandler);
 // ─── Start Server ────────────────────────────
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, async () => {
-    console.log(`\n🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-    console.log(`📡 API Base URL: http://localhost:${PORT}`);
-    console.log('────────────────────────────────────────');
-    await connectDb();
-    await connectRedis(); // Non-fatal — falls back to in-memory if Redis unavailable
-    await connectPinecone(); // Non-fatal — vector search disabled if unavailable
-});
+// On Vercel (serverless), don't call app.listen — the platform handles it.
+// We still need to connect to DB/Redis/Pinecone eagerly.
+if (process.env.VERCEL) {
+    // Eager init for serverless — runs once per cold start
+    (async () => {
+        await connectDb();
+        await connectRedis();
+        await connectPinecone();
+        console.log('✅ Vercel serverless: connections initialized');
+    })();
+} else {
+    app.listen(PORT, async () => {
+        console.log(`\n🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+        console.log(`📡 API Base URL: http://localhost:${PORT}`);
+        console.log('────────────────────────────────────────');
+        await connectDb();
+        await connectRedis(); // Non-fatal — falls back to in-memory if Redis unavailable
+        await connectPinecone(); // Non-fatal — vector search disabled if unavailable
+    });
+}
 
 module.exports = app;
