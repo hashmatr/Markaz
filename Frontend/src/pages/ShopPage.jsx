@@ -79,12 +79,13 @@ export default function ShopPage() {
     useEffect(() => { categoryAPI.getAll().then(r => setCategories(r.data.data.categories || [])).catch(() => { }); }, []);
     useEffect(() => { sellerAPI.getAll({ status: 'active', limit: 100 }).then(r => setSellers(r.data.data.sellers || [])).catch(() => { }); }, []);
 
+    const hasProducts = products.length > 0;
+
     // Fetch products whenever URL params change
     useEffect(() => {
         let cancelled = false;
         const conditionParam = searchParams.get('condition');
         const fetchProducts = async () => {
-            // ... (keep visual search logic)
             if (location.state?.visualSearchResults) {
                 setProducts(location.state.visualSearchResults);
                 setPagination({ currentPage: 1, totalPages: 1, totalProducts: location.state.visualSearchResults.length });
@@ -92,14 +93,13 @@ export default function ShopPage() {
                 return;
             }
 
-            if (products.length > 0) setIsBackgroundLoading(true);
+            if (hasProducts) setIsBackgroundLoading(true);
             else setLoading(true);
 
             try {
                 const params = { sort: currentSort, page: currentPage, limit: 30 };
                 if (currentSearch) params.search = currentSearch;
 
-                // Priority: categorySlug from route > currentCategory from query
                 const categoryIdentifier = categorySlug || currentCategory;
                 if (categoryIdentifier) params.category = categoryIdentifier;
 
@@ -115,9 +115,8 @@ export default function ShopPage() {
 
                 const res = await productAPI.getAll(params);
 
-                if (cancelled) return; // Discard result if a newer request fired
+                if (cancelled) return;
 
-                // Deduplicate by _id (safety guard against backend returning duplicates)
                 const rawProducts = res.data.data.products || [];
                 const seen = new Map();
                 const uniqueProducts = rawProducts.filter(p => {
@@ -142,7 +141,7 @@ export default function ShopPage() {
         fetchProducts();
 
         return () => { cancelled = true; };
-    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, currentFreeDelivery, searchParams, location.state, products.length]);
+    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, currentFreeDelivery, location.state, hasProducts]);
 
     // SEO Redirect: If accessed by ID query param and we have the slug
     useEffect(() => {
