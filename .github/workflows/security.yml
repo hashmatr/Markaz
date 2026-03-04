@@ -1,0 +1,127 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Security Scan
+# Scans every PR and push for hardcoded secrets, vulnerable dependencies,
+# and known CVEs — prevents another accidental credential leak.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 1"        # Every Monday at 3am UTC (weekly scan)
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Scan for hardcoded secrets / credentials (Gitleaks)
+  # ───────────────────────────────────────────────────────────────────────────
+  secret-scan:
+    name: Secret Detection (Gitleaks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0         # Full history — scan all commits, not just HEAD
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Audit npm dependencies for known CVEs
+  # ───────────────────────────────────────────────────────────────────────────
+  npm-audit-backend:
+    name: npm Audit — Backend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit (high + critical only)
+        run: npm audit --audit-level=high
+        continue-on-error: true  # Report but don't fail CI (some are transitive/unfixable)
+
+  npm-audit-frontend:
+    name: npm Audit — Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit (high + critical only)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Scan Docker images for OS-level CVEs (Trivy)
+  # ───────────────────────────────────────────────────────────────────────────
+  trivy-backend:
+    name: Trivy Scan — Backend Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build backend image for scanning
+        run: docker build -t markaz-backend:scan ./Backend
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "markaz-backend:scan"
+          format: "table"
+          exit-code: "0"         # Don't fail CI — just report
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+
+  trivy-frontend:
+    name: Trivy Scan — Frontend Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build frontend image for scanning
+        run: docker build -t markaz-frontend:scan ./Frontend
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "markaz-frontend:scan"
+          format: "table"
+          exit-code: "0"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
