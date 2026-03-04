@@ -141,7 +141,7 @@ export default function ShopPage() {
         fetchProducts();
 
         return () => { cancelled = true; };
-    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, currentFreeDelivery, location.state, hasProducts]);
+    }, [currentSort, currentSearch, currentPage, currentCategory, categorySlug, currentMinPrice, currentMaxPrice, currentColor, currentSize, currentBrand, currentSeller, currentFlashSale, currentFreeDelivery, location.state, hasProducts, searchParams]);
 
     // SEO Redirect: If accessed by ID query param and we have the slug
     useEffect(() => {

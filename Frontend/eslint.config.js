@@ -3,11 +3,10 @@ import globals from 'globals'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  // ── Service Worker (sw.js) — uses browser + serviceworker globals ──
+export default [
+  { ignores: ['dist'] },
+  // ── Service Worker (sw.js) ──
   {
     files: ['public/sw.js'],
     languageOptions: {
@@ -18,7 +17,6 @@ export default defineConfig([
     },
     rules: {
       ...js.configs.recommended.rules,
-      'no-restricted-globals': 'off',
     },
   },
   // ── Vite config — Node context ──
@@ -40,7 +38,9 @@ export default defineConfig([
     },
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+      },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },
@@ -73,4 +73,4 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
-])
+]
