@@ -164,7 +164,7 @@ export const paymentAPI = {
 
 // Visual Search API (CLIP-based)
 export const visualSearchAPI = {
-    searchByImage: (formData) => API.post('/visual-search', formData, {
+    searchByImage: (formData) => API.post('/visual-search/', formData, {
         timeout: 90000, // Increased to 90s for potentially slow CLIP processing
     }),
     getStatus: () => API.get('/visual-search/status'),

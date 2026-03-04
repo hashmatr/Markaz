@@ -19,6 +19,14 @@ const upload = multer({
     },
 });
 
+// GET /api/visual-search — Informative error for wrong method
+router.get('/', (req, res) => {
+    res.status(405).json({
+        success: false,
+        message: 'Visual search requires a POST request with an image file. If you see this error, make sure your URL ends with a trailing slash to avoid redirects.'
+    });
+});
+
 // POST /api/visual-search — Search by image (public)
 router.post('/', (req, res, next) => {
     upload.single('image')(req, res, (err) => {
