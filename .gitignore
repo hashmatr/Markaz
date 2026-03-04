@@ -3,3 +3,7 @@ node_modules/
 
 # Architecture & internal docs (sensitive)
 AI_STYLIST_ARCHITECTURE.md
+
+# Kubernetes — never commit real secret files
+k8s/**/secret.yaml
+k8s/**/*.secret.yaml
