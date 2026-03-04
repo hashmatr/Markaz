@@ -33,7 +33,10 @@ API.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
             originalRequest._retry = true;
             try {
-                const { data } = await axios.post('/api/auth/refresh-token', {}, { withCredentials: true });
+                const refreshURL = import.meta.env.VITE_BACKEND_URL
+                    ? `${import.meta.env.VITE_BACKEND_URL}/api/auth/refresh-token`
+                    : '/api/auth/refresh-token';
+                const { data } = await axios.post(refreshURL, {}, { withCredentials: true });
                 const newToken = data.data.accessToken;
                 localStorage.setItem('accessToken', newToken);
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
