@@ -47,27 +47,27 @@ app.use(helmet({
 */
 
 // ─── CORS ────────────────────────────────────
-app.use(
-    cors({
-        origin: (origin, callback) => {
-            const allowed = [
-                process.env.CLIENT_URL || 'http://localhost:5173',
-                'http://127.0.0.1:5173',
-                'http://localhost:3000',
-                'http://127.0.0.1:3000',
-                process.env.ADMIN_URL || 'http://localhost:3001',
-            ];
-            // Allow all *.vercel.app preview/production URLs and localhost
-            if (!origin || allowed.includes(origin) || origin.endsWith('.vercel.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-                return callback(null, true);
-            }
-            return callback(new Error(`CORS: origin ${origin} not allowed`));
-        },
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
-    })
-);
+const allowedOrigins = [
+    'https://markaz-ecommers.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:3001'
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1 && !origin.endsWith('.vercel.app')) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+}));
 
 
 // ─── Body Parsing ────────────────────────────
