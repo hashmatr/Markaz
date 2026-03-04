@@ -19,10 +19,6 @@ export default function ProductComments({ productId, highlightCommentId }) {
     const [highlightedId, setHighlightedId] = useState(highlightCommentId || null);
     const scrolledRef = useRef(false);
 
-    useEffect(() => {
-        fetchComments();
-    }, [productId, page, fetchComments]);
-
     const fetchComments = useCallback(async () => {
         try {
             const res = await commentAPI.getProductComments(productId, { page, limit: 10 });
@@ -31,6 +27,10 @@ export default function ProductComments({ productId, highlightCommentId }) {
         } catch { setComments([]); }
         finally { setLoading(false); }
     }, [productId, page]);
+
+    useEffect(() => {
+        fetchComments();
+    }, [productId, page, fetchComments]);
 
     // Scroll to highlighted comment after comments are loaded
     useEffect(() => {

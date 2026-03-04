@@ -1,0 +1,21 @@
+﻿node.exe : - Finding files
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (- Findi  
+  ng files:String) [], Rem   
+ oteException
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+Processed 43 files (1.9s) (2 warnings)
+
+ظ£¤ No circular dependency 
+found!
+

@@ -12,6 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import ProductComments from '../components/product/ProductComments';
 import toast from 'react-hot-toast';
 
+const validTabs = ['details', 'reviews', 'qa', 'faqs'];
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 export default function ProductDetailPage() {
@@ -35,7 +37,6 @@ export default function ProductDetailPage() {
     // Normalize tab aliases (e.g. old notifications use 'comments' instead of 'qa')
     const tabAliases = { comments: 'qa' };
     const normalizedTab = urlTab ? (tabAliases[urlTab] || urlTab) : null;
-    const validTabs = ['details', 'reviews', 'qa', 'faqs'];
     const initialTab = normalizedTab && validTabs.includes(normalizedTab) ? normalizedTab : 'reviews';
     const [activeTab, setActiveTab] = useState(initialTab);
     const [loadingCart, setLoadingCart] = useState(false);
@@ -51,7 +52,7 @@ export default function ProductDetailPage() {
         if (normalizedTab && validTabs.includes(normalizedTab)) {
             setActiveTab(normalizedTab);
         }
-    }, [normalizedTab, validTabs]);
+    }, [normalizedTab]);
 
     useEffect(() => {
         setSelectedImage(0);

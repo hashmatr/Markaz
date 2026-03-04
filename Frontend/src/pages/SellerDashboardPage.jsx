@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { sellerAPI, productAPI, orderAPI, categoryAPI, flashSaleAPI, notificationAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -116,12 +116,6 @@ export default function SellerDashboardPage() {
         }).finally(() => setLoading(false));
     }, []);
 
-    useEffect(() => {
-        if (activeTab === 'products' || (typeof nominationModal !== 'undefined' && nominationModal?.open)) {
-            fetchProducts();
-        }
-    }, [activeTab, nominationModal, fetchProducts]);
-
     const fetchProducts = useCallback(async () => {
         setProductsLoading(true);
         try {
@@ -141,6 +135,12 @@ export default function SellerDashboardPage() {
         } catch { setProducts([]); }
         finally { setProductsLoading(false); }
     }, [currentSort, currentPage, currentSearch, currentCategory, currentMinPrice, currentMaxPrice, currentColor, currentFreeDelivery]);
+
+    useEffect(() => {
+        if (activeTab === 'products' || (typeof nominationModal !== 'undefined' && nominationModal?.open)) {
+            fetchProducts();
+        }
+    }, [activeTab, nominationModal, fetchProducts]);
 
     const fetchActiveFlashSales = async () => {
         try {

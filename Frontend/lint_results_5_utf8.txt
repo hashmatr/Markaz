@@ -1,0 +1,10 @@
+﻿
+> frontend@0.0.0 lint
+> eslint .
+
+
+E:\Mern\Projects\Ecommers\Markaz\Frontend\src\pages\ProductDetailPage.jsx
+  55:8  warning  React Hook useEffect has an unnecessary dependency: 'validTabs'. Either exclude it or remove the dependency array. Outer scope values like 'validTabs' aren't valid dependencies because mutating them doesn't re-render the component  react-hooks/exhaustive-deps
+
+ظ£û 1 problem (0 errors, 1 warning)
+

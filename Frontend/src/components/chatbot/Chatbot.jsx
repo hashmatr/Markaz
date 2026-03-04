@@ -61,20 +61,6 @@ export default function Chatbot() {
         }
     }, [isOpen, activeTab]);
 
-    // Load recommendations when "For You" tab is opened
-    useEffect(() => {
-        if (activeTab === 'forYou' && user && recommendations.length === 0 && !recsLoading) {
-            loadRecommendations();
-        }
-    }, [activeTab, user, recommendations.length, recsLoading, loadRecommendations]);
-
-    // Load profile when profile tab opens
-    useEffect(() => {
-        if (activeTab === 'profile' && user && !userProfile && !profileLoading) {
-            loadProfile();
-        }
-    }, [activeTab, user, userProfile, profileLoading, loadProfile]);
-
     const loadRecommendations = useCallback(async () => {
         if (!user) return;
         setRecsLoading(true);
@@ -102,6 +88,20 @@ export default function Chatbot() {
             setProfileLoading(false);
         }
     }, [user]);
+
+    // Load recommendations when "For You" tab is opened
+    useEffect(() => {
+        if (activeTab === 'forYou' && user && recommendations.length === 0 && !recsLoading) {
+            loadRecommendations();
+        }
+    }, [activeTab, user, recommendations.length, recsLoading, loadRecommendations]);
+
+    // Load profile when profile tab opens
+    useEffect(() => {
+        if (activeTab === 'profile' && user && !userProfile && !profileLoading) {
+            loadProfile();
+        }
+    }, [activeTab, user, userProfile, profileLoading, loadProfile]);
 
     // Scroll detection
     const handleScroll = () => {
