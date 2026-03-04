@@ -12,7 +12,8 @@ metadata:
 data:
   NODE_ENV: "production"
   PORT: "5000"
-  CLIENT_URL: "http://localhost"         # External URL of the frontend
+  CLIENT_URL: "https://markaz.vercel.app"      # ← Update after Vercel deployment
+
   ADMIN_URL: "http://localhost:3001"
   DEFAULT_COMMISSION_RATE: "10"
   EMAIL_SERVICE: "gmail"

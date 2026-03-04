@@ -1,5 +1,6 @@
 const authService = require('../Service/authService');
 const asyncHandler = require('../middleware/asyncHandler');
+const { refreshCookieOptions, clearRefreshCookieOptions } = require('../utils/cookieOptions');
 
 class AuthController {
     /**
@@ -8,14 +9,8 @@ class AuthController {
     register = asyncHandler(async (req, res) => {
         const { user, tokens } = await authService.register(req.body);
 
-        // Set refresh token in httpOnly cookie
-        res.cookie('refreshToken', tokens.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
+        // Set refresh token in httpOnly cookie (cross-origin safe for Vercel ↔ K8s)
+        res.cookie('refreshToken', tokens.refreshToken, refreshCookieOptions());
 
         return res.status(201).json({
             success: true,
@@ -34,13 +29,7 @@ class AuthController {
         const { email, password } = req.body;
         const { user, tokens } = await authService.login(email, password);
 
-        res.cookie('refreshToken', tokens.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+        res.cookie('refreshToken', tokens.refreshToken, refreshCookieOptions());
 
         return res.status(200).json({
             success: true,
@@ -59,13 +48,7 @@ class AuthController {
         const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
         const { user, tokens } = await authService.refreshToken(refreshToken);
 
-        res.cookie('refreshToken', tokens.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+        res.cookie('refreshToken', tokens.refreshToken, refreshCookieOptions());
 
         return res.status(200).json({
             success: true,
@@ -85,7 +68,8 @@ class AuthController {
         // Pass jti so the current access token is immediately blocklisted in Redis
         await authService.logout(refreshToken, req.user?._id, req.tokenJti);
 
-        res.clearCookie('refreshToken', { path: '/' });
+        // Must pass matching sameSite/secure options or browser won't clear it
+        res.clearCookie('refreshToken', clearRefreshCookieOptions());
 
         return res.status(200).json({
             success: true,
@@ -130,13 +114,7 @@ class AuthController {
             confirmPassword
         );
 
-        res.cookie('refreshToken', tokens.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+        res.cookie('refreshToken', tokens.refreshToken, refreshCookieOptions());
 
         return res.status(200).json({
             success: true,

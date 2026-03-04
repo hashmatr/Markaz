@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// In production (Vercel), VITE_BACKEND_URL is set to the full K8s backend URL,
+// e.g. https://api.markaz.pk  — requests go directly to Kubernetes.
+// In local dev, it falls back to '/api' so the Vite proxy (vite.config.js) handles it.
 const API = axios.create({
-    baseURL: '/api',
+    baseURL: import.meta.env.VITE_BACKEND_URL
+        ? `${import.meta.env.VITE_BACKEND_URL}/api`
+        : '/api',
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json',

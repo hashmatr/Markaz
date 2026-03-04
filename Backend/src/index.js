@@ -49,18 +49,26 @@ app.use(helmet({
 // ─── CORS ────────────────────────────────────
 app.use(
     cors({
-        origin: [
-            process.env.CLIENT_URL || 'http://localhost:5173',
-            'http://127.0.0.1:5173',
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-            process.env.ADMIN_URL || 'http://localhost:3001',
-        ],
+        origin: (origin, callback) => {
+            const allowed = [
+                process.env.CLIENT_URL || 'http://localhost:5173',
+                'http://127.0.0.1:5173',
+                'http://localhost:3000',
+                'http://127.0.0.1:3000',
+                process.env.ADMIN_URL || 'http://localhost:3001',
+            ];
+            // Allow all *.vercel.app preview/production URLs
+            if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
+                return callback(null, true);
+            }
+            return callback(new Error(`CORS: origin ${origin} not allowed`));
+        },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
         allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
     })
 );
+
 
 // ─── Body Parsing ────────────────────────────
 app.use(express.json({ limit: '10mb' }));
