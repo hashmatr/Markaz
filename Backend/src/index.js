@@ -57,8 +57,8 @@ app.use(
                 'http://127.0.0.1:3000',
                 process.env.ADMIN_URL || 'http://localhost:3001',
             ];
-            // Allow all *.vercel.app preview/production URLs
-            if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
+            // Allow all *.vercel.app preview/production URLs and localhost
+            if (!origin || allowed.includes(origin) || origin.endsWith('.vercel.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
                 return callback(null, true);
             }
             return callback(new Error(`CORS: origin ${origin} not allowed`));
